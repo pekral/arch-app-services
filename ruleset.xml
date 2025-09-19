@@ -66,7 +66,7 @@
         <exclude-pattern>tests/*</exclude-pattern>
         <properties>
             <property name="lineLimit" value="100"/>
-            <property name="absoluteLineLimit" value="150"/>
+            <property name="absoluteLineLimit" value="200"/>
         </properties>
     </rule>
     
