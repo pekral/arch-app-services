@@ -6,6 +6,7 @@ namespace Pekral\Arch\Tests\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -15,12 +16,14 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Carbon\Carbon|null $email_verified_at
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
+ * @property \Carbon\Carbon|null $deleted_at
  */
 final class User extends Model
 {
 
     /** @use \Illuminate\Database\Eloquent\Factories\HasFactory<\Pekral\Arch\Tests\Models\UserFactory> */
     use HasFactory;
+    use SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -31,6 +34,7 @@ final class User extends Model
 
     /** @var array<string, string> */
     protected $casts = [
+        'deleted_at' => 'datetime',
         'email_verified_at' => 'datetime',
     ];
 
