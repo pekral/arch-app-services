@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<ruleset name="Arch App Services PHPCS Rules">
+    <description>Custom PHPCS rules for Arch App Services package</description>
+
+    <!-- Include pekral/phpcs-rules -->
+    <rule ref="vendor/pekral/phpcs-rules/ruleset.xml"/>
+
+    <!-- Files to check -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Exclude vendor directory -->
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>build/*</exclude-pattern>
+    <exclude-pattern>coverage.xml</exclude-pattern>
+
+    <!-- Show progress and use colors -->
+    <arg name="colors"/>
+    <arg value="p"/>
+
+    <!-- Check PHP files only -->
+    <arg name="extensions" value="php"/>
+
+    <!-- Custom configurations for this package -->
+    <rule ref="SlevomatCodingStandard.Classes.ClassLength">
+        <properties>
+            <!-- Allow longer classes for abstract base classes -->
+            <property name="maxLinesLength" value="300"/>
+        </properties>
+    </rule>
+
+    <!-- Allow underscores in test method names -->
+    <rule ref="Squiz.NamingConventions.ValidFunctionName.NotCamelCaps">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Allow single line PHPDoc comments for properties -->
+    <rule ref="SlevomatCodingStandard.Commenting.DisallowOneLinePropertyDocComment">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Exclude test classes from requiring final (needed for mocking) -->
+    <rule ref="SlevomatCodingStandard.Classes.RequireAbstractOrFinal">
+        <exclude-pattern>tests/Unit/TestUserModelManager.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/TestUserRepository.php</exclude-pattern>
+    </rule>
+
+    <!-- Allow unused parameters in TestCase (Orchestra\Testbench requirement) -->
+    <rule ref="SlevomatCodingStandard.Functions.UnusedParameter">
+        <exclude-pattern>tests/TestCase.php</exclude-pattern>
+    </rule>
+
+    <!-- Pest test closures should not be static -->
+    <rule ref="SlevomatCodingStandard.Functions.StaticClosure">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Allow short type hints in PHPDoc (Rector compatibility) -->
+    <rule ref="SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly.ReferenceViaFullyQualifiedName">
+        <exclude-pattern>src/*</exclude-pattern>
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Allow long lines in tests and adjust line length limits -->
+    <rule ref="Generic.Files.LineLength">
+        <exclude-pattern>tests/*</exclude-pattern>
+        <properties>
+            <property name="lineLimit" value="100"/>
+            <property name="absoluteLineLimit" value="150"/>
+        </properties>
+    </rule>
+    
+    <!-- Relax line length for PHPDoc comments -->
+    <rule ref="Generic.Files.LineLength.TooLong">
+        <severity>3</severity> <!-- Convert to warning -->
+    </rule>
+</ruleset>

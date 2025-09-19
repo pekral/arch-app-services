@@ -1,0 +1,145 @@
+{
+  "name": "pekral/arch-app-services",
+  "description": "Laravel package providing architectural abstractions for services, repositories and model managers",
+  "license": "MIT",
+  "type": "library",
+  "keywords": [
+    "laravel",
+    "package",
+    "architecture",
+    "repository",
+    "service",
+    "model-manager"
+  ],
+  "authors": [
+    {
+      "name": "Petr Král",
+      "email": "kral.petr.88@gmail.com",
+      "homepage": "https://github.com/pekral",
+      "role": "Maintainer"
+    }
+  ],
+  "require": {
+    "php": "^8.4",
+    "illuminate/contracts": "^12.0",
+    "illuminate/database": "^12.0",
+    "illuminate/pagination": "^12.0",
+    "illuminate/support": "^12.0"
+  },
+  "require-dev": {
+    "ergebnis/composer-normalize": "^2.48.2",
+    "larastan/larastan": "^3.7.2",
+    "laravel/pint": "^1.25.1",
+    "orchestra/testbench": "^10.6",
+    "pekral/phpcs-rules": "^0.4.2",
+    "pekral/rector-rules": "^0.4.2",
+    "phpstan/extension-installer": "^1.4.3",
+    "phpstan/phpstan": "^2.1.28",
+    "phpstan/phpstan-deprecation-rules": "^2.0.3",
+    "phpunit/phpunit": "^12.0",
+    "rector/rector": "^2.1.7",
+    "roave/security-advisories": "dev-latest",
+    "squizlabs/php_codesniffer": ">=4"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "Pekral\\Arch\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Pekral\\Arch\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "ergebnis/composer-normalize": true,
+      "phpstan/extension-installer": false
+    },
+    "sort-packages": true
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Pekral\\Arch\\ArchServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "analyse": [
+      "echo \"🔍 Running PHPStan static analysis...\"",
+      "vendor/bin/phpstan analyse --memory-limit=2G"
+    ],
+    "check": [
+      "echo \"🚀 Running full quality check...\"",
+      "@normalize-check",
+      "@phpcs-check",
+      "@pint-check",
+      "@rector-check",
+      "@analyse",
+      "@security-audit",
+      "@test",
+      "echo \"✅ All checks completed!\""
+    ],
+    "coverage": [
+      "echo \"📊 Running code coverage analysis...\"",
+      "@test:coverage"
+    ],
+    "fix": [
+      "echo \"🔧 Running all fixes...\"",
+      "@normalize-fix",
+      "@rector-fix",
+      "@pint-fix",
+      "@phpcs-fix",
+      "echo \"✅ All fixes completed!\""
+    ],
+    "normalize-check": [
+      "echo \"📝 Checking Composer normalize...\"",
+      "composer normalize --dry-run"
+    ],
+    "normalize-fix": [
+      "echo \"📝 Running Composer normalize fix...\"",
+      "composer normalize"
+    ],
+    "phpcs-check": [
+      "echo \"✅ Running PHP CodeSniffer check...\"",
+      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/"
+    ],
+    "phpcs-fix": [
+      "echo \"🔧 Running PHP CodeSniffer fix...\"",
+      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ || true"
+    ],
+    "pint-check": [
+      "echo \"🎨 Running Laravel Pint check...\"",
+      "vendor/bin/pint src/ tests/ --test"
+    ],
+    "pint-fix": [
+      "echo \"🎨 Running Laravel Pint fixes...\"",
+      "vendor/bin/pint src/ tests/"
+    ],
+    "rector-check": [
+      "echo \"🔄 Running Rector check (dry-run)...\"",
+      "vendor/bin/rector process --dry-run"
+    ],
+    "rector-fix": [
+      "echo \"🔄 Running Rector fixes...\"",
+      "vendor/bin/rector process"
+    ],
+    "security-audit": [
+      "echo \"🔒 Running Composer security audit...\"",
+      "composer audit --format=summary"
+    ],
+    "test": [
+      "echo \"🧪 Running tests...\"",
+      "vendor/bin/phpunit --no-coverage"
+    ],
+    "test:coverage": [
+      "echo \"📊 Running coverage tests with 100% minimum...\"",
+      "php -dpcov.enabled=1 -dpcov.directory=src/ -dxdebug.mode=off vendor/bin/phpunit --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text",
+      "php check-coverage.php"
+    ]
+  }
+}
