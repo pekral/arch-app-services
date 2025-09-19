@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-09-19
+
+
+- 📝 **Changed**: App - init
+- 📝 **Changed**: Initial commit
+
 ## 1.0.0 - 2025-09-18
 
 ### Added
