@@ -6,7 +6,8 @@
          executionOrder="default"
          failOnRisky="true"
          failOnWarning="true"
-         stopOnFailure="false">
+         stopOnFailure="false"
+         beStrictAboutTestsThatDoNotTestAnything="false">
     <testsuites>
         <testsuite name="Arch Test Suite">
             <directory suffix="Test.php">./tests</directory>

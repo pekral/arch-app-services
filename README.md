@@ -10,6 +10,8 @@ Laravel package providing architectural abstractions for services, repositories 
 - **Abstract Facade Pattern**: Provides consistent interface for service layers
 - **Repository Pattern**: Database query abstraction with pagination support  
 - **Model Manager**: CRUD operations with batch processing capabilities
+- **Validation Layer**: Integrated validation for all CRUD operations
+- **Soft Delete Support**: Complete soft delete functionality with restore capabilities
 - **Type Safety**: Full PHPDoc type annotations and generics support
 - **Laravel 12 Ready**: Built for latest Laravel features and conventions
 
@@ -39,9 +41,9 @@ php artisan vendor:publish --tag="arch-config"
 namespace App\Repositories;
 
 use App\Models\User;
-use Pekral\Arch\Repository\Mysql\AbstractRepository;
+use Pekral\Arch\Repository\Mysql\BaseRepository;
 
-final class UserRepository extends AbstractRepository
+final class UserRepository extends BaseRepository
 {
     protected function getModelClassName(): string
     {
@@ -58,9 +60,9 @@ final class UserRepository extends AbstractRepository
 namespace App\Services;
 
 use App\Models\User;
-use Pekral\Arch\ModelManager\Mysql\AbstractModelManager;
+use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
 
-final class UserModelManager extends AbstractModelManager
+final class UserModelManager extends BaseModelManager
 {
     protected function getModelClassName(): string
     {
@@ -69,31 +71,50 @@ final class UserModelManager extends AbstractModelManager
 }
 ```
 
-### Creating a Service Facade
+### Creating a Service
 
 ```php
 <?php
 
 namespace App\Services;
 
-use Pekral\Arch\Service\Service;
-use App\Repositories\UserRepository;
+use App\Models\User;
+use Pekral\Arch\Service\BaseModelService;
 
-final class UserService extends Service
+final class UserService extends BaseModelService
 {
-    public function __construct(
-        private readonly UserModelManager $modelManager,
-        private readonly UserRepository $repository,
-    ) {}
-
-    protected function getModelManager(): UserModelManager
+    protected function getModelClass(): string
     {
-        return $this->modelManager;
+        return User::class;
     }
 
-    protected function getRepository(): UserRepository
+    protected function createModelManager(): UserModelManager
     {
-        return $this->repository;
+        return new UserModelManager();
+    }
+
+    protected function createRepository(): UserRepository
+    {
+        return new UserRepository();
+    }
+
+    // Optional: Define validation rules
+    protected function getCreateRules(): array
+    {
+        return [
+            'email' => 'required|email|unique:users',
+            'name' => 'required|string|max:255',
+            'password' => 'required|string|min:6',
+        ];
+    }
+
+    protected function getUpdateRules(): array
+    {
+        return [
+            'email' => 'sometimes|email|unique:users,email,{id}',
+            'name' => 'sometimes|string|max:255',
+            'password' => 'sometimes|string|min:6',
+        ];
     }
 }
 ```
@@ -102,22 +123,99 @@ final class UserService extends Service
 
 #### Repository Methods
 
-- `getPaginated(Collection|array $params, array $withRelations = [], int $itemsPerPage = 15)`
-- `getOneByParams(Collection|array $params)` - throws ModelNotFoundException
-- `findOneByParams(Collection|array $params, array $with = [])` - returns null if not found
-- `allByParams(Collection|array $params, array $with = [])`
+- `paginateByParams(Collection|array $params, array $with = [], ?int $perPage = null, array $orderBy = [], array $groupBy = [])`
+- `getOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - throws ModelNotFoundException
+- `findOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - returns null if not found
+- `findAllByParams(Collection|array $params, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null)`
+- `countByParams(Collection|array $params, array $groupBy = [])`
 
 #### Model Manager Methods
 
-- `createOrUpdate(Collection|array $data, ?Model $model)`
-- `create(Collection $data)`
-- `deleteByKeys(Collection $keys)`
-- `batchInsert(Collection $data, bool $insertOrIgnore)`
-- `updateByKeys(Collection $data, array $keys)`
+- `create(array $data)` - create single record
+- `updateByParams(array $data, array $conditions)` - update by conditions
+- `deleteByParams(array $parameters)` - delete by parameters
+- `bulkCreate(array $dataArray)` - bulk create records
+- `bulkUpdate(array $dataArray, string $keyColumn = 'id')` - bulk update records
+- `softDeleteByParams(array $parameters)` - soft delete by parameters
 
-#### Facade Methods
+#### Service Methods (Combines Repository + Model Manager)
 
-Combines repository and model manager functionality with automatic parameter conversion.
+**CRUD Operations:**
+- `create(array|Collection $attributes, ?array $rules = null)` - create with validation
+- `updateByParams(array|Collection $data, array $conditions, ?array $rules = null)` - update with validation
+- `deleteByParams(array|Collection $parameters)` - delete by parameters
+
+**Read Operations:**
+- `findOneByParams(array|Collection $parameters, array $with = [], array $orderBy = [])` - find one or null
+- `getOneByParams(array|Collection $parameters, array $with = [], array $orderBy = [])` - find one or throw exception
+- `findAllByParams(array|Collection $parameters, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null)` - find all
+- `paginateByParams(array|Collection $parameters = [], array $with = [], ?int $perPage = null, array $orderBy = [], array $groupBy = [])` - paginate
+- `countByParams(array|Collection $parameters, array $groupBy = [])` - count records
+
+**Soft Delete Operations:**
+- `softDelete(int|string $id)` - soft delete by ID
+- `softDeleteByParams(array|Collection $parameters)` - soft delete by parameters
+- `restore(int|string $id)` - restore soft deleted record
+- `restoreByParams(array|Collection $parameters)` - restore by parameters
+- `forceDelete(int|string $id)` - permanent delete by ID
+- `forceDeleteByParams(array|Collection $parameters)` - permanent delete by parameters
+
+### Validation Example
+
+```php
+// Service with validation rules
+final class UserService extends BaseModelService
+{
+    protected function getCreateRules(): array
+    {
+        return [
+            'email' => 'required|email|unique:users',
+            'name' => 'required|string|max:255',
+            'password' => 'required|string|min:6',
+        ];
+    }
+
+    protected function getUpdateRules(): array
+    {
+        return [
+            'email' => 'sometimes|email|unique:users,email,{id}',
+            'name' => 'sometimes|string|max:255',
+            'password' => 'sometimes|string|min:6',
+        ];
+    }
+}
+
+// Usage with automatic validation
+$user = $userService->create([
+    'email' => 'john@example.com',
+    'name' => 'John Doe',
+    'password' => 'password123',
+]);
+
+// Usage with custom rules
+$user = $userService->create($data, [
+    'email' => 'required|email',
+    'name' => 'required|string',
+]);
+```
+
+### Soft Delete Example
+
+```php
+// Soft delete by ID
+$deleted = $userService->softDelete($user->id);
+
+// Soft delete by parameters
+$deletedCount = $userService->softDeleteByParams([
+    'email' => 'old@example.com'
+]);
+
+// Restore soft deleted record
+$restored = $userService->restore($user->id);
+
+// Permanent delete
+$deleted = $userService->forceDelete($user->id);
+```
 
 ## Configuration
 
