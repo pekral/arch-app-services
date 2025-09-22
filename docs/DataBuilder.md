@@ -1,237 +1,154 @@
-# DataBuilder - Custom Data Normalization
+# Data Builder Pattern
 
-DataBuilder umožňuje programátorovi definovat vlastní logiku pro normalizaci dat před validací a databázovými operacemi.
+Data Builder je návrhový vzor, který umožňuje snadné rozšiřování jakékoliv action o data transformace pomocí Laravel Pipeline patternu.
 
-## Základní použití
+## Architektura
 
-### 1. Override buildData() v Service třídě
+### Základní komponenty
+
+1. **DataBuilder Interface** - Definuje kontrakt pro všechny data buildery
+2. **BaseDataBuilder** - Abstraktní základní třída s implementací Laravel Pipeline
+3. **DataBuilderFactory** - Factory pro vytváření builder instancí
+4. **UsesDataBuilder Trait** - Trait pro snadné použití v action třídách
+
+## Použití
+
+### 1. Vytvoření nového Data Builderu
 
 ```php
 <?php
 
-use Pekral\Arch\Service\BaseModelService;
-use Pekral\Arch\Service\DataBuilder;
+namespace App\Actions\Product\DataBuilder;
 
-class UserService extends BaseModelService
+use Pekral\Arch\Service\BaseDataBuilder;
+
+final class ProductDataBuilder extends BaseDataBuilder
 {
-    // ... implementace abstraktních metod ...
-
-    /**
-     * Override buildData() pro vlastní normalizaci dat.
-     */
-    protected function buildData(Collection|array $data): array
+    public function getPipes(): array
     {
-        return $this->createDataBuilder($data)
-            ->trimStrings()
-            ->emptyStringsToNull()
-            ->normalizeBooleans()
-            ->normalizeDates()
-            ->addNormalizer(function (array $data): array {
-                // Vlastní logika pro User model
-                
-                // Normalizace emailu
-                if (isset($data['email'])) {
-                    $data['email'] = strtolower(trim($data['email']));
-                }
-                
-                // Normalizace jména
-                if (isset($data['name'])) {
-                    $data['name'] = ucwords(strtolower(trim($data['name'])));
-                }
-                
-                // Generování slug z jména
-                if (isset($data['name']) && !isset($data['slug'])) {
-                    $data['slug'] = $this->generateSlug($data['name']);
-                }
-                
-                // Výchozí hodnoty
-                if (!isset($data['is_active'])) {
-                    $data['is_active'] = true;
-                }
-                
-                // Odstranění citlivých polí
-                unset($data['password_confirmation']);
-                unset($data['_token']);
-                
-                return $data;
-            })
-            ->build();
+        return [
+            NormalizeProductNamePipe::class,
+            FormatProductPricePipe::class,
+            ValidateProductCategoryPipe::class,
+        ];
     }
 }
 ```
 
-### 2. Automatické volání buildData()
+### 2. Použití v Action třídě
 
-DataBuilder se automaticky volá v metodách `create()` a `updateByParams()`:
-
-```php
-// buildData() se zavolá automaticky před validací
-$user = $userService->create($requestData);
-
-// buildData() se zavolá automaticky před validací
-$userService->updateByParams($updateData, ['id' => $userId]);
-```
-
-### 3. Vlastní DataBuilder instance
-
-Pro speciální případy můžete vytvořit vlastní DataBuilder:
+#### Metoda 1: Použití Traitu (doporučeno)
 
 ```php
-public function createFromApi(array $apiData): User
+<?php
+
+namespace App\Actions\Product;
+
+use Pekral\Arch\Service\UsesDataBuilder;
+
+final readonly class CreateProduct
 {
-    $normalizedData = $this->createDataBuilder($apiData)
-        ->trimStrings()
-        ->normalizeBooleans()
-        ->addNormalizer(function (array $data): array {
-            // API-specific processing
-            if (isset($data['external_id'])) {
-                $data['api_id'] = $data['external_id'];
-                unset($data['external_id']);
-            }
-            
-            return $data;
-        })
-        ->build();
+    use UsesDataBuilder;
 
-    return $this->create($normalizedData);
+    public function __construct(
+        private ProductService $productService,
+    ) {
+    }
+
+    public function __invoke(array $data): Product
+    {
+        $transformedData = $this->transformDataWithBuilder($data, ProductDataBuilder::class);
+        
+        return $this->productService->create($transformedData);
+    }
 }
 ```
 
-## Dostupné metody DataBuilder
-
-### Základní normalizace
+#### Metoda 2: Přímé použití Factory
 
 ```php
-$builder = DataBuilder::create()
-    ->setData($data)
-    ->trimStrings()                    // Otrimuje všechny stringy
-    ->emptyStringsToNull()             // Převádí prázdné stringy na null
-    ->normalizeBooleans()              // Normalizuje boolean hodnoty
-    ->normalizeDates()                 // Normalizuje datumy
-    ->build();
-```
+<?php
 
-### Vlastní normalizace
+namespace App\Actions\Product;
 
-```php
-$builder = DataBuilder::create()
-    ->setData($data)
-    ->addNormalizer(function (array $data): array {
-        // Vlastní logika
-        if (isset($data['email'])) {
-            $data['email'] = strtolower($data['email']);
-        }
-        
-        return $data;
-    })
-    ->build();
-```
-
-### Reset a opakované použití
-
-```php
-$builder = DataBuilder::create();
-
-// První použití
-$result1 = $builder->setData($data1)->trimStrings()->build();
-
-// Reset
-$builder->reset();
-
-// Druhé použití
-$result2 = $builder->setData($data2)->normalizeBooleans()->build();
-```
-
-## Factory metody
-
-### DataBuilderFactory
-
-```php
 use Pekral\Arch\Service\DataBuilderFactory;
 
-// Pro request data (základní normalizace)
-$data = DataBuilderFactory::forRequest($requestData)->build();
-
-// Pro form data (s normalizací dat)
-$data = DataBuilderFactory::forForm($formData)->build();
-
-// Pro API data (striktní normalizace)
-$data = DataBuilderFactory::forApi($apiData)->build();
-
-// Vlastní normalizace
-$data = DataBuilderFactory::custom($data, [
-    'trim',
-    'empty_to_null',
-    'booleans',
-    'dates'
-])->build();
-```
-
-## Příklady použití
-
-### 1. Request processing
-
-```php
-public function createFromRequest(Request $request): User
+final readonly class CreateProduct
 {
-    // buildData() se zavolá automaticky
-    return $this->create($request->all());
-}
-```
-
-### 2. Form processing s dodatečnou logikou
-
-```php
-public function createFromForm(array $formData): User
-{
-    $processedData = $this->createDataBuilder($formData)
-        ->trimStrings()
-        ->emptyStringsToNull()
-        ->normalizeBooleans()
-        ->normalizeDates()
-        ->addNormalizer(function (array $data): array {
-            // Form-specific processing
-            if (isset($data['birth_date'])) {
-                $data['age'] = $this->calculateAge($data['birth_date']);
-            }
-            
-            return $data;
-        })
-        ->build();
-
-    return $this->create($processedData);
-}
-```
-
-### 3. Bulk processing
-
-```php
-public function processBulkUsers(Collection $bulkData): Collection
-{
-    $results = collect();
-
-    foreach ($bulkData as $userData) {
-        // Každý item se zpracuje pomocí buildData()
-        $results->push($this->create($userData));
+    public function __construct(
+        private ProductService $productService,
+        private DataBuilderFactory $dataBuilderFactory,
+    ) {
     }
 
-    return $results;
+    public function __invoke(array $data): Product
+    {
+        $dataBuilder = $this->dataBuilderFactory->create(ProductDataBuilder::class);
+        $transformedData = $dataBuilder->build($data);
+        
+        return $this->productService->create($transformedData);
+    }
+}
+```
+
+## Vytvoření Pipe
+
+```php
+<?php
+
+namespace App\Actions\Product\Pipes;
+
+use Pekral\Arch\Examples\Acitons\User\Pipes\UserDataPipe;
+
+final readonly class NormalizeProductNamePipe implements UserDataPipe
+{
+    public function handle(array $data, callable $next): array
+    {
+        if (isset($data['name']) && is_string($data['name'])) {
+            $data['name'] = trim($data['name']);
+        }
+
+        return $next($data);
+    }
+}
+```
+
+## Pokročilé použití
+
+### Vlastní Pipes pro specifickou Action
+
+```php
+public function __invoke(array $data): Product
+{
+    $customPipes = [
+        NormalizeProductNamePipe::class,
+        CustomValidationPipe::class,
+    ];
+
+    $transformedData = $this->transformData($data, ProductDataBuilder::class);
+    
+    // Nebo s custom pipes
+    $dataBuilderFactory = app(DataBuilderFactory::class);
+    $customBuilder = $dataBuilderFactory->createWithPipes(ProductDataBuilder::class, $customPipes);
+    $transformedData = $customBuilder->build($data);
+    
+    return $this->productService->create($transformedData);
 }
 ```
 
 ## Výhody
 
-1. **Centralizovaná logika** - Všechna normalizace dat na jednom místě
-2. **Automatické volání** - DataBuilder se volá automaticky před validací
-3. **Flexibilita** - Můžete definovat vlastní normalizační logiku
-4. **Znovupoužitelnost** - Stejná logika pro create i update operace
-5. **Testovatelnost** - Snadné testování normalizační logiky
-6. **Konzistence** - Zajišťuje konzistentní zpracování dat
+1. **Modulární** - Každý pipe má jednu zodpovědnost
+2. **Rozšiřitelný** - Snadno se přidávají nové pipes
+3. **Testovatelný** - Každý pipe lze testovat samostatně
+4. **Znovupoužitelný** - Stejné pipes lze použít v různých builders
+5. **Konfigurovatelný** - Builders lze registrovat podle kontextu
+6. **Type-safe** - Všechny komponenty jsou správně typované
 
-## Best Practices
+## Registrace Service Provideru
 
-1. **Override buildData()** pro základní normalizaci v Service třídě
-2. **Používejte addNormalizer()** pro specifickou logiku
-3. **Testujte normalizační logiku** samostatně
-4. **Dokumentujte vlastní normalizace** v komentářích
-5. **Používejte type hints** pro lepší IDE podporu
+V `config/app.php` nebo v package service provideru:
+
+```php
+$this->app->register(DataBuilderServiceProvider::class);
+```

@@ -1,0 +1,19 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace Pekral\Arch\Examples\Acitons\User\Pipes;
+
+final readonly class LowercaseEmailPipe implements UserDataPipe
+{
+
+    public function handle(array $data, callable $next): array
+    {
+        if (isset($data['email']) && is_string($data['email'])) {
+            $data['email'] = strtolower($data['email']);
+        }
+
+        return $next($data);
+    }
+
+}

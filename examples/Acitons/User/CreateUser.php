@@ -4,11 +4,16 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Acitons\User;
 
+use Pekral\Arch\Examples\Acitons\User\DataBuilder\UserDataBuilder;
 use Pekral\Arch\Examples\Services\User\UserModelService;
+use Pekral\Arch\Service\UsesDataBuilder;
 use Pekral\Arch\Tests\Models\User;
 
 final readonly class CreateUser
 {
+
+    /** @use \Pekral\Arch\Service\UsesDataBuilder<array{email: string, name: string, password: string}> */
+    use UsesDataBuilder;
 
     public function __construct(private UserModelService $userModelService)
     {
@@ -16,11 +21,13 @@ final readonly class CreateUser
 
     public function __invoke(string $name, string $email, string $password): User
     {
-        return $this->userModelService->create([
+        $data = [
             'email' => $email,
             'name' => $name,
             'password' => $password,
-        ]);
+        ];
+
+        return $this->userModelService->create($this->transformDataWithBuilder($data, UserDataBuilder::class));
     }
 
 }

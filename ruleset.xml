@@ -8,6 +8,7 @@
     <!-- Files to check -->
     <file>src</file>
     <file>tests</file>
+    <file>examples</file>
 
     <!-- Exclude vendor directory -->
     <exclude-pattern>vendor/*</exclude-pattern>
