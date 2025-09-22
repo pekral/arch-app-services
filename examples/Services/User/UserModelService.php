@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Pekral\Arch\Examples\Services\User;
 
 use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
@@ -7,13 +9,14 @@ use Pekral\Arch\Repository\Mysql\BaseRepository;
 use Pekral\Arch\Service\BaseModelService;
 use Pekral\Arch\Tests\Models\User;
 
-final readonly class UserService extends BaseModelService
+/**
+ * @extends \Pekral\Arch\Service\BaseModelService<\Pekral\Arch\Tests\Models\User>
+ */
+final readonly class UserModelService extends BaseModelService
 {
 
-    public function __construct(
-        protected UserModelManager $userModelManager,
-        protected UserRepository $userRepository,
-    ) {
+    public function __construct(private UserModelManager $userModelManager, private UserRepository $userRepository)
+    {
     }
 
     protected function getModelClass(): string
@@ -30,4 +33,5 @@ final readonly class UserService extends BaseModelService
     {
         return $this->userRepository;
     }
+
 }

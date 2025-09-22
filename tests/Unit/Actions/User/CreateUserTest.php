@@ -18,8 +18,6 @@ final class CreateUserTest extends TestCase
      */
     public function testCreateUser(): void
     {
-        // Arrange
-
         $createUserAction = $this->app?->make(CreateUser::class);
         \assert($createUserAction instanceof \Pekral\Arch\Examples\Acitons\User\CreateUser);
         $name = fake()->name();
@@ -30,10 +28,8 @@ final class CreateUserTest extends TestCase
         $createUserAction($name, $email, $password);
 
         // Assert
-        User::query()->where([
-            'email' => $email,
-            'name' => $name,
-        ])->firstOrFail();
+        User::query()->where(['email' => $email, 'name' => $name])
+            ->firstOrFail();
     }
 
 }
