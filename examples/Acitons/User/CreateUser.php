@@ -4,30 +4,27 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Acitons\User;
 
-use Pekral\Arch\Examples\Acitons\User\DataBuilder\UserDataBuilder;
+use Pekral\Arch\Action\Action;
+use Pekral\Arch\Data\ActionData;
+use Pekral\Arch\Examples\Acitons\User\Pipes\LowercaseEmailPipe;
+use Pekral\Arch\Examples\Acitons\User\Pipes\UcFirstNamePipe;
 use Pekral\Arch\Examples\Services\User\UserModelService;
-use Pekral\Arch\Service\UsesDataBuilder;
+use Pekral\Arch\Service\DataBuilder;
 use Pekral\Arch\Tests\Models\User;
 
-final readonly class CreateUser
+final readonly class CreateUser implements Action
 {
 
-    /** @use \Pekral\Arch\Service\UsesDataBuilder<array{email: string, name: string, password: string}> */
-    use UsesDataBuilder;
-
-    public function __construct(private UserModelService $userModelService)
+    public function __construct(private UserModelService $userModelService, private DataBuilder $baseDataBuilder)
     {
     }
 
-    public function __invoke(string $name, string $email, string $password): User
+    public function execute(ActionData $data): User
     {
-        $data = [
-            'email' => $email,
-            'name' => $name,
-            'password' => $password,
-        ];
 
-        return $this->userModelService->create($this->transformDataWithBuilder($data, UserDataBuilder::class));
+        $dataNormalized = $this->baseDataBuilder->build($data, [LowercaseEmailPipe::class, UcFirstNamePipe::class]);
+
+        return $this->userModelService->create($dataNormalized);
     }
 
 }
