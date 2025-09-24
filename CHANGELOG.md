@@ -2,6 +2,14 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-09-24 (PR #2)
+
+
+- 📝 **Changed**: feature(data builders) - init basic data builders
+- 📝 **Changed**: tests(user) - more tests in examples folder
+- 📝 **Changed**: chore(composer) - update dependencies
+- 📝 **Changed**: feat(repository) - more options
+
 ## [Unreleased] - 2025-09-19 (PR #1)
 
 
