@@ -7,6 +7,7 @@ parameters:
     paths:
         - src
         - tests
+        - examples
     tmpDir: build/phpstan
     
     bootstrapFiles:

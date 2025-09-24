@@ -36,7 +36,8 @@
     "phpstan/extension-installer": "^1.4.3",
     "phpstan/phpstan": "^2.1.28",
     "phpstan/phpstan-deprecation-rules": "^2.0.3",
-    "phpunit/phpunit": "^12.3.11",
+    "phpstan/phpstan-phpunit": "^2.0.7",
+    "phpunit/phpunit": "^12.3.12",
     "rector/rector": "^2.1.7",
     "roave/security-advisories": "dev-latest",
     "squizlabs/php_codesniffer": ">=4"
@@ -50,6 +51,7 @@
   },
   "autoload-dev": {
     "psr-4": {
+      "Pekral\\Arch\\Examples\\": "examples/",
       "Pekral\\Arch\\Tests\\": "tests/"
     }
   },
@@ -59,6 +61,7 @@
       "ergebnis/composer-normalize": true,
       "phpstan/extension-installer": false
     },
+    "bump-after-update": true,
     "sort-packages": true
   },
   "extra": {
@@ -106,19 +109,19 @@
     ],
     "phpcs-check": [
       "echo \"✅ Running PHP CodeSniffer check...\"",
-      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/"
+      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/"
     ],
     "phpcs-fix": [
       "echo \"🔧 Running PHP CodeSniffer fix...\"",
-      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ || true"
+      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ || true"
     ],
     "pint-check": [
       "echo \"🎨 Running Laravel Pint check...\"",
-      "vendor/bin/pint src/ tests/ --test"
+      "vendor/bin/pint src/ tests/ examples/ --test"
     ],
     "pint-fix": [
       "echo \"🎨 Running Laravel Pint fixes...\"",
-      "vendor/bin/pint src/ tests/"
+      "vendor/bin/pint src/ tests/ examples/"
     ],
     "rector-check": [
       "echo \"🔄 Running Rector check (dry-run)...\"",

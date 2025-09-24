@@ -3,10 +3,9 @@
          xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
-         executionOrder="default"
          failOnRisky="true"
          failOnWarning="true"
-         stopOnFailure="false">
+         beStrictAboutTestsThatDoNotTestAnything="false">
     <testsuites>
         <testsuite name="Arch Test Suite">
             <directory suffix="Test.php">./tests</directory>
@@ -15,6 +14,7 @@
     <source>
         <include>
             <directory suffix=".php">src/</directory>
+            <directory suffix=".php">example/</directory>
         </include>
         <exclude>
             <directory>tests/</directory>
