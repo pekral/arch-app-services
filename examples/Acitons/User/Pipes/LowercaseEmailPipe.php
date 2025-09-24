@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Acitons\User\Pipes;
 
-final readonly class LowercaseEmailPipe implements UserDataPipe
+final readonly class LowercaseEmailPipe implements BuilderPipe
 {
 
     public function handle(array $data, callable $next): array

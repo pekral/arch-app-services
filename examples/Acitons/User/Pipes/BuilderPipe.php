@@ -7,7 +7,7 @@ namespace Pekral\Arch\Examples\Acitons\User\Pipes;
 /**
  * Interface for user data transformation pipes.
  */
-interface UserDataPipe
+interface BuilderPipe
 {
 
     /**

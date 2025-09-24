@@ -20,9 +20,9 @@ Data Builder je návrhový vzor, který umožňuje snadné rozšiřování jaké
 
 namespace App\Actions\Product\DataBuilder;
 
-use Pekral\Arch\Service\BaseDataBuilder;
+use Pekral\Arch\Service\DataBuilder;
 
-final class ProductDataBuilder extends BaseDataBuilder
+final class ProductDataBuilder extends DataBuilder
 {
     public function getPipes(): array
     {
@@ -44,11 +44,11 @@ final class ProductDataBuilder extends BaseDataBuilder
 
 namespace App\Actions\Product;
 
-use Pekral\Arch\Service\UsesDataBuilder;
+use Pekral\Arch\Service\UseDataBuilder;
 
 final readonly class CreateProduct
 {
-    use UsesDataBuilder;
+    use UseDataBuilder;
 
     public function __construct(
         private ProductService $productService,
@@ -57,7 +57,7 @@ final readonly class CreateProduct
 
     public function __invoke(array $data): Product
     {
-        $transformedData = $this->transformDataWithBuilder($data, ProductDataBuilder::class);
+        $transformedData = $this->transformData($data, ProductDataBuilder::class);
         
         return $this->productService->create($transformedData);
     }

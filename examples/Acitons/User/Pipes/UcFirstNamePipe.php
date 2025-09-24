@@ -4,13 +4,15 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Acitons\User\Pipes;
 
-final readonly class UcfirstNamePipe implements UserDataPipe
+use function str;
+
+final readonly class UcFirstNamePipe implements BuilderPipe
 {
 
     public function handle(array $data, callable $next): array
     {
         if (isset($data['name']) && is_string($data['name'])) {
-            $data['name'] = ucfirst($data['name']);
+            $data['name'] = str($data['name'])->lower()->ucfirst()->value();
         }
 
         return $next($data);
