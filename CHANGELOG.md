@@ -2,6 +2,14 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-10-01 (PR #3)
+
+
+- ✨ **Added**: Update user action
+- ✨ **Added**: create new with with notification now
+- 🔧 **Changed**: composer update dependencies
+- 📝 **Changed**: feature(builder) - build data via builder now in execute action
+
 ## [Unreleased] - 2025-09-24 (PR #2)
 
 
