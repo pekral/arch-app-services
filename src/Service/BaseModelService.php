@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
 use Pekral\Arch\Repository\Mysql\BaseRepository;
-use Pekral\Arch\Validation\ValidatesData;
 
 /**
  * Base service class providing CRUD operations for Eloquent models.
@@ -21,9 +20,6 @@ use Pekral\Arch\Validation\ValidatesData;
  */
 abstract readonly class BaseModelService
 {
-
-    /** @use \Pekral\Arch\Validation\ValidatesData<TModel> */
-    use ValidatesData;
 
     /**
      * Get the model class this service manages.
@@ -47,80 +43,54 @@ abstract readonly class BaseModelService
     abstract protected function getRepository(): BaseRepository;
 
     /**
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $data
-     * @param array<string, mixed>|null $rules
+     * @param array<string, mixed> $data
      * @return TModel
      */
-    public function create(array|Collection $data, ?array $rules = null): Model
+    public function create(array $data): Model
     {
-        $normalizedData = $this->normalizeData($data);
-        
-        if ($rules !== null) {
-            $this->validateData(
-                $normalizedData,
-                $rules,
-                $this->getValidationMessages(),
-                $this->getValidationAttributes(),
-            );
-        }
-
-        return $this->getModelManager()->create($normalizedData);
+        return $this->getModelManager()->create($data);
     }
 
     /**
      * @template TKey of array-key
      * @template TValue
-     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $data
+     * @param array<TKey, TValue> $data
      * @param array<string, string|int> $conditions
-     * @param array<string, mixed>|null $rules
      */
-    public function updateByParams(array|Collection $data, array $conditions, ?array $rules = null): int
+    public function updateByParams(array $data, array $conditions): int
     {
-        $normalizedData = $this->normalizeData($data);
-        
-        if ($rules !== null) {
-            $normalizedData = $this->validateData($normalizedData, $rules);
-        } elseif ($this->getUpdateRules() !== []) {
-            $normalizedData = $this->validateData(
-                $normalizedData,
-                $this->getUpdateRules(),
-                $this->getValidationMessages(),
-                $this->getValidationAttributes(),
-            );
-        }
-        
-        return $this->getModelManager()->updateByParams($normalizedData, $conditions);
+        return $this->getModelManager()->updateByParams($data, $conditions);
     }
 
     /**
      * Find a model by given criteria.
      *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
+     * @param array<string, mixed> $parameters
      * @param array<string> $with
      * @param array<string> $orderBy
      * @return TModel|null
      */
-    public function findOneByParams(array|Collection $parameters, array $with = [], array $orderBy = []): ?Model
+    public function findOneByParams(array $parameters, array $with = [], array $orderBy = []): ?Model
     {
-        return $this->getRepository()->findOneByParams($this->normalizeData($parameters), $with, $orderBy);
+        return $this->getRepository()->findOneByParams($parameters, $with, $orderBy);
     }
 
     /**
      * Find a model by given criteria or fail.
      *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
+     * @param array<string, mixed> $parameters
      * @param array<string> $with
      * @param array<string> $orderBy
      * @return TModel
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
-    public function getOneByParams(array|Collection $parameters, array $with = [], array $orderBy = []): Model
+    public function getOneByParams(array $parameters, array $with = [], array $orderBy = []): Model
     {
-        return $this->getRepository()->getOneByParams($this->normalizeData($parameters), $with, $orderBy);
+        return $this->getRepository()->getOneByParams($parameters, $with, $orderBy);
     }
 
     /**
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
+     * @param array<string, mixed> $parameters
      * @param array<string> $with
      * @param array<string> $orderBy
      * @param array<string> $groupBy
@@ -128,20 +98,14 @@ abstract readonly class BaseModelService
      * @phpstan-return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel>
      */
     public function paginateByParams(
-        array|Collection $parameters = [],
+        array $parameters = [],
         array $with = [],
         ?int $perPage = null,
         array $orderBy = [],
         array $groupBy = [],
     ): LengthAwarePaginator {
         /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel> $paginator */
-        $paginator = $this->getRepository()->paginateByParams(
-            $this->normalizeData($parameters),
-            $with,
-            $perPage,
-            $orderBy,
-            $groupBy,
-        );
+        $paginator = $this->getRepository()->paginateByParams($parameters, $with, $perPage, $orderBy, $groupBy);
 
         return $paginator;
     }
@@ -149,114 +113,34 @@ abstract readonly class BaseModelService
     /**
      * Find all models by given criteria.
      *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
+     * @param array<string, mixed> $parameters
      * @param array<string> $with
      * @param array<string> $orderBy
      * @param array<string> $groupBy
      * @return \Illuminate\Support\Collection<int, TModel>
      */
-    public function findAllByParams(
-        array|Collection $parameters,
-        array $with = [],
-        array $orderBy = [],
-        array $groupBy = [],
-        ?int $limit = null,
-    ): Collection {
-        return $this->getRepository()->findAllByParams(
-            $this->normalizeData($parameters),
-            $with,
-            $orderBy,
-            $groupBy,
-            $limit,
-        );
+    public function findAllByParams(array $parameters, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null): Collection
+    {
+        return $this->getRepository()->findAllByParams($parameters, $with, $orderBy, $groupBy, $limit);
     }
 
     /**
      * Count models by given criteria.
      *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
+     * @param array<string, mixed> $parameters
      * @param array<string> $groupBy
      */
-    public function countByParams(array|Collection $parameters, array $groupBy = []): int
+    public function countByParams(array $parameters, array $groupBy = []): int
     {
-        return $this->getRepository()->countByParams($this->normalizeData($parameters), $groupBy);
+        return $this->getRepository()->countByParams($parameters, $groupBy);
     }
 
     /**
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
+     * @param array<string, mixed> $parameters
      */
-    public function deleteByParams(array|Collection $parameters): bool
+    public function deleteByParams(array $parameters): bool
     {
-        return $this->getModelManager()->deleteByParams($this->normalizeData($parameters));
-    }
-
-    /**
-     * Soft delete a model by ID.
-     */
-    public function softDelete(int|string $id): bool
-    {
-        return $this->getModelManager()->softDelete($id);
-    }
-
-    /**
-     * Soft delete models by parameters.
-     *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
-     * @return int Number of soft deleted records
-     */
-    public function softDeleteByParams(array|Collection $parameters): int
-    {
-        return $this->getModelManager()->softDeleteByParams($this->normalizeData($parameters));
-    }
-
-    /**
-     * Restore a soft deleted model by ID.
-     */
-    public function restore(int|string $id): bool
-    {
-        return $this->getModelManager()->restore($id);
-    }
-
-    /**
-     * Restore soft deleted models by parameters.
-     *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
-     * @return int Number of restored records
-     */
-    public function restoreByParams(array|Collection $parameters): int
-    {
-        return $this->getModelManager()->restoreByParams($this->normalizeData($parameters));
-    }
-
-    /**
-     * Force delete a model by ID (permanent deletion).
-     */
-    public function forceDelete(int|string $id): bool
-    {
-        return $this->getModelManager()->forceDelete($id);
-    }
-
-    /**
-     * Force delete models by parameters (permanent deletion).
-     *
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $parameters
-     * @return int Number of force deleted records
-     */
-    public function forceDeleteByParams(array|Collection $parameters): int
-    {
-        return $this->getModelManager()->forceDeleteByParams($this->normalizeData($parameters));
-    }
-
-    /**
-     * @param array<string, mixed>|\Illuminate\Support\Collection<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function normalizeData(array|Collection $data): array
-    {
-        /** @var array<string, mixed> $result */
-        $result = $data instanceof Collection ? $data->toArray() : $data;
-
-        return $result;
+        return $this->getModelManager()->deleteByParams($parameters);
     }
 
 }

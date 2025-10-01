@@ -4,29 +4,31 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Service;
 
-/**
- * Interface for data transformation builders.
- *
- * Provides a contract for transforming data using Laravel Pipeline pattern.
- *
- * @template TData of array
- */
-interface DataBuilder
+use Illuminate\Pipeline\Pipeline;
+use Pekral\Arch\Data\ActionData;
+
+final readonly class DataBuilder
 {
 
+    public function __construct(private Pipeline $pipeline)
+    {
+    }
+    
     /**
      * Transform data using configured pipeline.
      *
-     * @param TData $data
-     * @return TData
+     * @param array<class-string> $pipes
+     * @return array<string, mixed>
      */
-    public function build(array $data): array;
-
-    /**
-     * Get the pipes that should be used for data transformation.
-     *
-     * @return array<class-string>
-     */
-    public function getPipes(): array;
+    public function build(ActionData $data, array $pipes): array
+    {
+        /** @var array<string, mixed> $result */
+        $result = $this->pipeline
+            ->send($data->getData())
+            ->through($pipes)
+            ->thenReturn();
+            
+        return $result;
+    }
 
 }

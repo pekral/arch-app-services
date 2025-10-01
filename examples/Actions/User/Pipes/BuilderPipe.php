@@ -2,12 +2,12 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Examples\Acitons\User\Pipes;
+namespace Pekral\Arch\Examples\Actions\User\Pipes;
 
 /**
  * Interface for user data transformation pipes.
  */
-interface UserDataPipe
+interface BuilderPipe
 {
 
     /**
