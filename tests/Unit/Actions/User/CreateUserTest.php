@@ -6,8 +6,8 @@ namespace Pekral\Arch\Tests\Unit\Actions\User;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
-use Pekral\Arch\Examples\Acitons\User\CreateUser;
-use Pekral\Arch\Examples\Acitons\User\Data\CreateUserActionData;
+use Pekral\Arch\Examples\Actions\User\CreateUser;
+use Pekral\Arch\Examples\Actions\User\Data\UserActionData;
 use Pekral\Arch\Tests\Models\User;
 use Pekral\Arch\Tests\TestCase;
 
@@ -26,13 +26,13 @@ final class CreateUserTest extends TestCase
         Notification::fake();
         $createUserAction = $this->app?->make(CreateUser::class);
         assert($createUserAction instanceof CreateUser);
-        $genericActionData = new CreateUserActionData('PeTr', fake()->email(), fake()->password());
+        $userActionData = new UserActionData('PeTr', fake()->email(), fake()->password());
 
         // Act
-        $createUserAction->execute($genericActionData);
+        $createUserAction->execute($userActionData);
 
         // Assert
-        $model = User::query()->where(['email' => $genericActionData->email])
+        $model = User::query()->where(['email' => $userActionData->email])
             ->firstOrFail();
 
         $this->assertEquals('Petr', $model->name);

@@ -2,15 +2,19 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Examples\Acitons\User\Data;
+namespace Pekral\Arch\Examples\Actions\User\Data;
 
 use Pekral\Arch\Data\ActionData;
 
-final class CreateUserActionData extends ActionData
+final class UserActionData extends ActionData
 {
 
-    public function __construct(public readonly string $name, public readonly string $email, public readonly string $password)
-    {
+    public function __construct(
+        public readonly string $name,
+        public readonly string $email,
+        public readonly string $password,
+        public readonly ?int $id = null,
+    ) {
     }
 
     /**
