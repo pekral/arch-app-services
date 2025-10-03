@@ -6,23 +6,23 @@ namespace Pekral\Arch\Examples\Actions\User;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
-use Pekral\Arch\Action\Action;
-use Pekral\Arch\Data\ActionData;
-use Pekral\Arch\Examples\Actions\User\Data\UserActionData;
 use Pekral\Arch\Examples\Actions\User\Pipes\LowercaseEmailPipe;
 use Pekral\Arch\Examples\Actions\User\Pipes\UcFirstNamePipe;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 use Pekral\Arch\Service\DataBuilder;
 use Pekral\Arch\Tests\Models\User;
 
-final readonly class CreateUser implements Action
+final readonly class CreateUser
 {
 
     public function __construct(private UserModelService $userModelService, private DataBuilder $baseDataBuilder)
     {
     }
 
-    public function execute(ActionData|UserActionData $data): User
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function execute(array $data): User
     {
         // Build normalized data
         $dataNormalized = $this->baseDataBuilder->build($data, [LowercaseEmailPipe::class, UcFirstNamePipe::class]);

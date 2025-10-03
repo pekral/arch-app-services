@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Service;
 
 use Illuminate\Pipeline\Pipeline;
-use Pekral\Arch\Data\ActionData;
 
 final readonly class DataBuilder
 {
@@ -17,14 +16,15 @@ final readonly class DataBuilder
     /**
      * Transform data using configured pipeline.
      *
+     * @param array<string, mixed> $data
      * @param array<class-string> $pipes
      * @return array<string, mixed>
      */
-    public function build(ActionData $data, array $pipes): array
+    public function build(array $data, array $pipes): array
     {
         /** @var array<string, mixed> $result */
         $result = $this->pipeline
-            ->send($data->getData())
+            ->send($data)
             ->through($pipes)
             ->thenReturn();
             
