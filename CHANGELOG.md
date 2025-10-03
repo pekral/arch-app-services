@@ -2,6 +2,19 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-10-03
+
+
+- 📚 **Documentation**: refresh docs for DataBuilde::class
+- ♻️ **Refactored**: renamed parameter for finally closure in DataBuildeR::class
+- ✨ **Added**: DataBuilder::class support finally closure
+- ♻️ **Refactored**: simplify action executes
+- 🔧 **Changed**: composer update dependencies
+- ✨ **Added**: Update user action
+- ✨ **Added**: create new with with notification now
+- 🔧 **Changed**: composer update dependencies
+- 📝 **Changed**: feature(builder) - build data via builder now in execute action
+
 ## [Unreleased] - 2025-10-01 (PR #3)
 
 
