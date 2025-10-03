@@ -21,14 +21,14 @@ final readonly class DataBuilder
      * @param array<class-string> $pipes
      * @return array<string, mixed>
      */
-    public function build(array $data, array $pipes, ?Closure $finallyCallback = null): array
+    public function build(array $data, array $pipes, ?Closure $finallyClosure = null): array
     {
         $pipeline = $this->pipeline
             ->send($data)
             ->through($pipes);
 
-        if ($finallyCallback !== null) {
-            $pipeline = $pipeline->finally($finallyCallback);
+        if ($finallyClosure !== null) {
+            $pipeline = $pipeline->finally($finallyClosure);
         }
 
         /** @var array<string, mixed> $result */
