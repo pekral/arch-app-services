@@ -6,10 +6,10 @@ namespace Pekral\Arch\Examples\Actions\User;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
+use Pekral\Arch\DataBuilder\DataBuilder;
 use Pekral\Arch\Examples\Actions\User\Pipes\LowercaseEmailPipe;
 use Pekral\Arch\Examples\Actions\User\Pipes\UcFirstNamePipe;
 use Pekral\Arch\Examples\Services\User\UserModelService;
-use Pekral\Arch\Service\DataBuilder;
 use Pekral\Arch\Tests\Models\User;
 
 final readonly class CreateUser

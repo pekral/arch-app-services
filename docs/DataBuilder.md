@@ -1,107 +1,102 @@
-# Data Builder Pattern
+# DataBuilder Class
 
-Data Builder je návrhový vzor, který umožňuje snadné rozšiřování jakékoliv action o data transformace pomocí Laravel Pipeline patternu.
+DataBuilder is a service class that enables easy data transformation for any action using the Laravel Pipeline pattern. It allows you to apply a series of transformations to data sequentially through defined pipes.
 
-## Architektura
+## Architecture
 
-### Základní komponenty
+### Main Components
 
-1. **DataBuilder Interface** - Definuje kontrakt pro všechny data buildery
-2. **BaseDataBuilder** - Abstraktní základní třída s implementací Laravel Pipeline
-3. **DataBuilderFactory** - Factory pro vytváření builder instancí
-4. **UsesDataBuilder Trait** - Trait pro snadné použití v action třídách
+1. **DataBuilder Class** - Final readonly class with Laravel Pipeline implementation
+2. **BuilderPipe Interface** - Interface for transformation pipes
+3. **Pipe Implementation** - Concrete implementations of pipes for various transformations
 
-## Použití
+## Usage
 
-### 1. Vytvoření nového Data Builderu
+### Basic Usage in Action Class
 
 ```php
 <?php
 
-namespace App\Actions\Product\DataBuilder;
+namespace App\Actions\Product;
 
-use Pekral\Arch\Service\DataBuilder;
+use Pekral\Arch\DataBuilder\DataBuilder;
 
-final class ProductDataBuilder extends DataBuilder
+final readonly class CreateProduct
 {
-    public function getPipes(): array
+    public function __construct(
+        private ProductService $productService,
+        private DataBuilder $dataBuilder,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __invoke(array $data): Product
     {
-        return [
+        $pipes = [
             NormalizeProductNamePipe::class,
             FormatProductPricePipe::class,
             ValidateProductCategoryPipe::class,
         ];
-    }
-}
-```
-
-### 2. Použití v Action třídě
-
-#### Metoda 1: Použití Traitu (doporučeno)
-
-```php
-<?php
-
-namespace App\Actions\Product;
-
-use Pekral\Arch\Service\UseDataBuilder;
-
-final readonly class CreateProduct
-{
-    use UseDataBuilder;
-
-    public function __construct(
-        private ProductService $productService,
-    ) {
-    }
-
-    public function __invoke(array $data): Product
-    {
-        $transformedData = $this->transformData($data, ProductDataBuilder::class);
+        
+        $transformedData = $this->dataBuilder->build($data, $pipes);
         
         return $this->productService->create($transformedData);
     }
 }
 ```
 
-#### Metoda 2: Přímé použití Factory
+### Simple Usage Example
 
 ```php
 <?php
 
-namespace App\Actions\Product;
+namespace App\Actions\User;
 
-use Pekral\Arch\Service\DataBuilderFactory;
+use Pekral\Arch\DataBuilder\DataBuilder;
 
-final readonly class CreateProduct
+final readonly class CreateUser
 {
     public function __construct(
-        private ProductService $productService,
-        private DataBuilderFactory $dataBuilderFactory,
+        private UserModelService $userModelService,
+        private DataBuilder $dataBuilder,
     ) {
     }
 
-    public function __invoke(array $data): Product
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __invoke(array $data): User
     {
-        $dataBuilder = $this->dataBuilderFactory->create(ProductDataBuilder::class);
-        $transformedData = $dataBuilder->build($data);
+        $pipes = [
+            NormalizeEmailPipe::class,
+            ValidateUserDataPipe::class,
+        ];
+
+        $transformedData = $this->dataBuilder->build($data, $pipes);
         
-        return $this->productService->create($transformedData);
+        return $this->userModelService->create($transformedData);
     }
 }
 ```
 
-## Vytvoření Pipe
+## Creating a Pipe
 
 ```php
 <?php
 
 namespace App\Actions\Product\Pipes;
 
-use Pekral\Arch\Examples\Acitons\User\Pipes\UserDataPipe;
+use Pekral\Arch\Examples\Actions\User\Pipes\BuilderPipe;
 
-final readonly class NormalizeProductNamePipe implements UserDataPipe
+final readonly class NormalizeProductNamePipe implements BuilderPipe
 {
+    /**
+     * @param array<string, mixed> $data
+     * @param callable(array<string, mixed>): array<string, mixed> $next
+     * @return array<string, mixed>
+     */
     public function handle(array $data, callable $next): array
     {
         if (isset($data['name']) && is_string($data['name'])) {
@@ -113,42 +108,27 @@ final readonly class NormalizeProductNamePipe implements UserDataPipe
 }
 ```
 
-## Pokročilé použití
+## Method Reference
 
-### Vlastní Pipes pro specifickou Action
+### `build(array $data, array $pipes): array`
 
-```php
-public function __invoke(array $data): Product
-{
-    $customPipes = [
-        NormalizeProductNamePipe::class,
-        CustomValidationPipe::class,
-    ];
+Transforms data using defined pipes via Laravel Pipeline.
 
-    $transformedData = $this->transformData($data, ProductDataBuilder::class);
-    
-    // Nebo s custom pipes
-    $dataBuilderFactory = app(DataBuilderFactory::class);
-    $customBuilder = $dataBuilderFactory->createWithPipes(ProductDataBuilder::class, $customPipes);
-    $transformedData = $customBuilder->build($data);
-    
-    return $this->productService->create($transformedData);
-}
-```
+**Parameters:**
+- `array<string, mixed> $data` - Input data to transform
+- `array<class-string> $pipes` - Array of pipe classes implementing handle method
 
-## Výhody
+**Returns:**
+- `array<string, mixed>` - Transformed data
 
-1. **Modulární** - Každý pipe má jednu zodpovědnost
-2. **Rozšiřitelný** - Snadno se přidávají nové pipes
-3. **Testovatelný** - Každý pipe lze testovat samostatně
-4. **Znovupoužitelný** - Stejné pipes lze použít v různých builders
-5. **Konfigurovatelný** - Builders lze registrovat podle kontextu
-6. **Type-safe** - Všechny komponenty jsou správně typované
+## Benefits
 
-## Registrace Service Provideru
+1. **Modular** - Each pipe has a single responsibility
+2. **Extensible** - Easy to add new pipes
+3. **Testable** - Each pipe can be tested independently
+4. **Reusable** - Same pipes can be used in different contexts
+5. **Type-safe** - All components are properly typed
 
-V `config/app.php` nebo v package service provideru:
+## Examples
 
-```php
-$this->app->register(DataBuilderServiceProvider::class);
-```
+See `examples/Actions/User/CreateUser.php` and related pipe implementations for real-world usage examples.
