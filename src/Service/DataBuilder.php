@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Service;
 
+use Closure;
 use Illuminate\Pipeline\Pipeline;
 
 final readonly class DataBuilder
@@ -20,13 +21,18 @@ final readonly class DataBuilder
      * @param array<class-string> $pipes
      * @return array<string, mixed>
      */
-    public function build(array $data, array $pipes): array
+    public function build(array $data, array $pipes, ?Closure $finallyCallback = null): array
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->pipeline
+        $pipeline = $this->pipeline
             ->send($data)
-            ->through($pipes)
-            ->thenReturn();
+            ->through($pipes);
+
+        if ($finallyCallback !== null) {
+            $pipeline = $pipeline->finally($finallyCallback);
+        }
+
+        /** @var array<string, mixed> $result */
+        $result = $pipeline->thenReturn();
             
         return $result;
     }
