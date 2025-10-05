@@ -1,26 +1,31 @@
-# Laravel Arch App Services
+# <img src="logo.svg" alt="Larach Logo" width="200"/>
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
-[![Total Downloads](https://img.shields.io/packagist/dt/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/larach.svg?style=flat-square)](https://packagist.org/packages/pekral/larach)
+[![Total Downloads](https://img.shields.io/packagist/dt/pekral/larach.svg?style=flat-square)](https://packagist.org/packages/pekral/larach)
+[![Tests](https://img.shields.io/github/actions/workflow/status/pekral/larach/tests.yml?branch=master&label=tests&style=flat-square)](https://github.com/pekral/larach/actions)
+[![Code Coverage](https://img.shields.io/codecov/c/github/pekral/larach?style=flat-square)](https://codecov.io/gh/pekral/larach)
 
-Laravel package providing architectural abstractions for services, repositories and model managers with support for modern PHP and Laravel features.
+> ⚠️ **This package is currently under active development.** The API may change in future versions. Use with caution in production environments.
+
+**Laravel Architecture Stack** - Clean architectural abstractions for building scalable applications
 
 ## Features
 
-- **Abstract Facade Pattern**: Provides consistent interface for service layers
+- **Action Pattern**: Clean, single-purpose classes for business logic
 - **Repository Pattern**: Database query abstraction with pagination support  
 - **Model Manager**: CRUD operations with batch processing capabilities
-- **Validation Layer**: Integrated validation for all CRUD operations
-- **Soft Delete Support**: Complete soft delete functionality with restore capabilities
+- **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
+- **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
 - **Type Safety**: Full PHPDoc type annotations and generics support
-- **Laravel 12 Ready**: Built for latest Laravel features and conventions
+- **Laravel 11+ Ready**: Built for modern Laravel features and conventions
+- **100% Test Coverage**: Comprehensive test suite ensuring reliability
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require pekral/arch-app-services
+composer require pekral/larach
 ```
 
 The package will automatically register its service provider.
@@ -28,10 +33,21 @@ The package will automatically register its service provider.
 Optionally, you can publish the configuration file:
 
 ```bash
-php artisan vendor:publish --tag="arch-config"
+php artisan vendor:publish --tag="larach-config"
 ```
 
-## Usage
+## Architecture Overview
+
+This package provides a clean architecture with the following components:
+
+1. **Actions**: Single-purpose classes that handle specific business operations
+2. **Services**: Combine Repository and Model Manager for complete CRUD operations
+3. **Repositories**: Handle read operations with advanced querying capabilities
+4. **Model Managers**: Handle write operations (create, update, delete)
+5. **Data Builder**: Transform data using pipeline pattern
+6. **Pipes**: Reusable data transformation components
+
+## Usage Examples
 
 ### Creating a Repository
 
@@ -40,9 +56,12 @@ php artisan vendor:publish --tag="arch-config"
 
 namespace App\Repositories;
 
-use App\Models\User;
 use Pekral\Arch\Repository\Mysql\BaseRepository;
+use App\Models\User;
 
+/**
+ * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\App\Models\User>
+ */
 final class UserRepository extends BaseRepository
 {
     protected function getModelClassName(): string
@@ -59,9 +78,12 @@ final class UserRepository extends BaseRepository
 
 namespace App\Services;
 
-use App\Models\User;
 use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
+use App\Models\User;
 
+/**
+ * @extends \Pekral\Arch\ModelManager\Mysql\BaseModelManager<\App\Models\User>
+ */
 final class UserModelManager extends BaseModelManager
 {
     protected function getModelClassName(): string
@@ -78,143 +100,221 @@ final class UserModelManager extends BaseModelManager
 
 namespace App\Services;
 
-use App\Models\User;
+use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
+use Pekral\Arch\Repository\Mysql\BaseRepository;
 use Pekral\Arch\Service\BaseModelService;
+use App\Models\User;
 
-final class UserService extends BaseModelService
+/**
+ * @extends \Pekral\Arch\Service\BaseModelService<\App\Models\User>
+ */
+final readonly class UserModelService extends BaseModelService
 {
+    public function __construct(
+        private UserModelManager $userModelManager,
+        private UserRepository $userRepository
+    ) {
+    }
+
     protected function getModelClass(): string
     {
         return User::class;
     }
 
-    protected function createModelManager(): UserModelManager
+    protected function getModelManager(): BaseModelManager
     {
-        return new UserModelManager();
+        return $this->userModelManager;
     }
 
-    protected function createRepository(): UserRepository
+    protected function getRepository(): BaseRepository
     {
-        return new UserRepository();
-    }
-
-    // Optional: Define validation rules
-    protected function getCreateRules(): array
-    {
-        return [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:6',
-        ];
-    }
-
-    protected function getUpdateRules(): array
-    {
-        return [
-            'email' => 'sometimes|email|unique:users,email,{id}',
-            'name' => 'sometimes|string|max:255',
-            'password' => 'sometimes|string|min:6',
-        ];
+        return $this->userRepository;
     }
 }
 ```
 
-### Available Methods
+### Creating Actions
 
-#### Repository Methods
+Actions are single-purpose classes that handle specific business operations:
 
-- `paginateByParams(Collection|array $params, array $with = [], ?int $perPage = null, array $orderBy = [], array $groupBy = [])`
-- `getOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - throws ModelNotFoundException
-- `findOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - returns null if not found
-- `findAllByParams(Collection|array $params, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null)`
-- `countByParams(Collection|array $params, array $groupBy = [])`
+```php
+<?php
 
-#### Model Manager Methods
+namespace App\Actions\User;
 
-- `create(array $data)` - create single record
-- `updateByParams(array $data, array $conditions)` - update by conditions
-- `deleteByParams(array $parameters)` - delete by parameters
-- `bulkCreate(array $dataArray)` - bulk create records
-- `bulkUpdate(array $dataArray, string $keyColumn = 'id')` - bulk update records
-- `softDeleteByParams(array $parameters)` - soft delete by parameters
+use Pekral\Arch\DataBuilder\DataBuilder;
+use App\Actions\User\Pipes\LowercaseEmailPipe;
+use App\Actions\User\Pipes\UcFirstNamePipe;
+use App\Services\UserModelService;
+use App\Models\User;
 
-#### Service Methods (Combines Repository + Model Manager)
+final readonly class CreateUser
+{
+    public function __construct(
+        private UserModelService $userModelService,
+        private DataBuilder $dataBuilder,
+        private VerifyUserAction $verifyUserAction,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function execute(array $data): User
+    {
+        // Transform data using pipeline
+        $normalizedData = $this->dataBuilder->build($data, [
+            LowercaseEmailPipe::class,
+            UcFirstNamePipe::class
+        ]);
+        
+        // Create user
+        $user = $this->userModelService->create($normalizedData);
+        
+        // Send verification email
+        $this->verifyUserAction->handle($user);
+        
+        return $user;
+    }
+}
+```
+
+### Creating Data Transformation Pipes
+
+```php
+<?php
+
+namespace App\Actions\User\Pipes;
+
+interface BuilderPipe
+{
+    /**
+     * @param array<string, mixed> $data
+     * @param callable(array<string, mixed>): array<string, mixed> $next
+     * @return array<string, mixed>
+     */
+    public function handle(array $data, callable $next): array;
+}
+
+final readonly class LowercaseEmailPipe implements BuilderPipe
+{
+    public function handle(array $data, callable $next): array
+    {
+        if (isset($data['email']) && is_string($data['email'])) {
+            $data['email'] = strtolower($data['email']);
+        }
+
+        return $next($data);
+    }
+}
+
+final readonly class UcFirstNamePipe implements BuilderPipe
+{
+    public function handle(array $data, callable $next): array
+    {
+        if (isset($data['name']) && is_string($data['name'])) {
+            $data['name'] = str($data['name'])->lower()->ucfirst()->value();
+        }
+
+        return $next($data);
+    }
+}
+```
+
+### Using Actions in Controllers
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Actions\User\CreateUser;
+use App\Actions\User\GetUser;
+use App\Actions\User\UpdateUserName;
+use Illuminate\Http\Request;
+
+final class UserController extends Controller
+{
+    public function store(Request $request, CreateUser $createUser)
+    {
+        $user = $createUser->execute($request->validated());
+        
+        return response()->json($user, 201);
+    }
+    
+    public function show(Request $request, GetUser $getUser)
+    {
+        $user = $getUser->handle($request->only(['email', 'name']));
+        
+        return response()->json($user);
+    }
+    
+    public function updateName(Request $request, UpdateUserName $updateUserName)
+    {
+        $user = User::findOrFail($request->user_id);
+        $updateUserName->handle($request->name, $user);
+        
+        return response()->json(['message' => 'Name updated successfully']);
+    }
+}
+```
+
+## Available Methods
+
+### Repository Methods
+
+- `paginateByParams(array $params, array $with = [], ?int $itemsPerPage = null, array $orderBy = [], array $groupBy = [])` - Paginate results
+- `getOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - Get one record or throw exception
+- `findOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - Find one record or return null
+- `countByParams(Collection|array $params, array $groupBy = [])` - Count records
+
+### Model Manager Methods
+
+- `create(array $data)` - Create single record
+- `bulkCreate(array $dataArray)` - Bulk create records
+- `bulkUpdate(array $dataArray, string $keyColumn = 'id')` - Bulk update records
+- `deleteByParams(array $parameters)` - Delete by parameters
+
+### Service Methods (Combines Repository + Model Manager)
 
 **CRUD Operations:**
-- `create(array|Collection $attributes, ?array $rules = null)` - create with validation
-- `updateByParams(array|Collection $data, array $conditions, ?array $rules = null)` - update with validation
-- `deleteByParams(array|Collection $parameters)` - delete by parameters
+- `create(array $data)` - Create with validation
+- `updateModel(Model $model, array $data)` - Update existing model
+- `deleteModel(Model $model)` - Delete model
+- `deleteByParams(array $parameters)` - Delete by parameters
 
 **Read Operations:**
-- `findOneByParams(array|Collection $parameters, array $with = [], array $orderBy = [])` - find one or null
-- `getOneByParams(array|Collection $parameters, array $with = [], array $orderBy = [])` - find one or throw exception
-- `findAllByParams(array|Collection $parameters, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null)` - find all
-- `paginateByParams(array|Collection $parameters = [], array $with = [], ?int $perPage = null, array $orderBy = [], array $groupBy = [])` - paginate
-- `countByParams(array|Collection $parameters, array $groupBy = [])` - count records
+- `findOneByParams(array $parameters, array $with = [], array $orderBy = [])` - Find one or null
+- `getOneByParams(array $parameters, array $with = [], array $orderBy = [])` - Find one or throw exception
+- `paginateByParams(array $parameters = [], array $with = [], ?int $perPage = null, array $orderBy = [], array $groupBy = [])` - Paginate
+- `countByParams(array $parameters, array $groupBy = [])` - Count records
 
-**Soft Delete Operations:**
-- `softDelete(int|string $id)` - soft delete by ID
-- `softDeleteByParams(array|Collection $parameters)` - soft delete by parameters
-- `restore(int|string $id)` - restore soft deleted record
-- `restoreByParams(array|Collection $parameters)` - restore by parameters
-- `forceDelete(int|string $id)` - permanent delete by ID
-- `forceDeleteByParams(array|Collection $parameters)` - permanent delete by parameters
+**Bulk Operations:**
+- `bulkCreate(array $data)` - Bulk create records
+- `bulkUpdate(array $data, string $keyColumn = 'id')` - Bulk update records
 
-### Validation Example
+## Data Builder Usage
+
+The Data Builder uses Laravel's Pipeline to transform data through a series of pipes:
 
 ```php
-// Service with validation rules
-final class UserService extends BaseModelService
-{
-    protected function getCreateRules(): array
-    {
-        return [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:6',
-        ];
-    }
+use Pekral\Arch\DataBuilder\DataBuilder;
 
-    protected function getUpdateRules(): array
+final readonly class ProcessUserData
+{
+    public function __construct(private DataBuilder $dataBuilder)
     {
-        return [
-            'email' => 'sometimes|email|unique:users,email,{id}',
-            'name' => 'sometimes|string|max:255',
-            'password' => 'sometimes|string|min:6',
-        ];
+    }
+    
+    public function handle(array $userData): array
+    {
+        return $this->dataBuilder->build($userData, [
+            LowercaseEmailPipe::class,
+            UcFirstNamePipe::class,
+            ValidateEmailPipe::class,
+        ]);
     }
 }
-
-// Usage with automatic validation
-$user = $userService->create([
-    'email' => 'john@example.com',
-    'name' => 'John Doe',
-    'password' => 'password123',
-]);
-
-// Usage with custom rules
-$user = $userService->create($data, [
-    'email' => 'required|email',
-    'name' => 'required|string',
-]);
-```
-
-### Soft Delete Example
-
-```php
-// Soft delete by ID
-$deleted = $userService->softDelete($user->id);
-
-// Soft delete by parameters
-$deletedCount = $userService->softDeleteByParams([
-    'email' => 'old@example.com'
-]);
-
-// Restore soft deleted record
-$restored = $userService->restore($user->id);
-
-// Permanent delete
-$deleted = $userService->forceDelete($user->id);
 ```
 
 ## Configuration
@@ -232,18 +332,29 @@ return [
 
 ## Testing
 
+The package includes comprehensive tests with 100% code coverage:
+
 ```bash
 composer test
 composer coverage
 ```
 
-## Changelog
+## Exception Handling
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+The package provides a custom exception for unexpected situations:
+
+```php
+use Pekral\Arch\Exceptions\ShouldNotHappen;
+
+// Throw exception with reason
+throw ShouldNotHappen::because('This should never happen in normal circumstances');
+```
 
 ## Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+This package is under active development. Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+
+**Note**: Since this package is still in development, please check the latest changes before implementing in production environments.
 
 ## Security Vulnerabilities
 
