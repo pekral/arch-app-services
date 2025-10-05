@@ -145,4 +145,15 @@ abstract readonly class BaseModelService
         return $this->getModelManager()->deleteByParams($parameters);
     }
 
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<int, array<TKey, TValue>> $data
+     * @return int Number of created records
+     */
+    public function bulkCreate(array $data): int
+    {
+        return $this->getModelManager()->bulkCreate($data);
+    }
+
 }

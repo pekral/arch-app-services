@@ -28,8 +28,8 @@ if ($linesValid === 0.0) {
 $coveragePercentage = ($linesCovered / $linesValid) * 100;
 
 if ($coveragePercentage < 100) {
-    echo "❌ Coverage is " . round($coveragePercentage, 2) . "% but required 100%\n";
+    echo '❌ Coverage is ' . round($coveragePercentage, 2) . "% but required 100%\n";
     exit(1);
 }
 
-echo "✅ Coverage is " . round($coveragePercentage, 2) . "%\n";
+echo '✅ Coverage is ' . round($coveragePercentage, 2) . "%\n";
