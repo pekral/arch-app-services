@@ -4,12 +4,15 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests;
 
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Pekral\Arch\ArchServiceProvider;
 use RuntimeException;
 
 abstract class TestCase extends Orchestra
 {
+
+    use LazilyRefreshDatabase;
 
     /**
      * @param \Illuminate\Foundation\Application $app

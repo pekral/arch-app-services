@@ -4,8 +4,6 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Actions\User;
 
-use Illuminate\Auth\Notifications\VerifyEmail;
-use Illuminate\Support\Facades\Notification;
 use Pekral\Arch\DataBuilder\DataBuilder;
 use Pekral\Arch\Examples\Actions\User\Pipes\LowercaseEmailPipe;
 use Pekral\Arch\Examples\Actions\User\Pipes\UcFirstNamePipe;
@@ -15,8 +13,11 @@ use Pekral\Arch\Tests\Models\User;
 final readonly class CreateUser
 {
 
-    public function __construct(private UserModelService $userModelService, private DataBuilder $baseDataBuilder)
-    {
+    public function __construct(
+        private UserModelService $userModelService,
+        private DataBuilder $baseDataBuilder,
+        private VerifyUserAction $verifyUserAction,
+    ) {
     }
 
     /**
@@ -29,11 +30,7 @@ final readonly class CreateUser
         // Store user
         $model = $this->userModelService->create($dataNormalized);
 
-        // Send notification if necessary
-        if ($model->email_verified_at === null) {
-            // Send a verification link
-            Notification::send($model, new VerifyEmail());
-        }
+        $this->verifyUserAction->handle($model);
 
         return $model;
     }

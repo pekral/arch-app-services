@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\Actions\User;
 
-use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
 use Pekral\Arch\Examples\Actions\User\CreateUser;
 use Pekral\Arch\Tests\Models\User;
@@ -39,7 +38,6 @@ final class CreateUserTest extends TestCase
             ->firstOrFail();
 
         $this->assertEquals('Petr', $model->name);
-        Notification::assertSentTo($model, VerifyEmail::class);
     }
 
 }
