@@ -6,7 +6,6 @@ namespace Pekral\Arch\Service;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
 use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
 use Pekral\Arch\Repository\Mysql\BaseRepository;
 
@@ -128,23 +127,9 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * Find all models by given criteria.
-     *
-     * @param array<string, mixed> $parameters
-     * @param array<string> $with
-     * @param array<string> $orderBy
-     * @param array<string> $groupBy
-     * @return \Illuminate\Support\Collection<int, TModel>
-     */
-    public function findAllByParams(array $parameters, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null): Collection
-    {
-        return $this->getRepository()->findAllByParams($parameters, $with, $orderBy, $groupBy, $limit);
-    }
-
-    /**
      * Count models by given criteria.
      *
-     * @param array<string, mixed> $parameters
+     * @param array<int, array<int, mixed>> $parameters
      * @param array<string> $groupBy
      */
     public function countByParams(array $parameters, array $groupBy = []): int

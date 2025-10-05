@@ -144,7 +144,7 @@ abstract class BaseRepository
     /**
      * Count models by given criteria.
      *
-     * @param \Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params
+     * @param \Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params
      * @param array<string> $groupBy
      */
     public function countByParams(Collection|array $params, array $groupBy = []): int
