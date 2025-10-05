@@ -121,7 +121,7 @@ abstract readonly class BaseModelService
         array $orderBy = [],
         array $groupBy = [],
     ): LengthAwarePaginator {
-        /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel> $paginator */
+        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, TModel> $paginator */
         $paginator = $this->getRepository()->paginateByParams($parameters, $with, $perPage, $orderBy, $groupBy);
 
         return $paginator;
