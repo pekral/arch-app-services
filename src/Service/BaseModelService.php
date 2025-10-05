@@ -156,4 +156,16 @@ abstract readonly class BaseModelService
         return $this->getModelManager()->bulkCreate($data);
     }
 
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<int, array<TKey, TValue>> $data
+     * @param string $keyColumn Column to match records (usually 'id')
+     * @return int Number of updated records
+     */
+    public function bulkUpdate(array $data, string $keyColumn = 'id'): int
+    {
+        return $this->getModelManager()->bulkUpdate($data, $keyColumn);
+    }
+
 }

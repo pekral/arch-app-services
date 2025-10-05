@@ -27,9 +27,18 @@ if ($linesValid === 0.0) {
 
 $coveragePercentage = ($linesCovered / $linesValid) * 100;
 
+// PHPUnit HTML report is already generated in coverage-html folder
+$htmlReportPath = 'coverage-html/index.html';
+
 if ($coveragePercentage < 100) {
-    echo '❌ Coverage is ' . round($coveragePercentage, 2) . "% but required 100%\n";
+    echo "⚠️  Codebase is not 100% covered by tests: " . round($coveragePercentage, 2) . "%\n";
+    
+    if (file_exists($htmlReportPath)) {
+        $htmlReportUrl = 'file://' . realpath($htmlReportPath);
+        echo "📄 HTML report: {$htmlReportUrl}\n";
+    }
+    
     exit(1);
 }
 
-echo '✅ Coverage is ' . round($coveragePercentage, 2) . "%\n";
+echo "✅ Codebase is 100% covered by tests: " . round($coveragePercentage, 2) . "%\n";

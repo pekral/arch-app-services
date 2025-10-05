@@ -34,6 +34,12 @@ final class ImportUsersTest extends TestCase
         $this->assertSame(count($data), $this->importUsers->handle($data));
     }
 
+    public function testImportUsersWithoutData(): void
+    {
+        // act & assert
+        $this->assertSame(0, $this->importUsers->handle([]));
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

@@ -1,5 +1,3 @@
-### Create data validators
- - Validate before build data
-
-
-### Create cache managers
+### Tests
+- Mass insert or ignore
+- Bulk update
