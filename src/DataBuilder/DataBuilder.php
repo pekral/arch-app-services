@@ -20,11 +20,11 @@ final readonly class DataBuilder
     /**
      * Transforms data using defined pipes via Laravel Pipeline.
      *
-     * @param array<string, mixed> $data Input data to transform
+     * @param mixed $data Input data to transform
      * @param array<class-string> $pipes Array of pipe classes implementing handle method
      * @return array<string, mixed> Transformed data
      */
-    public function build(array $data, array $pipes): array
+    public function build(mixed $data, array $pipes): array
     {
         /** @var array<string, mixed> $result */
         $result = $this->pipeline

@@ -54,12 +54,15 @@ abstract readonly class BaseModelService
     /**
      * @template TKey of array-key
      * @template TValue
+     * @param TModel $model
      * @param array<TKey, TValue> $data
-     * @param array<string, string|int> $conditions
+     * @return TModel
      */
-    public function updateByParams(array $data, array $conditions): int
+    public function updateModel(Model $model, array $data): Model
     {
-        return $this->getModelManager()->updateByParams($data, $conditions);
+        $model->update($data);
+
+        return $model;
     }
 
     /**
