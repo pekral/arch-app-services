@@ -33,6 +33,23 @@ final class TestGetUsers extends TestCase
         });
     }
 
+    public function testGetUsersWithFilters(): void
+    {
+        // arrange
+        User::factory()->count(5)->create(['name' => 'John']);
+        User::factory()->count(5)->create(['name' => 'Jane']);
+        
+        // act
+        $foundUsers = $this->getUsers->handle(['name' => 'John']);
+        
+        // assert
+        $this->assertCount(5, $foundUsers);
+        $foundUsers->collect()->each(callback: function (mixed $user): void {
+            /** @var \Pekral\Arch\Tests\Models\User $user */
+            $this->assertEquals('John', $user->name);
+        });
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
