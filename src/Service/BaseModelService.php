@@ -66,6 +66,20 @@ abstract readonly class BaseModelService
     }
 
     /**
+     * @param TModel $model
+     */
+    public function deleteModel(Model $model): bool
+    {
+        $result = $model->delete();
+
+        if ($result === null) {
+            return false;
+        }
+
+        return $result;
+    }
+
+    /**
      * Find a model by given criteria.
      *
      * @param array<string, mixed> $parameters

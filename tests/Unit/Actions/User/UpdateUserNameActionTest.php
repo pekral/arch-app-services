@@ -4,20 +4,21 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\Actions\User;
 
+use Pekral\Arch\Examples\Actions\User\UpdateUserName;
 use Pekral\Arch\Tests\Models\User;
 use Pekral\Arch\Tests\TestCase;
 
 final class UpdateUserNameActionTest extends TestCase
 {
 
-    private UpdateUserNameAction $updateUserNameAction;
+    private UpdateUserName $updateUserName;
 
     public function testUpdateUserName(): void
     {
         $user = User::factory()->create(['name' => 'john']);
         $newName = 'John';
         // Act
-        $this->updateUserNameAction->handle($newName, $user);
+        $this->updateUserName->handle($newName, $user);
         // Assert
         $user->fresh();
         $this->assertEquals($newName, $user->name);
@@ -27,7 +28,7 @@ final class UpdateUserNameActionTest extends TestCase
     {
         parent::setUp();
 
-        $this->updateUserNameAction = app(UpdateUserNameAction::class);
+        $this->updateUserName = app(UpdateUserName::class);
     }
 
 }
