@@ -99,49 +99,6 @@ abstract class BaseRepository
     }
 
     /**
-     * Find all models by given criteria.
-     *
-     * @param \Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params
-     * @param array<string> $with
-     * @param array<string> $orderBy
-     * @param array<string> $groupBy
-     * @return \Illuminate\Support\Collection<int, TModel>
-     */
-    public function findAllByParams(Collection|array $params, array $with = [], array $orderBy = [], array $groupBy = [], ?int $limit = null): Collection
-    {
-        $queryBuilder = $this->createQueryBuilder();
-
-        $normalizedParams = is_array($params) ? $params : $params->toArray();
-
-        if (count($normalizedParams) > 0) {
-            $queryBuilder = $queryBuilder->where($normalizedParams);
-        }
-
-        if (count($with) > 0) {
-            $queryBuilder = $queryBuilder->with($with);
-        }
-
-        if (count($groupBy) > 0) {
-            $queryBuilder = $queryBuilder->groupBy($groupBy);
-        }
-
-        if (count($orderBy) > 0) {
-            foreach ($orderBy as $column => $direction) {
-                $queryBuilder = $queryBuilder->orderBy($column, $direction);
-            }
-        }
-
-        if ($limit !== null) {
-            $queryBuilder = $queryBuilder->limit($limit);
-        }
-
-        /** @var \Illuminate\Support\Collection<int, TModel> $result */
-        $result = $queryBuilder->get();
-
-        return $result;
-    }
-
-    /**
      * Count models by given criteria.
      *
      * @param \Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params
