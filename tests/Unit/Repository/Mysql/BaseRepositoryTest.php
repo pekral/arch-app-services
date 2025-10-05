@@ -64,7 +64,6 @@ final class BaseRepositoryTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
-        // default items per page
         $this->assertCount(15, $result);
     }
 
@@ -131,7 +130,7 @@ final class BaseRepositoryTest extends TestCase
         // Arrange
         User::factory()->count(5)->create();
         
-        // Act - test with empty withRelations array to cover the else branch
+        // Act
         $result = $this->userRepository->paginateByParams([], []);
         
         // Assert
@@ -144,12 +143,11 @@ final class BaseRepositoryTest extends TestCase
         // Arrange
         User::factory()->count(5)->create();
         
-        // Act - test with non-empty withRelations array to cover the if branch
-        // This will throw an exception, but we'll catch it to test the coverage
+        // Act
         try {
             $this->userRepository->paginateByParams([], ['non_existent_relation']);
         } catch (\Illuminate\Database\Eloquent\RelationNotFoundException $e) {
-            // Expected exception - this means the with() method was called
+            // Assert
             $this->assertStringContainsString('non_existent_relation', $e->getMessage());
         }
     }

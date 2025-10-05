@@ -9,6 +9,7 @@
     <file>src</file>
     <file>tests</file>
     <file>examples</file>
+    <file>check-coverage.php</file>
 
     <!-- Exclude vendor directory -->
     <exclude-pattern>vendor/*</exclude-pattern>

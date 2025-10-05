@@ -15,10 +15,11 @@ final class CountVerifiedUsersTest extends TestCase
 
     public function testCountVerifiedUsers(): void
     {
-        // arrange
+        // Arrange
         User::factory()->count(10)->create(['email_verified_at' => null]);
         $verifiedUsers = User::factory()->count(10)->create(['email_verified_at' => now()]);
-        // act & assert
+        
+        // Act & Assert
         $this->assertEquals($verifiedUsers->count(), $this->countVerifiedUsers->handle());
     }
 

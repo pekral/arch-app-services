@@ -9,6 +9,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/src',
         __DIR__ . '/tests',
         __DIR__ . '/examples',
+        __DIR__ . '/check-coverage.php',
     ]);
 
     $rectorConfig->skip([
@@ -16,6 +17,5 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/build',
     ]);
 
-    // Import pekral/rector-rules
     $rectorConfig->import(__DIR__ . '/vendor/pekral/rector-rules/rector.php');
 };

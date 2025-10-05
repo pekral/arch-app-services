@@ -17,22 +17,26 @@ final class SearchUserTest extends TestCase
 
     public function testSearchUser(): void
     {
-        // arrange
+        // Arrange
         $user = User::factory()->create();
-        // act
+        
+        // Act
         $foundUser = $this->searchUser->handle(['name' => $user->name, 'email' => $user->email]);
-        // assert
+        
+        // Assert
         $this->assertNotNull($foundUser);
         $this->assertEquals($user->toArray(), $foundUser->toArray());
     }
 
     public function testSearchNonExistingUser(): void
     {
-        // arrange
+        // Arrange
         User::factory()->create();
-        // act
+        
+        // Act
         $foundUser = $this->searchUser->handle(['name' => fake()->name(), 'email' => fake()->email()]);
-        // assert
+        
+        // Assert
         $this->assertNull($foundUser);
     }
 

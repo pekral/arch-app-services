@@ -16,7 +16,7 @@ final class ImportUsersTest extends TestCase
 
     public function testImportUsers(): void
     {
-        // arrange
+        // Arrange
         $data = [
             [
                 'email' => fake()->email(),
@@ -30,13 +30,13 @@ final class ImportUsersTest extends TestCase
             ],
         ];
         
-        // act & assert
+        // Act & Assert
         $this->assertSame(count($data), $this->importUsers->handle($data));
     }
 
     public function testImportUsersWithoutData(): void
     {
-        // act & assert
+        // Act & Assert
         $this->assertSame(0, $this->importUsers->handle([]));
     }
 

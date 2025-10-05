@@ -109,19 +109,19 @@
     ],
     "phpcs-check": [
       "echo \"✅ Running PHP CodeSniffer check...\"",
-      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/"
+      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/ check-coverage.php"
     ],
     "phpcs-fix": [
       "echo \"🔧 Running PHP CodeSniffer fix...\"",
-      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ || true"
+      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ check-coverage.php || true"
     ],
     "pint-check": [
       "echo \"🎨 Running Laravel Pint check...\"",
-      "vendor/bin/pint src/ tests/ examples/ --test"
+      "vendor/bin/pint src/ tests/ examples/ check-coverage.php --test"
     ],
     "pint-fix": [
       "echo \"🎨 Running Laravel Pint fixes...\"",
-      "vendor/bin/pint src/ tests/ examples/"
+      "vendor/bin/pint src/ tests/ examples/ check-coverage.php"
     ],
     "rector-check": [
       "echo \"🔄 Running Rector check (dry-run)...\"",

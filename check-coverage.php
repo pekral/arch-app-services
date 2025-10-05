@@ -1,11 +1,11 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 $coverageFile = 'coverage.xml';
 
 if (!file_exists($coverageFile)) {
-    echo "❌ Coverage file not found: {$coverageFile}\n";
+    echo sprintf('❌ Coverage file not found: %s%s', $coverageFile, PHP_EOL);
     exit(1);
 }
 
@@ -25,20 +25,19 @@ if ($linesValid === 0.0) {
     exit(1);
 }
 
-$coveragePercentage = ($linesCovered / $linesValid) * 100;
+$coveragePercentage = $linesCovered / $linesValid * 100;
 
-// PHPUnit HTML report is already generated in coverage-html folder
 $htmlReportPath = 'coverage-html/index.html';
 
 if ($coveragePercentage < 100) {
-    echo "⚠️  Codebase is not 100% covered by tests: " . round($coveragePercentage, 2) . "%\n";
+    echo '⚠️  Codebase is not 100% covered by tests: ' . round($coveragePercentage, 2) . "%\n";
     
     if (file_exists($htmlReportPath)) {
         $htmlReportUrl = 'file://' . realpath($htmlReportPath);
-        echo "📄 HTML report: {$htmlReportUrl}\n";
+        echo sprintf('📄 HTML report: %s%s', $htmlReportUrl, PHP_EOL);
     }
     
     exit(1);
 }
 
-echo "✅ Codebase is 100% covered by tests: " . round($coveragePercentage, 2) . "%\n";
+echo '✅ Codebase is 100% covered by tests: ' . round($coveragePercentage, 2) . "%\n";

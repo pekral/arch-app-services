@@ -17,8 +17,10 @@ final class DeleteUserTest extends TestCase
     {
         // Arrange
         $user = User::factory()->create();
+        
         // Act
         $this->deleteUser->handle($user);
+        
         // Assert
         $this->assertNull(User::query()->find($user->id));
     }
@@ -27,8 +29,10 @@ final class DeleteUserTest extends TestCase
     {
         // Arrange
         $user = User::factory()->create();
+        
         // Act
         $this->deleteUser->handle($user->id);
+        
         // Assert
         $this->assertNull(User::query()->find($user->id));
     }

@@ -18,14 +18,14 @@ final class TestGetUsers extends TestCase
 
     public function testGetUsers(): void
     {
-        // arrange
+        // Arrange
         $users = User::factory()->count(30)->create();
         $usersIds = $users->pluck('id')->toArray();
 
-        // act
+        // Act
         $foundUsers = $this->getUsers->handle();
 
-        // assert
+        // Assert
         $this->assertCount(config()->integer('arch.default_items_per_page'), $foundUsers);
         $foundUsers->collect()->each(callback: function (mixed $user) use ($usersIds): void {
             /** @var \Pekral\Arch\Tests\Models\User $user */
@@ -35,14 +35,14 @@ final class TestGetUsers extends TestCase
 
     public function testGetUsersWithFilters(): void
     {
-        // arrange
+        // Arrange
         User::factory()->count(5)->create(['name' => 'John']);
         User::factory()->count(5)->create(['name' => 'Jane']);
         
-        // act
+        // Act
         $foundUsers = $this->getUsers->handle(['name' => 'John']);
         
-        // assert
+        // Assert
         $this->assertCount(5, $foundUsers);
         $foundUsers->collect()->each(callback: function (mixed $user): void {
             /** @var \Pekral\Arch\Tests\Models\User $user */

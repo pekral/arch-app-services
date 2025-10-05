@@ -17,7 +17,7 @@ final class RefreshUsersTest extends TestCase
 
     public function testRefreshUsers(): void
     {
-        // arrange
+        // Arrange
         $users = User::factory()->count(10)->create();
         $refreshedData = $users->map(static fn (User $user): array => [
             'email' => fake()->email(),
@@ -26,7 +26,7 @@ final class RefreshUsersTest extends TestCase
             'password' => fake()->password(),
         ]);
 
-        // act & assert
+        // Act & Assert
         /** @var array<int, array<mixed>> $data */
         $data = $refreshedData->values()->toArray();
         $this->assertSame($refreshedData->count(), $this->refreshUsers->handle($data));
@@ -34,7 +34,7 @@ final class RefreshUsersTest extends TestCase
 
     public function testImportUsersWithoutData(): void
     {
-        // act & assert
+        // Act & Assert
         $this->assertSame(0, $this->refreshUsers->handle([]));
     }
 

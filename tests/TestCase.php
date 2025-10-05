@@ -22,7 +22,6 @@ abstract class TestCase extends Orchestra
         $app['config']->set('arch.default_items_per_page', 15);
         $app['config']->set('arch.exceptions.should_not_happen', RuntimeException::class);
         
-        // Set up test database
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', [
             'database' => ':memory:',
@@ -31,7 +30,6 @@ abstract class TestCase extends Orchestra
             'prefix' => '',
         ]);
         
-        // Set test environment configuration
         $app['config']->set('cache.default', 'array');
         $app['config']->set('session.driver', 'array');
         $app['config']->set('queue.default', 'sync');
@@ -43,8 +41,6 @@ abstract class TestCase extends Orchestra
      */
     protected function setUpDatabase(): void
     {
-        // Test database is always :memory: SQLite
-        
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
         
         $this->artisan('migrate', ['--database' => 'testing']);

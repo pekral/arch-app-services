@@ -25,9 +25,7 @@ final readonly class CreateUser
      */
     public function execute(array $data): User
     {
-        // Build normalized data
         $dataNormalized = $this->baseDataBuilder->build($data, [LowercaseEmailPipe::class, UcFirstNamePipe::class]);
-        // Store user
         $model = $this->userModelService->create($dataNormalized);
 
         $this->verifyUserAction->handle($model);

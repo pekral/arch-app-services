@@ -18,20 +18,23 @@ final class GetUserTest extends TestCase
 
     public function getNonExistingUser(): void
     {
-        // arrange
+        // Arrange
         User::factory()->create();
-        // act & assert
+        
+        // Act & Assert
         $this->expectException(ModelNotFoundException::class);
         $this->getUser->handle(['name' => fake()->name(), 'email' => fake()->email()]);
     }
 
     public function testGetUser(): void
     {
-        // arrange
+        // Arrange
         $user = User::factory()->create();
-        // act
+        
+        // Act
         $foundUser = $this->getUser->handle(['name' => $user->name, 'email' => $user->email]);
-        // assert
+        
+        // Assert
         $this->assertEquals($user->toArray(), $foundUser->toArray());
     }
 

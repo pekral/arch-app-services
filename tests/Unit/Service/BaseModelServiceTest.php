@@ -23,8 +23,7 @@ final class BaseModelServiceTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
-        // default items per page
-        $this->assertCount(15, $result);
+        $this->assertCount(15, $result->items());
     }
 
     public function testDeleteModelWithNullResult(): void
@@ -32,11 +31,9 @@ final class BaseModelServiceTest extends TestCase
         // Arrange
         User::factory()->create();
         
-        // Use reflection to test the null case
         $reflection = new \ReflectionClass($this->userModelService);
         $method = $reflection->getMethod('deleteModel');
         
-        // Create a mock model that returns null from delete()
         $mockModel = $this->createMock(\Illuminate\Database\Eloquent\Model::class);
         $mockModel->method('delete')->willReturn(null);
         
@@ -58,7 +55,7 @@ final class BaseModelServiceTest extends TestCase
         
         // Assert
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
-        $this->assertCount(5, $result);
+        $this->assertCount(5, $result->items());
     }
 
     public function testPaginateByParamsWithCustomPerPage(): void
@@ -71,7 +68,7 @@ final class BaseModelServiceTest extends TestCase
         
         // Assert
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
-        $this->assertCount(10, $result);
+        $this->assertCount(10, $result->items());
     }
 
     public function testPaginateByParamsWithOrderBy(): void
@@ -85,8 +82,8 @@ final class BaseModelServiceTest extends TestCase
         
         // Assert
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
-        $this->assertCount(2, $result);
-        $firstUser = $result->first();
+        $this->assertCount(2, $result->items());
+        $firstUser = $result->items()[0];
         $this->assertInstanceOf(\Pekral\Arch\Tests\Models\User::class, $firstUser);
         $this->assertEquals('Bob', $firstUser->name);
     }
@@ -102,7 +99,7 @@ final class BaseModelServiceTest extends TestCase
         
         // Assert
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
-        $this->assertCount(2, $result);
+        $this->assertCount(2, $result->items());
     }
 
     protected function setUp(): void

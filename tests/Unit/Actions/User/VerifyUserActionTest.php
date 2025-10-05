@@ -31,8 +31,10 @@ final class VerifyUserActionTest extends TestCase
     {
         // Arrange
         $user = User::factory()->create(['email_verified_at' => now()]);
+        
         // Act
         $this->verifyUserAction->handle($user);
+        
         // Assert
         Notification::assertNothingSent();
     }

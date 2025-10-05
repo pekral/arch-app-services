@@ -15,10 +15,13 @@ final class UpdateUserNameActionTest extends TestCase
 
     public function testUpdateUserName(): void
     {
+        // Arrange
         $user = User::factory()->create(['name' => 'john']);
         $newName = 'John';
+        
         // Act
         $this->updateUserName->handle($newName, $user);
+        
         // Assert
         $user->fresh();
         $this->assertEquals($newName, $user->name);
