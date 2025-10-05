@@ -29,20 +29,6 @@ abstract readonly class BaseModelService
     abstract protected function getModelClass(): string;
 
     /**
-     * Create a model manager instance.
-     *
-     * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>
-     */
-    abstract protected function getModelManager(): BaseModelManager;
-
-    /**
-     * Create a repository instance.
-     *
-     * @return \Pekral\Arch\Repository\Mysql\BaseRepository<TModel>
-     */
-    abstract protected function getRepository(): BaseRepository;
-
-    /**
      * @param array<string, mixed> $data
      * @return TModel
      */
@@ -158,6 +144,76 @@ abstract readonly class BaseModelService
     public function deleteByParams(array $parameters): bool
     {
         return $this->getModelManager()->deleteByParams($parameters);
+    }
+
+    /**
+     * Create a model manager instance.
+     *
+     * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>
+     */
+    protected function getModelManager(): BaseModelManager
+    {
+        $modelClass = $this->getModelClass();
+        $modelManagerClass = $this->getModelManagerClass($modelClass);
+        
+        return new $modelManagerClass();
+    }
+
+    /**
+     * Create a repository instance.
+     *
+     * @return \Pekral\Arch\Repository\Mysql\BaseRepository<TModel>
+     */
+    protected function getRepository(): BaseRepository
+    {
+        $modelClass = $this->getModelClass();
+        $repositoryClass = $this->getRepositoryClass($modelClass);
+        
+        return new $repositoryClass();
+    }
+
+    /**
+     * Get model manager class name based on model class.
+     *
+     * @param class-string<TModel> $modelClass
+     * @return class-string<\Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>>
+     */
+    private function getModelManagerClass(string $modelClass): string
+    {
+        $modelName = class_basename($modelClass);
+        $serviceNamespace = $this->getServiceNamespace();
+        
+        /** @var class-string<\Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>> $className */
+        $className = $serviceNamespace . '\\' . $modelName . 'ModelManager';
+
+        return $className;
+    }
+
+    /**
+     * Get repository class name based on model class.
+     *
+     * @param class-string<TModel> $modelClass
+     * @return class-string<\Pekral\Arch\Repository\Mysql\BaseRepository<TModel>>
+     */
+    private function getRepositoryClass(string $modelClass): string
+    {
+        $modelName = class_basename($modelClass);
+        $serviceNamespace = $this->getServiceNamespace();
+        
+        /** @var class-string<\Pekral\Arch\Repository\Mysql\BaseRepository<TModel>> $className */
+        $className = $serviceNamespace . '\\' . $modelName . 'Repository';
+
+        return $className;
+    }
+
+    /**
+     * Get the namespace of the current service class.
+     */
+    private function getServiceNamespace(): string
+    {
+        $reflection = new \ReflectionClass($this);
+
+        return $reflection->getNamespaceName();
     }
 
 }
