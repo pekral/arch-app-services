@@ -16,7 +16,9 @@ final class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'deleted_at' => null,
             'email' => $this->faker->unique()->safeEmail(),
+            'email_verified_at' => null,
             'name' => $this->faker->name(),
             'password' => $this->faker->password(),
         ];
