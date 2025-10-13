@@ -1,14 +1,19 @@
-# DataBuilder Class
+# DataBuilder Trait
 
-DataBuilder is a service class that enables easy data transformation for any action using the Laravel Pipeline pattern. It allows you to apply a series of transformations to data sequentially through defined pipes.
+DataBuilder is a trait that enables easy data transformation for any action using the Laravel Pipeline pattern. It allows you to apply a series of transformations to data sequentially through defined pipes, supporting both general pipes and specific field pipes.
 
 ## Architecture
 
 ### Main Components
 
-1. **DataBuilder Class** - Final readonly class with Laravel Pipeline implementation
+1. **DataBuilder Trait** - Trait with Laravel Pipeline implementation
 2. **BuilderPipe Interface** - Interface for transformation pipes
 3. **Pipe Implementation** - Concrete implementations of pipes for various transformations
+
+### Pipe Types
+
+- **General Pipes**: Applied to all data (integer keys or '*' key)
+- **Specific Pipes**: Applied to specific fields (string keys)
 
 ## Usage
 
@@ -23,9 +28,10 @@ use Pekral\Arch\DataBuilder\DataBuilder;
 
 final readonly class CreateProduct
 {
+    use DataBuilder;
+
     public function __construct(
         private ProductService $productService,
-        private DataBuilder $dataBuilder,
     ) {
     }
 
@@ -34,13 +40,15 @@ final readonly class CreateProduct
      */
     public function __invoke(array $data): Product
     {
-        $pipes = [
+        $transformedData = $this->build($data, [
+            // General pipes (applied to all data)
             NormalizeProductNamePipe::class,
-            FormatProductPricePipe::class,
             ValidateProductCategoryPipe::class,
-        ];
-        
-        $transformedData = $this->dataBuilder->build($data, $pipes);
+            
+            // Specific pipes (applied to specific fields)
+            'name' => FormatProductNamePipe::class,
+            'price' => FormatProductPricePipe::class,
+        ]);
         
         return $this->productService->create($transformedData);
     }
@@ -58,9 +66,10 @@ use Pekral\Arch\DataBuilder\DataBuilder;
 
 final readonly class CreateUser
 {
+    use DataBuilder;
+
     public function __construct(
         private UserModelService $userModelService,
-        private DataBuilder $dataBuilder,
     ) {
     }
 
@@ -69,12 +78,10 @@ final readonly class CreateUser
      */
     public function __invoke(array $data): User
     {
-        $pipes = [
-            NormalizeEmailPipe::class,
-            ValidateUserDataPipe::class,
-        ];
-
-        $transformedData = $this->dataBuilder->build($data, $pipes);
+        $transformedData = $this->build($data, [
+            'email' => NormalizeEmailPipe::class,
+            'name' => ValidateUserDataPipe::class,
+        ]);
         
         return $this->userModelService->create($transformedData);
     }
@@ -110,16 +117,33 @@ final readonly class NormalizeProductNamePipe implements BuilderPipe
 
 ## Method Reference
 
-### `build(array $data, array $pipes): array`
+### `build(mixed $data, array $pipelines = []): array`
 
 Transforms data using defined pipes via Laravel Pipeline.
 
 **Parameters:**
-- `array<string, mixed> $data` - Input data to transform
-- `array<class-string> $pipes` - Array of pipe classes implementing handle method
+- `mixed $data` - Input data to transform
+- `array<string|int, class-string> $pipelines` - Array of pipe classes with keys
 
 **Returns:**
 - `array<string, mixed>` - Transformed data
+
+**Pipe Processing Order:**
+1. General pipes (integer keys or '*' key) are applied first
+2. Specific pipes (string keys) are applied after general pipes
+
+**Example:**
+```php
+$this->build($data, [
+    // General pipes (applied to all data)
+    0 => ValidateDataPipe::class,
+    '*' => SanitizeDataPipe::class,
+    
+    // Specific pipes (applied to specific fields)
+    'email' => LowercaseEmailPipe::class,
+    'name' => UcFirstNamePipe::class,
+]);
+```
 
 ## Benefits
 

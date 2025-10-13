@@ -295,7 +295,9 @@ final class UserController extends Controller
 
 ## Data Builder Usage
 
-The Data Builder uses Laravel's Pipeline to transform data through a series of pipes:
+The Data Builder uses Laravel's Pipeline to transform data through a series of pipes. It supports both general pipes (applied to all data) and specific pipes (applied to specific fields).
+
+### Basic Usage
 
 ```php
 use Pekral\Arch\DataBuilder\DataBuilder;
@@ -309,11 +311,97 @@ final readonly class ProcessUserData
     public function handle(array $userData): array
     {
         return $this->dataBuilder->build($userData, [
-            LowercaseEmailPipe::class,
-            UcFirstNamePipe::class,
+            // General pipes (applied to all data)
             ValidateEmailPipe::class,
+            SanitizeDataPipe::class,
+            
+            // Specific pipes (applied to specific fields)
+            'email' => LowercaseEmailPipe::class,
+            'name' => UcFirstNamePipe::class,
         ]);
     }
+}
+```
+
+### Pipe Processing Order
+
+1. **General Pipes**: Applied first to all data
+2. **Specific Pipes**: Applied after general pipes to specific fields
+
+### Using in Actions
+
+```php
+final readonly class CreateUser
+{
+    use DataBuilder;
+    
+    public function execute(array $data): User
+    {
+        $dataNormalized = $this->build($data, [
+            'email' => LowercaseEmailPipe::class,
+            'name' => UcFirstNamePipe::class,
+        ]);
+        
+        return $this->userModelService->create($dataNormalized);
+    }
+}
+```
+
+## Data Validator Usage
+
+The Data Validator provides a simple interface for validating data using Laravel's validation system.
+
+### Basic Usage
+
+```php
+use Pekral\Arch\DataValidation\DataValidator;
+
+final readonly class ValidateUserData
+{
+    use DataValidator;
+    
+    public function validateUser(array $data): array
+    {
+        return $this->validate($data, [
+            'email' => 'required|email|unique:users',
+            'name' => 'required|string|max:255',
+            'password' => 'required|string|min:6',
+        ], [
+            'email.required' => 'Email is required.',
+            'email.email' => 'Email must be a valid email address.',
+            'name.required' => 'Name is required.',
+        ]);
+    }
+}
+```
+
+### Using in Actions
+
+```php
+final readonly class CreateUser
+{
+    use DataValidator;
+    
+    public function execute(array $data): User
+    {
+        $this->validate($data, [
+            'email' => 'required|email|unique:users',
+            'name' => 'required|string|max:255',
+        ], []);
+        
+        return $this->userModelService->create($data);
+    }
+}
+```
+
+### Validation Exception Handling
+
+```php
+try {
+    $validatedData = $this->validate($data, $rules, $messages);
+} catch (\Illuminate\Validation\ValidationException $e) {
+    $errors = $e->errors();
+    // Handle validation errors
 }
 ```
 
