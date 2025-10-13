@@ -10,13 +10,9 @@ use Illuminate\Pipeline\Pipeline;
  * Service for data transformation using Laravel Pipeline pattern.
  * Allows applying a series of transformations to data sequentially through defined pipes.
  */
-final readonly class DataBuilder
+trait DataBuilder
 {
 
-    public function __construct(private Pipeline $pipeline)
-    {
-    }
-    
     /**
      * Transforms data using defined pipes via Laravel Pipeline.
      *
@@ -26,9 +22,9 @@ final readonly class DataBuilder
      */
     public function build(mixed $data, array $pipes): array
     {
+        $pipeline = app(Pipeline::class);
         /** @var array<string, mixed> $result */
-        $result = $this->pipeline
-            ->send($data)
+        $result = $pipeline->send($data)
             ->through($pipes)
             ->thenReturn();
 

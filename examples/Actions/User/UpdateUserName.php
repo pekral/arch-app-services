@@ -12,13 +12,15 @@ use Pekral\Arch\Tests\Models\User;
 final readonly class UpdateUserName
 {
 
-    public function __construct(private UserModelService $userModelService, private DataBuilder $baseDataBuilder)
+    use DataBuilder;
+
+    public function __construct(private UserModelService $userModelService)
     {
     }
 
     public function handle(string $name, User $user): void
     {
-        $data = $this->baseDataBuilder->build(['name' => $name], [UcFirstNamePipe::class]);
+        $data = $this->build(['name' => $name], [UcFirstNamePipe::class]);
         $this->userModelService->updateModel($user, $data);
     }
 

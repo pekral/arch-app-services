@@ -16,6 +16,11 @@ use RuntimeException;
 final class ShouldNotHappen extends RuntimeException
 {
 
+    /**
+     * Create a new ShouldNotHappen exception with the given reason.
+     *
+     * @param string $reason Description of why this situation should not happen
+     */
     public static function because(string $reason): self
     {
         return new self($reason);

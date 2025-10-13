@@ -135,6 +135,12 @@ abstract class BaseRepository
         return $query;
     }
 
+    /**
+     * Resolve the number of items per page for pagination.
+     *
+     * @param int|null $itemsPerPage Custom items per page value
+     * @return int Resolved items per page value
+     */
     private function resolveItemsPerPage(?int $itemsPerPage): int
     {
         if ($itemsPerPage !== null) {
