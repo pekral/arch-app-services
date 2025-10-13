@@ -124,7 +124,7 @@ abstract class BaseRepository
     /**
      * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
-    private function createQueryBuilder(): Builder
+    public function createQueryBuilder(): Builder
     {
         $modelClassName = $this->getModelClassName();
         $model = new $modelClassName();
@@ -133,6 +133,16 @@ abstract class BaseRepository
         $query = $model->newQuery();
         
         return $query;
+    }
+
+    /**
+     * Start a fluent query builder interface.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<TModel>
+     */
+    public function query(): Builder
+    {
+        return $this->createQueryBuilder();
     }
 
     /**

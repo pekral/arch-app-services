@@ -71,6 +71,62 @@ final class UserRepository extends BaseRepository
 }
 ```
 
+### Using Fluent Query Interface
+
+The repository provides a fluent interface for building complex queries:
+
+```php
+<?php
+
+namespace App\Repositories;
+
+use Pekral\Arch\Repository\Mysql\BaseRepository;
+use App\Models\User;
+
+final class UserRepository extends BaseRepository
+{
+    protected function getModelClassName(): string
+    {
+        return User::class;
+    }
+    
+    public function findActiveUsers(): Collection
+    {
+        return $this->query()
+            ->where('active', true)
+            ->orderBy('name')
+            ->get();
+    }
+    
+    public function findUsersWithPosts(): Collection
+    {
+        return $this->query()
+            ->whereHas('posts')
+            ->with('posts')
+            ->get();
+    }
+    
+    public function searchUsers(string $term): Collection
+    {
+        return $this->query()
+            ->where(function ($query) use ($term) {
+                $query->where('name', 'like', "%{$term}%")
+                      ->orWhere('email', 'like', "%{$term}%");
+            })
+            ->get();
+    }
+}
+
+// Usage in Actions or Services
+$users = $userRepository->query()
+    ->where('active', true)
+    ->whereIn('role', ['admin', 'moderator'])
+    ->with(['posts', 'profile'])
+    ->orderBy('created_at', 'desc')
+    ->limit(10)
+    ->get();
+```
+
 ### Creating a Model Manager
 
 ```php
@@ -267,6 +323,8 @@ final class UserController extends Controller
 - `getOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - Get one record or throw exception
 - `findOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - Find one record or return null
 - `countByParams(Collection|array $params, array $groupBy = [])` - Count records
+- `query()` - Start a fluent query builder interface
+- `createQueryBuilder()` - Create a new query builder instance
 
 ### Model Manager Methods
 
