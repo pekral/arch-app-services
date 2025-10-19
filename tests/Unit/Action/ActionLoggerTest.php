@@ -10,6 +10,7 @@ use Mockery\MockInterface;
 use Pekral\Arch\Action\ActionLogger;
 use Pekral\Arch\Tests\TestCase;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 final class ActionLoggerTest extends TestCase
 {
@@ -186,10 +187,10 @@ final class ActionLoggerTest extends TestCase
         }
 
         $exceptionMessage = 'Logger connection failed';
-        $mockLogger = Mockery::mock(\Psr\Log\LoggerInterface::class);
+        $mockLogger = Mockery::mock(LoggerInterface::class);
         $mockLogger->shouldReceive('info')
             ->once()
-            ->andThrow(new \RuntimeException($exceptionMessage));
+            ->andThrow(new RuntimeException($exceptionMessage));
 
         Log::shouldReceive('channel')
             ->once()
@@ -226,13 +227,13 @@ final class ActionLoggerTest extends TestCase
             unlink($logPath);
         }
 
-        $mockLogger = Mockery::mock(\Psr\Log\LoggerInterface::class);
+        $mockLogger = Mockery::mock(LoggerInterface::class);
         $mockLogger->shouldReceive('info')
             ->twice()
-            ->andThrow(new \RuntimeException('Info logging failed'));
+            ->andThrow(new RuntimeException('Info logging failed'));
         $mockLogger->shouldReceive('error')
             ->once()
-            ->andThrow(new \RuntimeException('Error logging failed'));
+            ->andThrow(new RuntimeException('Error logging failed'));
 
         Log::shouldReceive('channel')
             ->times(3)
@@ -262,10 +263,10 @@ final class ActionLoggerTest extends TestCase
     public function testNoExceptionWhenBothPrimaryAndFallbackLoggingFail(): void
     {
         // Arrange - this test ensures the application doesn't crash
-        $mockLogger = Mockery::mock(\Psr\Log\LoggerInterface::class);
+        $mockLogger = Mockery::mock(LoggerInterface::class);
         $mockLogger->shouldReceive('info')
             ->once()
-            ->andThrow(new \RuntimeException('Primary logging failed'));
+            ->andThrow(new RuntimeException('Primary logging failed'));
 
         Log::shouldReceive('channel')
             ->once()
@@ -301,10 +302,10 @@ final class ActionLoggerTest extends TestCase
         // Read-only directory
         chmod($logsPath, 0444);
         
-        $mockLogger = Mockery::mock(\Psr\Log\LoggerInterface::class);
+        $mockLogger = Mockery::mock(LoggerInterface::class);
         $mockLogger->shouldReceive('info')
             ->once()
-            ->andThrow(new \RuntimeException('Primary logging failed'));
+            ->andThrow(new RuntimeException('Primary logging failed'));
 
         Log::shouldReceive('channel')
             ->once()

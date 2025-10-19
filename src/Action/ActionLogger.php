@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Action;
 
 use Illuminate\Support\Facades\Log;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 use function config;
@@ -146,7 +147,7 @@ TEMPLATE,
     /**
      * Get the configured logger channel.
      */
-    private function getLogger(): \Psr\Log\LoggerInterface
+    private function getLogger(): LoggerInterface
     {
         $channel = config('arch.action_logging.channel', 'stack');
         assert(is_string($channel));

@@ -53,10 +53,8 @@ abstract class TestCase extends Orchestra
         $this->setUpDatabase();
     }
 
-    /**
-     * @param \Illuminate\Foundation\Application $app
-     */
-    protected function getPackageProviders($app): array
+    // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter
+    protected function getPackageProviders(mixed $app): array
     {
         return [
             ArchServiceProvider::class,

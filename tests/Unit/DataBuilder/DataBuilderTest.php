@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\DataBuilder;
 
+use Closure;
+use InvalidArgumentException;
 use Pekral\Arch\DataBuilder\DataBuilder;
 use Pekral\Arch\Tests\TestCase;
 
@@ -48,13 +50,14 @@ final class DataBuilderTest extends TestCase
     {
         // Arrange
         $data = ['name' => 'Bob'];
+        // phpcs:ignore SlevomatCodingStandard.Arrays.DisallowPartiallyKeyed
         $pipelines = [
             TestPipe::class,
             'specific' => TestPipe2::class,
         ];
 
         // Act & Assert
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Pipes keys must be either string or integer');
         
         $this->testClassWithDataBuilder->build($data, $pipelines);
@@ -102,7 +105,7 @@ final class TestPipe
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public function handle(array $data, \Closure $next): array
+    public function handle(array $data, Closure $next): array
     {
         $data['processed'] = true;
         
@@ -124,7 +127,7 @@ final class TestPipe2
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public function handle(array $data, \Closure $next): array
+    public function handle(array $data, Closure $next): array
     {
         $data['processed2'] = true;
         

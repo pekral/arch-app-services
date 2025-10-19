@@ -21,18 +21,24 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 final class User extends Model
 {
 
-    /** @use \Illuminate\Database\Eloquent\Factories\HasFactory<\Pekral\Arch\Tests\Models\UserFactory> */
+    /**
+     * @use \Illuminate\Database\Eloquent\Factories\HasFactory<\Pekral\Arch\Tests\Models\UserFactory>
+     */
     use HasFactory;
     use SoftDeletes;
 
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'deleted_at' => 'datetime',
         'email_verified_at' => 'datetime',

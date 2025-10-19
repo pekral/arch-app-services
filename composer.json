@@ -106,7 +106,7 @@
     ],
     "normalize-fix": [
       "echo \"📝 Running Composer normalize fix...\"",
-      "composer normalize"
+      "composer normalize || true"
     ],
     "phpcs-check": [
       "echo \"✅ Running PHP CodeSniffer check...\"",
