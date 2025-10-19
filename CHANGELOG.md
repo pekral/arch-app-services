@@ -2,6 +2,39 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-10-19 (PR #8)
+
+
+- 🐛 **Fixed**: phpcs errors
+- ✨ **Added**: action have logging support now
+- 🐛 **Fixed**: change abstracts methods visibility
+- 🔧 **Changed**: composer update dependencies
+- ✨ **Added**: repositories support query as fluent interface
+- 📚 **Documentation**: update docs
+- ✨ **Added**: builder support specific pipelines
+- ✨ **Added**: support simple validation
+- 📝 **Changed**: chore - update dependencies
+- 🔧 **Changed**: more todos
+- ♻️ **Refactored**: cleanup old comments
+- 🔧 **Changed**: refresh todo list
+- 🔧 **Changed**: update readme.md
+- 📝 **Changed**: tests: more tests
+- 📝 **Changed**: tests: more tests
+- 📝 **Changed**: tests: import users have tests now
+- 🔧 **Changed**: cleanup dead codey
+- 📝 **Changed**: tests: count by params for users have tests now
+- 📝 **Changed**: tests: test for paginated users
+- 📝 **Changed**: tests: get one uder by paramas test
+- 📝 **Changed**: tests: tests for filter user by params
+- ✅ **Tests**: Delte user via action now
+- ✅ **Tests**: user can update only name via ation now
+- ♻️ **Refactored**: verify user model via action now
+- 📚 **Documentation**: refresh docs for DataBuilde::class
+- ♻️ **Refactored**: renamed parameter for finally closure in DataBuildeR::class
+- ✨ **Added**: DataBuilder::class support finally closure
+- ♻️ **Refactored**: simplify action executes
+- 🔧 **Changed**: composer update dependencies
+
 ## [Unreleased] - 2025-10-19
 
 
