@@ -21,25 +21,25 @@ abstract readonly class BaseModelService
 {
 
     /**
-     * Get the model class this service manages.
-     *
-     * @return class-string<TModel>
-     */
-    abstract protected function getModelClass(): string;
-
-    /**
      * Create a model manager instance.
      *
      * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>
      */
-    abstract protected function getModelManager(): BaseModelManager;
+    abstract public function getModelManager(): BaseModelManager;
 
     /**
      * Create a repository instance.
      *
      * @return \Pekral\Arch\Repository\Mysql\BaseRepository<TModel>
      */
-    abstract protected function getRepository(): BaseRepository;
+    abstract public function getRepository(): BaseRepository;
+
+    /**
+     * Get the model class this service manages.
+     *
+     * @return class-string<TModel>
+     */
+    abstract protected function getModelClass(): string;
 
     /**
      * @param array<string, mixed> $data

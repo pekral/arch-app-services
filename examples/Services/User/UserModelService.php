@@ -19,19 +19,19 @@ final readonly class UserModelService extends BaseModelService
     {
     }
 
-    protected function getModelClass(): string
-    {
-        return User::class;
-    }
-
-    protected function getModelManager(): BaseModelManager
+    public function getModelManager(): BaseModelManager
     {
         return $this->userModelManager;
     }
 
-    protected function getRepository(): BaseRepository
+    public function getRepository(): BaseRepository
     {
         return $this->userRepository;
+    }
+
+    protected function getModelClass(): string
+    {
+        return User::class;
     }
 
 }

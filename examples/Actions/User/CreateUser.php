@@ -23,10 +23,14 @@ final readonly class CreateUser
 
     /**
      * @param array<string, mixed> $data
+     * @throws \Illuminate\Validation\ValidationException
      */
     public function execute(array $data): User
     {
-        $this->validate($data, [], []);
+        $this->validate($data, [
+            'email' => 'required|email',
+            'name' => 'required|string',
+        ], []);
         $dataNormalized = $this->build(
             $data,
             [
