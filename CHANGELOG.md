@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-10-19
+
+
+- ✨ **Added**: model manager support insert or ignore action
+- 📝 **Changed**: resolved #5 feat: apply cache layer for repository
+
 ## [Unreleased] - 2025-10-19 (PR #9)
 
 
