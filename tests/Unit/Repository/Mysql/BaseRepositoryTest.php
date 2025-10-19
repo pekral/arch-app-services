@@ -152,6 +152,19 @@ final class BaseRepositoryTest extends TestCase
         }
     }
 
+    public function testQuery(): void
+    {
+        // Arrange
+        User::factory()->count(3)->create();
+        
+        // Act
+        $query = $this->userRepository->query();
+        
+        // Assert
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Builder::class, $query);
+        $this->assertEquals(3, $query->count());
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

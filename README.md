@@ -12,6 +12,7 @@
 ## Features
 
 - **Action Pattern**: Clean, single-purpose classes for business logic
+- **Action Logging**: Robust action execution logging with fallback mechanism
 - **Repository Pattern**: Database query abstraction with pagination support  
 - **Model Manager**: CRUD operations with batch processing capabilities
 - **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
@@ -41,11 +42,12 @@ php artisan vendor:publish --tag="larach-config"
 This package provides a clean architecture with the following components:
 
 1. **Actions**: Single-purpose classes that handle specific business operations
-2. **Services**: Combine Repository and Model Manager for complete CRUD operations
-3. **Repositories**: Handle read operations with advanced querying capabilities
-4. **Model Managers**: Handle write operations (create, update, delete)
-5. **Data Builder**: Transform data using pipeline pattern
-6. **Pipes**: Reusable data transformation components
+2. **Action Logging**: Robust logging system with configurable channels and fallback
+3. **Services**: Combine Repository and Model Manager for complete CRUD operations
+4. **Repositories**: Handle read operations with advanced querying capabilities
+5. **Model Managers**: Handle write operations (create, update, delete)
+6. **Data Builder**: Transform data using pipeline pattern
+7. **Pipes**: Reusable data transformation components
 
 ## Usage Examples
 
@@ -189,15 +191,16 @@ final readonly class UserModelService extends BaseModelService
 }
 ```
 
-### Creating Actions
+### Creating Actions with Logging
 
-Actions are single-purpose classes that handle specific business operations:
+Actions are single-purpose classes that handle specific business operations. The ActionLogger trait provides robust logging with fallback mechanism:
 
 ```php
 <?php
 
 namespace App\Actions\User;
 
+use Pekral\Arch\Action\ActionLogger;
 use Pekral\Arch\DataBuilder\DataBuilder;
 use App\Actions\User\Pipes\LowercaseEmailPipe;
 use App\Actions\User\Pipes\UcFirstNamePipe;
@@ -206,9 +209,11 @@ use App\Models\User;
 
 final readonly class CreateUser
 {
+    use ActionLogger;
+    use DataBuilder;
+
     public function __construct(
         private UserModelService $userModelService,
-        private DataBuilder $dataBuilder,
         private VerifyUserAction $verifyUserAction,
     ) {
     }
@@ -218,19 +223,35 @@ final readonly class CreateUser
      */
     public function execute(array $data): User
     {
-        // Transform data using pipeline
-        $normalizedData = $this->dataBuilder->build($data, [
-            LowercaseEmailPipe::class,
-            UcFirstNamePipe::class
-        ]);
+        $this->logActionStart('CreateUser', ['email' => $data['email'] ?? null]);
         
-        // Create user
-        $user = $this->userModelService->create($normalizedData);
-        
-        // Send verification email
-        $this->verifyUserAction->handle($user);
-        
-        return $user;
+        try {
+            // Transform data using pipeline
+            $normalizedData = $this->build($data, [
+                LowercaseEmailPipe::class,
+                UcFirstNamePipe::class
+            ]);
+            
+            // Create user
+            $user = $this->userModelService->create($normalizedData);
+            
+            // Send verification email
+            $this->verifyUserAction->handle($user);
+            
+            $this->logActionSuccess('CreateUser', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+            
+            return $user;
+        } catch (\Exception $e) {
+            $this->logActionFailure('CreateUser', $e->getMessage(), [
+                'email' => $data['email'] ?? null,
+                'error_type' => get_class($e)
+            ]);
+            
+            throw $e;
+        }
     }
 }
 ```
@@ -463,6 +484,119 @@ try {
 }
 ```
 
+## Action Logging Usage
+
+The Action Logger provides robust logging for action execution with automatic fallback mechanism. It logs action start, success, and failure events with configurable logging channels.
+
+### Basic Usage
+
+```php
+use Pekral\Arch\Action\ActionLogger;
+
+final readonly class ProcessOrderAction
+{
+    use ActionLogger;
+    
+    public function execute(array $orderData): Order
+    {
+        $startTime = microtime(true);
+        
+        $this->logActionStart('ProcessOrder', [
+            'order_id' => $orderData['id'] ?? null,
+            'customer_id' => $orderData['customer_id'] ?? null
+        ]);
+        
+        try {
+            $order = $this->orderService->process($orderData);
+            
+            $this->logActionSuccess('ProcessOrder', [
+                'order_id' => $order->id,
+                'total_amount' => $order->total_amount,
+                'processing_time' => microtime(true) - $startTime
+            ]);
+            
+            return $order;
+        } catch (\Exception $e) {
+            $this->logActionFailure('ProcessOrder', $e->getMessage(), [
+                'order_data' => $orderData,
+                'error_type' => get_class($e),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
+            
+            throw $e;
+        }
+    }
+}
+```
+
+### Available Methods
+
+- `logActionStart(string $action, array $context = [])` - Log action start
+- `logActionSuccess(string $action, array $context = [])` - Log successful completion  
+- `logActionFailure(string $action, string $error, array $context = [])` - Log failure
+
+### Logging Configuration
+
+Configure action logging in your `config/arch.php` file:
+
+```php
+return [
+    // ... other config
+    
+    'action_logging' => [
+        'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
+        'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
+    ],
+];
+```
+
+### Environment Variables
+
+```bash
+# Use specific logging channel for actions
+ARCH_ACTION_LOG_CHANNEL=actions
+
+# Disable action logging
+ARCH_ACTION_LOGGING_ENABLED=false
+```
+
+### Custom Logging Channel
+
+Create a dedicated logging channel in `config/logging.php`:
+
+```php
+'channels' => [
+    'actions' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/actions.log'),
+        'level' => 'info',
+        'days' => 14,
+    ],
+],
+```
+
+### Fallback Mechanism
+
+If the primary logger fails, ActionLogger automatically falls back to writing detailed error information to `storage/logs/arch.log`:
+
+```
+[2025-01-15 14:30:25] ARCH FALLBACK LOG
+Level: INFO
+Action: ProcessOrder
+Type: start
+Original Message: Action started: ProcessOrder
+Context: {
+    "order_id": 12345,
+    "customer_id": 67890
+}
+Logging Error: Redis connection timeout
+Logging Error File: /app/vendor/predis/Client.php:156
+Stack Trace: #0 /app/vendor/predis/Client.php...
+--------------------------------------------------------------------------------
+```
+
+This ensures that **no action execution is interrupted** by logging failures, while still providing complete debugging information.
+
 ## Configuration
 
 The package publishes a configuration file with the following options:
@@ -470,8 +604,14 @@ The package publishes a configuration file with the following options:
 ```php
 return [
     'default_items_per_page' => 15,
+    
     'exceptions' => [
         'should_not_happen' => \RuntimeException::class,
+    ],
+    
+    'action_logging' => [
+        'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
+        'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
     ],
 ];
 ```
