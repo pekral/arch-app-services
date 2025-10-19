@@ -20,6 +20,7 @@ use function is_array;
  * model data with support for eager loading relationships.
  *
  * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @method \Pekral\Arch\Repository\CacheWrapper cache()
  */
 abstract class BaseRepository
 {
