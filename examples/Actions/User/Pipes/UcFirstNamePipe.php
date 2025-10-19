@@ -9,6 +9,9 @@ use function str;
 final readonly class UcFirstNamePipe implements BuilderPipe
 {
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function handle(array $data, callable $next): array
     {
         if (isset($data['name']) && is_string($data['name'])) {

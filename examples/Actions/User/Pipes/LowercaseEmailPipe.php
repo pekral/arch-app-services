@@ -7,6 +7,9 @@ namespace Pekral\Arch\Examples\Actions\User\Pipes;
 final readonly class LowercaseEmailPipe implements BuilderPipe
 {
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function handle(array $data, callable $next): array
     {
         if (isset($data['email']) && is_string($data['email'])) {

@@ -13,6 +13,9 @@ final class UserFactory extends Factory
     /** @var class-string<\Pekral\Arch\Tests\Models\User> */
     protected $model = User::class;
 
+    /**
+     * @return array<string, string|null>
+     */
     public function definition(): array
     {
         return [
