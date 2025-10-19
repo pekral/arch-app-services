@@ -72,6 +72,24 @@ abstract class BaseModelManager
     }
 
     /**
+     * Bulk insert records, ignoring duplicates based on unique constraints.
+     *
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<int, array<TKey, TValue>> $dataArray
+     */
+    public function insertOrIgnore(array $dataArray): void
+    {
+        if ($dataArray === []) {
+            return;
+        }
+
+        $modelClassName = $this->getModelClassName();
+        
+        $modelClassName::insertOrIgnore($dataArray);
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $dataArray

@@ -15,7 +15,7 @@
 - **Action Logging**: Robust action execution logging with fallback mechanism
 - **Repository Pattern**: Database query abstraction with pagination support  
 - **Repository Caching**: Automatic caching layer for repository methods with configurable TTL
-- **Model Manager**: CRUD operations with batch processing capabilities
+- **Model Manager**: CRUD operations with batch processing and duplicate handling capabilities
 - **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
 - **Data Validation**: Integrated validation using Laravel's validation system
 - **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
@@ -232,6 +232,82 @@ final readonly class UserModelService extends BaseModelService
 }
 ```
 
+### Bulk Operations with Duplicate Handling
+
+The Model Manager provides powerful bulk operations including duplicate handling:
+
+```php
+<?php
+
+namespace App\Actions\User;
+
+use Pekral\Arch\Examples\Services\User\UserModelManager;
+use Pekral\Arch\Tests\Models\User;
+
+final readonly class BulkImportUsers
+{
+    public function __construct(
+        private UserModelManager $userModelManager,
+    ) {
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $userData
+     * @return array{
+     *     total_processed: int,
+     *     created: int,
+     *     ignored: int
+     * }
+     */
+    public function execute(array $userData): array
+    {
+        if ($userData === []) {
+            return [
+                'total_processed' => 0,
+                'created' => 0,
+                'ignored' => 0,
+            ];
+        }
+
+        // Prepare data with timestamps
+        $preparedData = $this->prepareUserData($userData);
+
+        // Count existing users before import
+        $existingCount = User::count();
+
+        // Use insertOrIgnore to handle duplicates
+        $processedCount = $this->userModelManager->insertOrIgnore($preparedData);
+
+        // Count users after import
+        $newCount = User::count();
+        $createdCount = $newCount - $existingCount;
+        $ignoredCount = $processedCount - $createdCount;
+
+        return [
+            'total_processed' => $processedCount,
+            'created' => $createdCount,
+            'ignored' => $ignoredCount,
+        ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $userData
+     * @return array<int, array<string, mixed>>
+     */
+    private function prepareUserData(array $userData): array
+    {
+        $now = now();
+
+        return array_map(function (array $data) use ($now): array {
+            return array_merge($data, [
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }, $userData);
+    }
+}
+```
+
 ### Creating Actions with Data Transformation and Validation
 
 Actions are single-purpose classes that handle specific business operations. They can use DataBuilder for transformation and DataValidator for validation:
@@ -395,6 +471,7 @@ final class UserController extends Controller
 
 - `create(array $data)` - Create single record
 - `bulkCreate(array $dataArray)` - Bulk create records
+- `insertOrIgnore(array $dataArray)` - Bulk insert records, ignoring duplicates based on unique constraints
 - `bulkUpdate(array $dataArray, string $keyColumn = 'id')` - Bulk update records
 - `deleteByParams(array $parameters)` - Delete by parameters
 
@@ -414,6 +491,7 @@ final class UserController extends Controller
 
 **Bulk Operations:**
 - `bulkCreate(array $data)` - Bulk create records
+- `insertOrIgnore(array $data)` - Bulk insert records, ignoring duplicates
 - `bulkUpdate(array $data, string $keyColumn = 'id')` - Bulk update records
 
 ## Data Builder Usage
