@@ -4,9 +4,12 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\Service;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 use Pekral\Arch\Tests\Models\User;
 use Pekral\Arch\Tests\TestCase;
+use ReflectionClass;
 
 final class BaseModelServiceTest extends TestCase
 {
@@ -22,7 +25,7 @@ final class BaseModelServiceTest extends TestCase
         $result = $this->userModelService->paginateByParams();
 
         // Assert
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
         $this->assertCount(15, $result->items());
     }
 
@@ -31,10 +34,10 @@ final class BaseModelServiceTest extends TestCase
         // Arrange
         User::factory()->create();
         
-        $reflection = new \ReflectionClass($this->userModelService);
+        $reflection = new ReflectionClass($this->userModelService);
         $method = $reflection->getMethod('deleteModel');
         
-        $mockModel = $this->createMock(\Illuminate\Database\Eloquent\Model::class);
+        $mockModel = $this->createMock(Model::class);
         $mockModel->method('delete')->willReturn(null);
         
         // Act
@@ -54,7 +57,7 @@ final class BaseModelServiceTest extends TestCase
         $result = $this->userModelService->paginateByParams(['name' => 'John']);
         
         // Assert
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
         $this->assertCount(5, $result->items());
     }
 
@@ -67,7 +70,7 @@ final class BaseModelServiceTest extends TestCase
         $result = $this->userModelService->paginateByParams([], [], 10);
         
         // Assert
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
         $this->assertCount(10, $result->items());
     }
 
@@ -81,10 +84,10 @@ final class BaseModelServiceTest extends TestCase
         $result = $this->userModelService->paginateByParams([], [], null, ['name' => 'desc']);
         
         // Assert
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
         $this->assertCount(2, $result->items());
         $firstUser = $result->items()[0];
-        $this->assertInstanceOf(\Pekral\Arch\Tests\Models\User::class, $firstUser);
+        $this->assertInstanceOf(User::class, $firstUser);
         $this->assertEquals('Bob', $firstUser->name);
     }
 
@@ -98,7 +101,7 @@ final class BaseModelServiceTest extends TestCase
         $result = $this->userModelService->paginateByParams([], [], null, [], ['name']);
         
         // Assert
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
         $this->assertCount(2, $result->items());
     }
 

@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\DataBuilder;
 
 use Illuminate\Pipeline\Pipeline;
+use InvalidArgumentException;
 
 use function app;
 use function collect;
@@ -54,7 +55,7 @@ trait DataBuilder
         $countIntSpecificPipes = collect($pipelines)->keys()->filter(static fn (string|int $key): bool => is_int($key))->count();
 
         if ($countIntSpecificPipes > 0 && $countStringSpecificPipes > 0) {
-            throw new \InvalidArgumentException('Pipes keys must be either string or integer');
+            throw new InvalidArgumentException('Pipes keys must be either string or integer');
         }
     }
 
