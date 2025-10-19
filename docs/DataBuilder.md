@@ -93,21 +93,38 @@ final readonly class CreateUser
 ```php
 <?php
 
-namespace App\Actions\Product\Pipes;
+namespace App\Actions\User\Pipes;
 
-use Pekral\Arch\Examples\Actions\User\Pipes\BuilderPipe;
-
-final readonly class NormalizeProductNamePipe implements BuilderPipe
+interface BuilderPipe
 {
     /**
+     * Transform user data.
+     *
      * @param array<string, mixed> $data
      * @param callable(array<string, mixed>): array<string, mixed> $next
      * @return array<string, mixed>
      */
+    public function handle(array $data, callable $next): array;
+}
+
+final readonly class LowercaseEmailPipe implements BuilderPipe
+{
+    public function handle(array $data, callable $next): array
+    {
+        if (isset($data['email']) && is_string($data['email'])) {
+            $data['email'] = strtolower($data['email']);
+        }
+
+        return $next($data);
+    }
+}
+
+final readonly class UcFirstNamePipe implements BuilderPipe
+{
     public function handle(array $data, callable $next): array
     {
         if (isset($data['name']) && is_string($data['name'])) {
-            $data['name'] = trim($data['name']);
+            $data['name'] = str($data['name'])->lower()->ucfirst()->value();
         }
 
         return $next($data);

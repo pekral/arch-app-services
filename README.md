@@ -1,24 +1,26 @@
-# <img src="logo.svg" alt="Larach Logo" width="200"/>
+# <img src="logo.svg" alt="Arch App Services Logo" width="200"/>
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/larach.svg?style=flat-square)](https://packagist.org/packages/pekral/larach)
-[![Total Downloads](https://img.shields.io/packagist/dt/pekral/larach.svg?style=flat-square)](https://packagist.org/packages/pekral/larach)
-[![Tests](https://img.shields.io/github/actions/workflow/status/pekral/larach/tests.yml?branch=master&label=tests&style=flat-square)](https://github.com/pekral/larach/actions)
-[![Code Coverage](https://img.shields.io/codecov/c/github/pekral/larach?style=flat-square)](https://codecov.io/gh/pekral/larach)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
+[![Total Downloads](https://img.shields.io/packagist/dt/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
+[![Tests](https://img.shields.io/github/actions/workflow/status/pekral/arch-app-services/tests.yml?branch=master&label=tests&style=flat-square)](https://github.com/pekral/arch-app-services/actions)
+[![Code Coverage](https://img.shields.io/codecov/c/github/pekral/arch-app-services?style=flat-square)](https://codecov.io/gh/pekral/arch-app-services)
 
 > ⚠️ **This package is currently under active development.** The API may change in future versions. Use with caution in production environments.
 
-**Laravel Architecture Stack** - Clean architectural abstractions for building scalable applications
+**Arch App Services** - Clean architectural abstractions for building scalable Laravel applications
 
 ## Features
 
 - **Action Pattern**: Clean, single-purpose classes for business logic
 - **Action Logging**: Robust action execution logging with fallback mechanism
 - **Repository Pattern**: Database query abstraction with pagination support  
+- **Repository Caching**: Automatic caching layer for repository methods with configurable TTL
 - **Model Manager**: CRUD operations with batch processing capabilities
 - **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
+- **Data Validation**: Integrated validation using Laravel's validation system
 - **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
 - **Type Safety**: Full PHPDoc type annotations and generics support
-- **Laravel 11+ Ready**: Built for modern Laravel features and conventions
+- **Laravel 12+ Ready**: Built for modern Laravel features and conventions
 - **100% Test Coverage**: Comprehensive test suite ensuring reliability
 
 ## Installation
@@ -26,7 +28,7 @@
 You can install the package via composer:
 
 ```bash
-composer require pekral/larach
+composer require pekral/arch-app-services
 ```
 
 The package will automatically register its service provider.
@@ -34,7 +36,7 @@ The package will automatically register its service provider.
 Optionally, you can publish the configuration file:
 
 ```bash
-php artisan vendor:publish --tag="larach-config"
+php artisan vendor:publish --tag="arch-config"
 ```
 
 ## Architecture Overview
@@ -44,10 +46,11 @@ This package provides a clean architecture with the following components:
 1. **Actions**: Single-purpose classes that handle specific business operations
 2. **Action Logging**: Robust logging system with configurable channels and fallback
 3. **Services**: Combine Repository and Model Manager for complete CRUD operations
-4. **Repositories**: Handle read operations with advanced querying capabilities
+4. **Repositories**: Handle read operations with advanced querying capabilities and caching
 5. **Model Managers**: Handle write operations (create, update, delete)
 6. **Data Builder**: Transform data using pipeline pattern
-7. **Pipes**: Reusable data transformation components
+7. **Data Validator**: Integrated validation using Laravel's validation system
+8. **Pipes**: Reusable data transformation components
 
 ## Usage Examples
 
@@ -58,6 +61,7 @@ This package provides a clean architecture with the following components:
 
 namespace App\Repositories;
 
+use Pekral\Arch\Repository\CacheableRepository;
 use Pekral\Arch\Repository\Mysql\BaseRepository;
 use App\Models\User;
 
@@ -66,6 +70,8 @@ use App\Models\User;
  */
 final class UserRepository extends BaseRepository
 {
+    use CacheableRepository;
+
     protected function getModelClassName(): string
     {
         return User::class;
@@ -127,6 +133,41 @@ $users = $userRepository->query()
     ->orderBy('created_at', 'desc')
     ->limit(10)
     ->get();
+```
+
+### Using Repository Caching
+
+The repository provides automatic caching through the `CacheableRepository` trait:
+
+```php
+<?php
+
+namespace App\Actions\User;
+
+use App\Repositories\UserRepository;
+use App\Models\User;
+
+final readonly class GetUserCached
+{
+    public function __construct(private UserRepository $userRepository)
+    {
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function handle(array $filters): User
+    {
+        // Automatically cached for configured TTL
+        return $this->userRepository->cache()->getOneByParams($filters);
+    }
+}
+
+// Clear specific cache entry
+$this->userRepository->cache()->clearCache('getOneByParams', $filters);
+
+// Clear all cache entries (use with caution)
+$this->userRepository->cache()->clearAllCache();
 ```
 
 ### Creating a Model Manager
@@ -191,17 +232,17 @@ final readonly class UserModelService extends BaseModelService
 }
 ```
 
-### Creating Actions with Logging
+### Creating Actions with Data Transformation and Validation
 
-Actions are single-purpose classes that handle specific business operations. The ActionLogger trait provides robust logging with fallback mechanism:
+Actions are single-purpose classes that handle specific business operations. They can use DataBuilder for transformation and DataValidator for validation:
 
 ```php
 <?php
 
 namespace App\Actions\User;
 
-use Pekral\Arch\Action\ActionLogger;
 use Pekral\Arch\DataBuilder\DataBuilder;
+use Pekral\Arch\DataValidation\DataValidator;
 use App\Actions\User\Pipes\LowercaseEmailPipe;
 use App\Actions\User\Pipes\UcFirstNamePipe;
 use App\Services\UserModelService;
@@ -209,8 +250,8 @@ use App\Models\User;
 
 final readonly class CreateUser
 {
-    use ActionLogger;
     use DataBuilder;
+    use DataValidator;
 
     public function __construct(
         private UserModelService $userModelService,
@@ -220,38 +261,29 @@ final readonly class CreateUser
 
     /**
      * @param array<string, mixed> $data
+     * @throws \Illuminate\Validation\ValidationException
      */
     public function execute(array $data): User
     {
-        $this->logActionStart('CreateUser', ['email' => $data['email'] ?? null]);
+        // Validate input data
+        $this->validate($data, [
+            'email' => 'required|email',
+            'name' => 'required|string',
+        ], []);
         
-        try {
-            // Transform data using pipeline
-            $normalizedData = $this->build($data, [
-                LowercaseEmailPipe::class,
-                UcFirstNamePipe::class
-            ]);
-            
-            // Create user
-            $user = $this->userModelService->create($normalizedData);
-            
-            // Send verification email
-            $this->verifyUserAction->handle($user);
-            
-            $this->logActionSuccess('CreateUser', [
-                'user_id' => $user->id,
-                'email' => $user->email
-            ]);
-            
-            return $user;
-        } catch (\Exception $e) {
-            $this->logActionFailure('CreateUser', $e->getMessage(), [
-                'email' => $data['email'] ?? null,
-                'error_type' => get_class($e)
-            ]);
-            
-            throw $e;
-        }
+        // Transform data using pipeline
+        $normalizedData = $this->build($data, [
+            'email' => LowercaseEmailPipe::class,
+            'name' => UcFirstNamePipe::class,
+        ]);
+        
+        // Create user
+        $user = $this->userModelService->create($normalizedData);
+        
+        // Send verification email
+        $this->verifyUserAction->handle($user);
+        
+        return $user;
     }
 }
 ```
@@ -266,6 +298,8 @@ namespace App\Actions\User\Pipes;
 interface BuilderPipe
 {
     /**
+     * Transform user data.
+     *
      * @param array<string, mixed> $data
      * @param callable(array<string, mixed>): array<string, mixed> $next
      * @return array<string, mixed>
@@ -346,6 +380,16 @@ final class UserController extends Controller
 - `countByParams(Collection|array $params, array $groupBy = [])` - Count records
 - `query()` - Start a fluent query builder interface
 - `createQueryBuilder()` - Create a new query builder instance
+- `cache()` - Get cache wrapper for automatic caching
+
+### Repository Caching Methods
+
+- `cache()->paginateByParams(...)` - Cached pagination
+- `cache()->getOneByParams(...)` - Cached single record retrieval
+- `cache()->findOneByParams(...)` - Cached single record find
+- `cache()->countByParams(...)` - Cached count
+- `cache()->clearCache(string $method, array $args)` - Clear specific cache entry
+- `cache()->clearAllCache()` - Clear all cache entries
 
 ### Model Manager Methods
 
@@ -613,7 +657,26 @@ return [
         'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
         'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
     ],
+    
+    'repository_cache' => [
+        'enabled' => env('ARCH_REPOSITORY_CACHE_ENABLED', true),
+        'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600), // 1 hour default
+        'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
+    ],
 ];
+```
+
+### Environment Variables
+
+```bash
+# Action logging configuration
+ARCH_ACTION_LOG_CHANNEL=actions
+ARCH_ACTION_LOGGING_ENABLED=true
+
+# Repository caching configuration
+ARCH_REPOSITORY_CACHE_ENABLED=true
+ARCH_REPOSITORY_CACHE_TTL=3600
+ARCH_REPOSITORY_CACHE_PREFIX=arch_repo
 ```
 
 ## Testing

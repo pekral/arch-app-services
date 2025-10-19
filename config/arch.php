@@ -45,4 +45,21 @@ return [
         'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
         'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Repository Caching
+    |--------------------------------------------------------------------------
+    |
+    | Configure caching for repositories. TTL is specified in seconds.
+    | Cache keys are automatically generated using MD5 hash of method
+    | name and arguments.
+    |
+    */
+
+    'repository_cache' => [
+        'enabled' => env('ARCH_REPOSITORY_CACHE_ENABLED', true),
+        'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600), // 1 hour default
+        'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
+    ],
 ];

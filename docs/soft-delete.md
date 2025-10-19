@@ -1,75 +1,66 @@
 # Soft Delete Support
 
-The package provides complete support for soft delete operations.
+The package provides support for soft delete operations through Laravel's built-in SoftDeletes trait. All operations work seamlessly with soft deleted models.
 
 ## Basic Usage
 
-### Soft Delete by ID
+### Soft Delete Models
 
 ```php
-// Soft delete user by ID
-$deleted = $userService->softDelete($user->id);
+// Soft delete a model instance
+$user = User::find(1);
+$user->delete(); // This will soft delete if SoftDeletes trait is used
 
-if ($deleted) {
-    echo "User was successfully deleted.";
-}
-```
-
-### Soft Delete by Parameters
-
-```php
-// Soft delete all users with specific email
-$deletedCount = $userService->softDeleteByParams([
+// Soft delete by parameters using Model Manager
+$deletedCount = $userModelManager->deleteByParams([
     'email' => 'old@example.com'
 ]);
 
 echo "Deleted {$deletedCount} users.";
-
-// Soft delete multiple users at once
-$deletedCount = $userService->softDeleteByParams([
-    'email' => ['user1@example.com', 'user2@example.com']
-]);
 ```
 
 ### Restore Soft Deleted Records
 
 ```php
-// Restore by ID
-$restored = $userService->restore($user->id);
+// Restore a soft deleted model
+$user = User::withTrashed()->find(1);
+$user->restore();
 
-if ($restored) {
-    echo "User was successfully restored.";
-}
-
-// Restore by parameters
-$restoredCount = $userService->restoreByParams([
-    'email' => 'old@example.com'
-]);
+// Restore multiple records
+User::withTrashed()
+    ->where('email', 'old@example.com')
+    ->restore();
 ```
 
 ### Permanent Delete
 
 ```php
-// Permanent delete by ID
-$deleted = $userService->forceDelete($user->id);
+// Force delete (permanent delete)
+$user = User::withTrashed()->find(1);
+$user->forceDelete();
 
-// Permanent delete by parameters
-$deletedCount = $userService->forceDeleteByParams([
-    'email' => 'old@example.com'
-]);
+// Force delete multiple records
+User::withTrashed()
+    ->where('email', 'old@example.com')
+    ->forceDelete();
 ```
 
 ## Advanced Features
 
-### Combination with Regular Operations
+### Using with Repository and Service
 
 ```php
-// Soft delete and then restore
-$userService->softDelete($user->id);
-$userService->restore($user->id);
+// Using Repository to find soft deleted records
+$user = $userRepository->query()
+    ->withTrashed()
+    ->where('email', 'old@example.com')
+    ->first();
+
+// Using Service to delete models
+$user = $userService->getOneByParams(['email' => 'user@example.com']);
+$userService->deleteModel($user); // This will soft delete
 
 // Check if record is soft deleted
-$user = User::withTrashed()->find($user->id);
 if ($user->trashed()) {
     echo "User is soft deleted.";
 }
@@ -79,27 +70,38 @@ if ($user->trashed()) {
 
 ```php
 // Soft delete all inactive users
-$deletedCount = $userService->softDeleteByParams([
+$deletedCount = $userModelManager->deleteByParams([
     'active' => false,
     'last_login' => '<', now()->subMonths(6)
 ]);
 
 // Restore all users from specific period
-$restoredCount = $userService->restoreByParams([
-    'deleted_at' => '>=', now()->subDays(30)
-]);
+User::withTrashed()
+    ->where('deleted_at', '>=', now()->subDays(30))
+    ->restore();
 ```
 
-### Usage with Collection
+### Using with Actions
 
 ```php
-use Illuminate\Support\Collection;
+<?php
 
-$emails = new Collection(['user1@example.com', 'user2@example.com']);
+namespace App\Actions\User;
 
-$deletedCount = $userService->softDeleteByParams([
-    'email' => $emails->toArray()
-]);
+use Pekral\Arch\Examples\Services\User\UserModelService;
+use Pekral\Arch\Tests\Models\User;
+
+final readonly class DeleteUser
+{
+    public function __construct(private UserModelService $userModelService)
+    {
+    }
+
+    public function handle(User $user): bool
+    {
+        return $this->userModelService->deleteModel($user);
+    }
+}
 ```
 
 ## Model Requirements
@@ -157,13 +159,16 @@ return new class extends Migration
 
 ```php
 try {
-    $deleted = $userService->softDelete($nonExistentId);
+    $user = User::findOrFail($userId);
+    $deleted = $userService->deleteModel($user);
     
     if (!$deleted) {
-        echo "User not found or already deleted.";
+        echo "User could not be deleted.";
     }
+} catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+    echo "User not found.";
 } catch (\Exception $e) {
-    echo "Error during soft delete: " . $e->getMessage();
+    echo "Error during delete: " . $e->getMessage();
 }
 ```
 
@@ -185,7 +190,7 @@ Schema::table('users', function (Blueprint $table) {
 $userIds = User::where('active', false)->pluck('id');
 
 foreach ($userIds->chunk(1000) as $chunk) {
-    $userService->softDeleteByParams([
+    $userModelManager->deleteByParams([
         'id' => $chunk->toArray()
     ]);
 }
@@ -195,7 +200,7 @@ foreach ($userIds->chunk(1000) as $chunk) {
 
 ```php
 // Logging soft delete operations
-$deletedCount = $userService->softDeleteByParams([
+$deletedCount = $userModelManager->deleteByParams([
     'role' => 'temporary'
 ]);
 
