@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-10-19 (PR #9)
+
+
+- 📝 **Changed**: resolved #5 feat: apply cache layer for repository
+
 ## [Unreleased] - 2025-10-19 (PR #8)
 
 
