@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-02 (PR #13)
+
+
+- ✨ **Added**: create new model instace have public visilibility now
+
 ## [Unreleased] - 2025-11-02 (PR #12)
 
 
