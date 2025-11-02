@@ -45,7 +45,7 @@ abstract class BaseModelManager
      */
     public function create(array $data): Model
     {
-        $model = $this->createModel();
+        $model = $this->createNewModelInstance();
         $model->fill($data)
             ->save();
 
@@ -130,7 +130,7 @@ abstract class BaseModelManager
     /**
      * @return TModel
      */
-    private function createModel(): Model
+    public function createNewModelInstance(): Model
     {
         $modelClassName = $this->getModelClassName();
 
