@@ -87,6 +87,87 @@ final class BaseModelManagerTest extends TestCase
         $this->assertDatabaseHas('users', ['name' => 'Another User', 'email' => 'new@example.com']);
     }
 
+    public function testUpdateOrCreateCreatesNewRecord(): void
+    {
+        // Arrange
+        $attributes = ['email' => 'newuser@example.com'];
+        $values = ['name' => 'New User', 'password' => 'password123'];
+        
+        // Act
+        $result = $this->userModelManager->updateOrCreate($attributes, $values);
+        
+        // Assert
+        $this->assertDatabaseHas('users', [
+            'email' => 'newuser@example.com',
+            'name' => 'New User',
+        ]);
+        $this->assertInstanceOf(User::class, $result);
+        $this->assertEquals('newuser@example.com', $result->email);
+        $this->assertEquals('New User', $result->name);
+    }
+
+    public function testUpdateOrCreateUpdatesExistingRecord(): void
+    {
+        // Arrange
+        $existingUser = User::factory()->create([
+            'email' => 'existing@example.com',
+            'name' => 'Original Name',
+        ]);
+        $attributes = ['email' => 'existing@example.com'];
+        $values = ['name' => 'Updated Name'];
+        
+        // Act
+        $result = $this->userModelManager->updateOrCreate($attributes, $values);
+        
+        // Assert
+        $this->assertSame($existingUser->id, $result->id);
+        $this->assertEquals('existing@example.com', $result->email);
+        $this->assertEquals('Updated Name', $result->name);
+        $existingUser->refresh();
+        $this->assertEquals('Updated Name', $existingUser->name);
+    }
+
+    public function testUpdateOrCreateWithOnlyAttributes(): void
+    {
+        // Arrange
+        $attributes = [
+            'email' => 'test@example.com',
+            'name' => 'Test User',
+            'password' => 'password123',
+        ];
+        
+        // Act
+        $result = $this->userModelManager->updateOrCreate($attributes);
+        
+        // Assert
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'name' => 'Test User',
+        ]);
+        $this->assertEquals('test@example.com', $result->email);
+        $this->assertEquals('Test User', $result->name);
+    }
+
+    public function testUpdateOrCreateUpdatesWithEmptyValues(): void
+    {
+        // Arrange
+        $existingUser = User::factory()->create([
+            'email' => 'existing@example.com',
+            'name' => 'Original Name',
+        ]);
+        $attributes = ['email' => 'existing@example.com'];
+        $values = [];
+        
+        // Act
+        $result = $this->userModelManager->updateOrCreate($attributes, $values);
+        
+        // Assert
+        $this->assertSame($existingUser->id, $result->id);
+        $this->assertEquals('existing@example.com', $result->email);
+        $existingUser->refresh();
+        $this->assertEquals('Original Name', $existingUser->name);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

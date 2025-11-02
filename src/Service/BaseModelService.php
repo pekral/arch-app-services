@@ -166,4 +166,16 @@ abstract readonly class BaseModelService
         return $this->getModelManager()->bulkUpdate($data, $keyColumn);
     }
 
+    /**
+     * Update existing record or create a new one if it doesn't exist.
+     *
+     * @param array<string, mixed> $attributes Attributes to search for
+     * @param array<string, mixed> $values Values to update/create with
+     * @return TModel
+     */
+    public function updateOrCreate(array $attributes, array $values = []): Model
+    {
+        return $this->getModelManager()->updateOrCreate($attributes, $values);
+    }
+
 }

@@ -62,6 +62,21 @@ abstract class BaseModelManager
     }
 
     /**
+     * Update existing record or create a new one if it doesn't exist.
+     *
+     * @param array<string, mixed> $attributes Attributes to search for
+     * @param array<string, mixed> $values Values to update/create with
+     * @return TModel
+     */
+    public function updateOrCreate(array $attributes, array $values = []): Model
+    {
+        $modelClassName = $this->getModelClassName();
+
+        /** @phpstan-ignore-next-line */
+        return $modelClassName::updateOrCreate($attributes, $values);
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $dataArray
