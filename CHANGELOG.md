@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-02 (PR #14)
+
+
+- 📝 **Changed**: solve #10 feat: update model via model manager now
+
 ## [Unreleased] - 2025-11-02 (PR #13)
 
 
