@@ -2,6 +2,14 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-02 (PR #12)
+
+
+- 🔧 **Changed**: composer update dependecnies
+- 🔧 **Changed**: composer update via github action now
+- 🔧 **Changed**: update dependencies
+- ✨ **Added**: model manager support insert or ignore action
+
 ## [Unreleased] - 2025-10-26
 
 
