@@ -55,13 +55,11 @@ abstract readonly class BaseModelService
      * @template TValue
      * @param TModel $model
      * @param array<TKey, TValue> $data
-     * @return TModel
      */
-    public function updateModel(Model $model, array $data): Model
+    public function updateModel(Model $model, array $data): bool
     {
-        $model->update($data);
-
-        return $model;
+        return $this->getModelManager()
+            ->update($model, $data);
     }
 
     /**

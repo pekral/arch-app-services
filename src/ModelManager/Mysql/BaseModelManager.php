@@ -53,6 +53,15 @@ abstract class BaseModelManager
     }
 
     /**
+     * @param array<string, mixed> $data
+     */
+    public function update(Model $model, array $data): bool
+    {
+        return $model->fill($data)
+            ->save();
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $dataArray
