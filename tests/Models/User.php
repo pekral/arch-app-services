@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Models;
 
+use Iksaku\Laravel\MassUpdate\MassUpdatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,6 +26,7 @@ final class User extends Model
      * @use \Illuminate\Database\Eloquent\Factories\HasFactory<\Pekral\Arch\Tests\Models\UserFactory>
      */
     use HasFactory;
+    use MassUpdatable;
     use SoftDeletes;
 
     /**
