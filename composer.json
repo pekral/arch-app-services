@@ -33,12 +33,12 @@
     "orchestra/testbench": "^10.6",
     "pekral/phpcs-rules": "^0.4.4",
     "pekral/rector-rules": "^0.4.5",
+    "pestphp/pest": "^4.1",
     "phpstan/extension-installer": "^1.4.3",
     "phpstan/phpstan": "^2.1.32",
     "phpstan/phpstan-deprecation-rules": "^2.0.3",
     "phpstan/phpstan-mockery": "^2.0",
     "phpstan/phpstan-phpunit": "^2.0.8",
-    "phpunit/phpunit": "^12.4.2",
     "rector/rector": "^2.2.7",
     "roave/security-advisories": "dev-latest",
     "squizlabs/php_codesniffer": ">=4.0.1"
@@ -60,6 +60,7 @@
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "ergebnis/composer-normalize": true,
+      "pestphp/pest-plugin": true,
       "phpstan/extension-installer": false
     },
     "bump-after-update": true,
@@ -110,19 +111,19 @@
     ],
     "phpcs-check": [
       "echo \"✅ Running PHP CodeSniffer check...\"",
-      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/ check-coverage.php"
+      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/"
     ],
     "phpcs-fix": [
       "echo \"🔧 Running PHP CodeSniffer fix...\"",
-      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ check-coverage.php || true"
+      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ || true"
     ],
     "pint-check": [
       "echo \"🎨 Running Laravel Pint check...\"",
-      "vendor/bin/pint src/ tests/ examples/ check-coverage.php --test"
+      "vendor/bin/pint src/ tests/ examples/ --test"
     ],
     "pint-fix": [
       "echo \"🎨 Running Laravel Pint fixes...\"",
-      "vendor/bin/pint src/ tests/ examples/ check-coverage.php"
+      "vendor/bin/pint src/ tests/ examples/"
     ],
     "rector-check": [
       "echo \"🔄 Running Rector check (dry-run)...\"",
@@ -142,8 +143,7 @@
     ],
     "test:coverage": [
       "echo \"📊 Running coverage tests with 100% minimum...\"",
-      "php -dpcov.enabled=1 -dpcov.directory=src/ -dxdebug.mode=off vendor/bin/phpunit --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text",
-      "php check-coverage.php"
+      "php -dpcov.enabled=1 -dpcov.directory=src/ -dxdebug.mode=off vendor/bin/pest --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text --min=100"
     ]
   }
 }
