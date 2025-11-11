@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-11
+
+
+- 🔧 **Changed**: composer update dependencies
+- 📝 **Changed**: resolve #11 feat: UpdateOrCreate method in service model created
+
 ## [Unreleased] - 2025-11-02 (PR #16)
 
 
