@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-11 (PR #19)
+
+
+- ♻️ **Refactored**: use PEST instead of PHPUnit
+- 🔧 **Changed**: composer update dependencies
+
 ## [Unreleased] - 2025-11-11
 
 
