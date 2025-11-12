@@ -9,21 +9,19 @@ use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
 use Pekral\Arch\Tests\Models\User;
 use Pekral\Arch\Tests\Unit\ModelManager\UserWithoutMassUpdateModelManager;
 
-beforeEach(function (): void {
-    $this->manager = app(UserModelManager::class);
-});
-
 test('delete by params deletes matching record', function (): void {
+    $manager = app(UserModelManager::class);
     User::factory()->create(['email' => 'delete@example.com']);
 
-    $result = $this->manager->deleteByParams(['email' => 'delete@example.com']);
+    $result = $manager->deleteByParams(['email' => 'delete@example.com']);
 
     expect($result)->toBeTrue()
         ->and(User::query()->where('email', 'delete@example.com')->first())->toBeNull();
 });
 
 test('create creates new record', function (): void {
-    $user = $this->manager->create([
+    $manager = app(UserModelManager::class);
+    $user = $manager->create([
         'email' => 'new@example.com',
         'name' => 'New User',
         'password' => 'password123',
@@ -36,9 +34,10 @@ test('create creates new record', function (): void {
 });
 
 test('update updates existing record', function (): void {
+    $manager = app(UserModelManager::class);
     $user = User::factory()->create(['name' => 'Old Name']);
 
-    $result = $this->manager->update($user, ['name' => 'New Name']);
+    $result = $manager->update($user, ['name' => 'New Name']);
 
     expect($result)->toBeTrue();
     
@@ -47,7 +46,8 @@ test('update updates existing record', function (): void {
 });
 
 test('bulk create creates multiple records', function (): void {
-    $result = $this->manager->bulkCreate([
+    $manager = app(UserModelManager::class);
+    $result = $manager->bulkCreate([
         ['name' => 'User 1', 'email' => 'user1@example.com', 'password' => 'pass1'],
         ['name' => 'User 2', 'email' => 'user2@example.com', 'password' => 'pass2'],
         ['name' => 'User 3', 'email' => 'user3@example.com', 'password' => 'pass3'],
@@ -60,16 +60,18 @@ test('bulk create creates multiple records', function (): void {
 });
 
 test('bulk create with empty data returns zero', function (): void {
-    $result = $this->manager->bulkCreate([]);
+    $manager = app(UserModelManager::class);
+    $result = $manager->bulkCreate([]);
 
     expect($result)->toBe(0);
 });
 
 test('bulk update updates multiple records', function (): void {
+    $manager = app(UserModelManager::class);
     $user1 = User::factory()->create(['name' => 'User 1']);
     $user2 = User::factory()->create(['name' => 'User 2']);
 
-    $result = $this->manager->bulkUpdate([
+    $result = $manager->bulkUpdate([
         ['id' => $user1->id, 'name' => 'Updated User 1'],
         ['id' => $user2->id, 'name' => 'Updated User 2'],
     ]);
@@ -83,13 +85,15 @@ test('bulk update updates multiple records', function (): void {
 });
 
 test('bulk update with empty array returns zero', function (): void {
-    $result = $this->manager->bulkUpdate([]);
+    $manager = app(UserModelManager::class);
+    $result = $manager->bulkUpdate([]);
 
     expect($result)->toBe(0);
 });
 
 test('bulk update with missing key column returns zero', function (): void {
-    $result = $this->manager->bulkUpdate([
+    $manager = app(UserModelManager::class);
+    $result = $manager->bulkUpdate([
         ['name' => 'Updated User 1'],
         ['name' => 'Updated User 2'],
     ]);
@@ -98,9 +102,10 @@ test('bulk update with missing key column returns zero', function (): void {
 });
 
 test('bulk update with empty data after removing key returns zero', function (): void {
+    $manager = app(UserModelManager::class);
     $user = User::factory()->create();
 
-    $result = $this->manager->bulkUpdate([
+    $result = $manager->bulkUpdate([
         ['id' => $user->id],
     ]);
 
@@ -108,13 +113,15 @@ test('bulk update with empty data after removing key returns zero', function ():
 });
 
 test('insert or ignore with empty data', function (): void {
-    $this->manager->insertOrIgnore([]);
+    $manager = app(UserModelManager::class);
+    $manager->insertOrIgnore([]);
 
     expect(true)->toBeTrue();
 });
 
 test('insert or ignore with valid data', function (): void {
-    $this->manager->insertOrIgnore([
+    $manager = app(UserModelManager::class);
+    $manager->insertOrIgnore([
         ['name' => 'John Doe', 'email' => 'john@example.com', 'password' => 'password123'],
         ['name' => 'Jane Smith', 'email' => 'jane@example.com', 'password' => 'password456'],
     ]);
@@ -124,9 +131,10 @@ test('insert or ignore with valid data', function (): void {
 });
 
 test('insert or ignore with duplicate data', function (): void {
+    $manager = app(UserModelManager::class);
     User::factory()->create(['email' => 'existing@example.com']);
 
-    $this->manager->insertOrIgnore([
+    $manager->insertOrIgnore([
         ['name' => 'New User', 'email' => 'existing@example.com', 'password' => 'password123'],
         ['name' => 'Another User', 'email' => 'new@example.com', 'password' => 'password456'],
     ]);
@@ -136,7 +144,8 @@ test('insert or ignore with duplicate data', function (): void {
 });
 
 test('update or create creates new record', function (): void {
-    $result = $this->manager->updateOrCreate(
+    $manager = app(UserModelManager::class);
+    $result = $manager->updateOrCreate(
         ['email' => 'newuser@example.com'],
         ['name' => 'New User', 'password' => 'password123'],
     );
@@ -148,12 +157,13 @@ test('update or create creates new record', function (): void {
 });
 
 test('update or create updates existing record', function (): void {
+    $manager = app(UserModelManager::class);
     $existingUser = User::factory()->create([
         'email' => 'existing@example.com',
         'name' => 'Original Name',
     ]);
 
-    $result = $this->manager->updateOrCreate(
+    $result = $manager->updateOrCreate(
         ['email' => 'existing@example.com'],
         ['name' => 'Updated Name'],
     );
@@ -163,7 +173,8 @@ test('update or create updates existing record', function (): void {
 });
 
 test('update or create with only attributes', function (): void {
-    $result = $this->manager->updateOrCreate([
+    $manager = app(UserModelManager::class);
+    $result = $manager->updateOrCreate([
         'email' => 'test@example.com',
         'name' => 'Test User',
         'password' => 'password123',
@@ -174,12 +185,13 @@ test('update or create with only attributes', function (): void {
 });
 
 test('update or create updates with empty values', function (): void {
+    $manager = app(UserModelManager::class);
     $existingUser = User::factory()->create([
         'email' => 'existing@example.com',
         'name' => 'Original Name',
     ]);
 
-    $result = $this->manager->updateOrCreate(
+    $result = $manager->updateOrCreate(
         ['email' => 'existing@example.com'],
         [],
     );
@@ -191,7 +203,8 @@ test('update or create updates with empty values', function (): void {
 });
 
 test('get or create creates new record', function (): void {
-    $result = $this->manager->getOrCreate(
+    $manager = app(UserModelManager::class);
+    $result = $manager->getOrCreate(
         ['email' => 'newuser@example.com'],
         ['name' => 'New User', 'password' => 'password123'],
     );
@@ -203,12 +216,13 @@ test('get or create creates new record', function (): void {
 });
 
 test('get or create returns existing record', function (): void {
+    $manager = app(UserModelManager::class);
     $existingUser = User::factory()->create([
         'email' => 'existing@example.com',
         'name' => 'Original Name',
     ]);
 
-    $result = $this->manager->getOrCreate(
+    $result = $manager->getOrCreate(
         ['email' => 'existing@example.com'],
         ['name' => 'Updated Name'],
     );
@@ -221,7 +235,8 @@ test('get or create returns existing record', function (): void {
 });
 
 test('get or create with only attributes', function (): void {
-    $result = $this->manager->getOrCreate([
+    $manager = app(UserModelManager::class);
+    $result = $manager->getOrCreate([
         'email' => 'test@example.com',
         'name' => 'Test User',
         'password' => 'password123',
@@ -233,12 +248,13 @@ test('get or create with only attributes', function (): void {
 });
 
 test('get or create returns existing with empty values', function (): void {
+    $manager = app(UserModelManager::class);
     $existingUser = User::factory()->create([
         'email' => 'existing@example.com',
         'name' => 'Original Name',
     ]);
 
-    $result = $this->manager->getOrCreate(
+    $result = $manager->getOrCreate(
         ['email' => 'existing@example.com'],
         [],
     );
@@ -251,16 +267,18 @@ test('get or create returns existing with empty values', function (): void {
 });
 
 test('raw mass update with empty data returns zero', function (): void {
-    $result = $this->manager->rawMassUpdate([]);
+    $manager = app(UserModelManager::class);
+    $result = $manager->rawMassUpdate([]);
 
     expect($result)->toBe(0);
 });
 
 test('raw mass update with array data', function (): void {
+    $manager = app(UserModelManager::class);
     $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
     $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
-    $result = $this->manager->rawMassUpdate([
+    $result = $manager->rawMassUpdate([
         ['id' => $user1->id, 'name' => 'John Updated'],
         ['id' => $user2->id, 'name' => 'Jane Updated'],
     ]);
@@ -274,10 +292,11 @@ test('raw mass update with array data', function (): void {
 });
 
 test('raw mass update with custom unique by', function (): void {
+    $manager = app(UserModelManager::class);
     $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
     $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
-    $result = $this->manager->rawMassUpdate([
+    $result = $manager->rawMassUpdate([
         ['email' => 'john@example.com', 'name' => 'John Updated'],
         ['email' => 'jane@example.com', 'name' => 'Jane Updated'],
     ], 'email');
@@ -291,13 +310,14 @@ test('raw mass update with custom unique by', function (): void {
 });
 
 test('raw mass update with model instances', function (): void {
+    $manager = app(UserModelManager::class);
     $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
     $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
     $user1->name = 'John Updated';
     $user2->name = 'Jane Updated';
 
-    $result = $this->manager->rawMassUpdate([$user1, $user2]);
+    $result = $manager->rawMassUpdate([$user1, $user2]);
 
     expect($result)->toBe(2);
     
@@ -308,10 +328,11 @@ test('raw mass update with model instances', function (): void {
 });
 
 test('raw mass update with multiple columns', function (): void {
+    $manager = app(UserModelManager::class);
     $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
     $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
-    $result = $this->manager->rawMassUpdate([
+    $result = $manager->rawMassUpdate([
         ['id' => $user1->id, 'name' => 'John Updated', 'email' => 'john.updated@example.com'],
         ['id' => $user2->id, 'name' => 'Jane Updated', 'email' => 'jane.updated@example.com'],
     ]);
@@ -327,10 +348,11 @@ test('raw mass update with multiple columns', function (): void {
 });
 
 test('raw mass update with array unique by', function (): void {
+    $manager = app(UserModelManager::class);
     $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
     $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
-    $result = $this->manager->rawMassUpdate([
+    $result = $manager->rawMassUpdate([
         ['name' => 'John Doe', 'email' => 'john@example.com', 'password' => 'newpass123'],
         ['name' => 'Jane Smith', 'email' => 'jane@example.com', 'password' => 'newpass456'],
     ], ['name', 'email']);

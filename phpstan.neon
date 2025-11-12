@@ -19,9 +19,6 @@ parameters:
         - phpstan
     
     ignoreErrors:
-        - 
-            message: '#Access to an undefined property PHPUnit\\Framework\\TestCase::\$[a-zA-Z0-9_]+\.#'
-            path: tests/*
         -
             message: '#Cannot call method [a-zA-Z0-9_]+\(\) on mixed\.#'
             path: tests/*
@@ -29,22 +26,16 @@ parameters:
             message: '#Cannot access property \$[a-zA-Z0-9_]+ on mixed\.#'
             path: tests/*
         -
-            message: '#Cannot access offset .+ on mixed\.#'
-            path: tests/*
-        -
             message: '#Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy::throws\(\)\.#'
-            path: tests/*
-        -
-            message: '#Anonymous function should return array but returns mixed\.#'
             path: tests/*
         -
             message: '#Call to an undefined static method Illuminate\\Support\\Facades\\[a-zA-Z]+::(shouldHaveReceived|shouldNotHaveReceived)\(\)\.#'
             path: tests/*
         -
-            message: '~Parameter #1 \$objectOrClass of class ReflectionClass constructor expects class-string<T of object>\|T of object, mixed given\.~'
+            message: '#Call to function assert\(\) with true will always evaluate to true\.#'
             path: tests/*
         -
-            message: '~Parameter #1 \$object of method ReflectionMethod::invoke\(\) expects object\|null, mixed given\.~'
+            message: '#Instanceof between .+ and .+ will always evaluate to true\.#'
             path: tests/*
         -
             message: '#Direct database query method#'

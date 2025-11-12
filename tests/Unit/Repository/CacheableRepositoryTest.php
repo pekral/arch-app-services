@@ -15,30 +15,32 @@ use Pekral\Arch\Repository\CacheWrapper;
 use Pekral\Arch\Repository\Mysql\BaseRepository;
 use Pekral\Arch\Tests\Models\User;
 
-beforeEach(function (): void {
-    $this->cacheMock = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->byDefault()->andReturn($this->cacheMock);
-
-    $this->testCacheableUserRepository = new TestCacheableUserRepository();
-
+test('cache returns wrapper instance', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
     Config::set('arch.repository_cache.enabled', true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
-});
 
-test('cache returns wrapper instance', function (): void {
-    $wrapper = $this->testCacheableUserRepository->cache();
+    $wrapper = $testCacheableUserRepository->cache();
 
     expect($wrapper)->toBeInstanceOf(CacheWrapper::class);
 });
 
 test('cache wrapper calls paginate by params with cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     User::factory()->count(5)->create();
     $params = ['name' => 'John'];
-    $expectedResult = $this->testCacheableUserRepository->paginateByParams($params);
+    $expectedResult = $testCacheableUserRepository->paginateByParams($params);
 
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:TestCacheableUserRepository:paginateByParams:[a-f0-9]{32}$/'),
@@ -47,18 +49,24 @@ test('cache wrapper calls paginate by params with cache', function (): void {
         )
         ->andReturn($expectedResult);
 
-    $result = $this->testCacheableUserRepository->cache()->paginateByParams($params);
+    $result = $testCacheableUserRepository->cache()->paginateByParams($params);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->total())->toBe($expectedResult->total());
 });
 
 test('cache wrapper calls get one by params with cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     $user = User::factory()->create(['email' => 'test@example.com']);
     $params = ['email' => 'test@example.com'];
 
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:TestCacheableUserRepository:getOneByParams:[a-f0-9]{32}$/'),
@@ -67,18 +75,24 @@ test('cache wrapper calls get one by params with cache', function (): void {
         )
         ->andReturn($user);
 
-    $result = $this->testCacheableUserRepository->cache()->getOneByParams($params);
+    $result = $testCacheableUserRepository->cache()->getOneByParams($params);
 
     expect($result)->toBeInstanceOf(User::class)
         ->and($result->id)->toBe($user->id);
 });
 
 test('cache wrapper calls find one by params with cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     $user = User::factory()->create(['email' => 'test@example.com']);
     $params = ['email' => 'test@example.com'];
 
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:TestCacheableUserRepository:findOneByParams:[a-f0-9]{32}$/'),
@@ -87,19 +101,25 @@ test('cache wrapper calls find one by params with cache', function (): void {
         )
         ->andReturn($user);
 
-    $result = $this->testCacheableUserRepository->cache()->findOneByParams($params);
+    $result = $testCacheableUserRepository->cache()->findOneByParams($params);
 
     expect($result)->toBeInstanceOf(User::class)
         ->and($result->id)->toBe($user->id);
 });
 
 test('cache wrapper calls count by params with cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     User::factory()->count(3)->create();
     $params = ['name' => 'John'];
     $expectedCount = 3;
 
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:TestCacheableUserRepository:countByParams:[a-f0-9]{32}$/'),
@@ -108,59 +128,90 @@ test('cache wrapper calls count by params with cache', function (): void {
         )
         ->andReturn($expectedCount);
 
-    $result = $this->testCacheableUserRepository->cache()->countByParams($params);
+    $result = $testCacheableUserRepository->cache()->countByParams($params);
 
     expect($result)->toBe($expectedCount);
 });
 
 test('cache wrapper skips cache when disabled', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     User::factory()->count(3)->create();
     $params = ['name' => 'John'];
 
-    $this->cacheMock->shouldNotReceive('remember');
+    $cacheMock->shouldNotReceive('remember');
 
-    $result = $this->testCacheableUserRepository->cache()->paginateByParams($params);
+    $result = $testCacheableUserRepository->cache()->paginateByParams($params);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class);
 });
 
 test('cache wrapper throws exception for non existent method', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     /** @phpstan-ignore-next-line */
-    $this->testCacheableUserRepository->cache()->nonExistentMethod();
+    $testCacheableUserRepository->cache()->nonExistentMethod();
 })->throws(BadMethodCallException::class, 'Method nonExistentMethod does not exist on ' . TestCacheableUserRepository::class);
 
 test('cache wrapper clear cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     $methodName = 'testMethod';
     $arguments = ['param1' => 'value1'];
 
-    $this->cacheMock->shouldReceive('forget')
+    $cacheMock->shouldReceive('forget')
         ->once()
         ->with(Mockery::pattern(sprintf('/^arch_repo:TestCacheableUserRepository:%s:[a-f0-9]{32}$/', $methodName)))
         ->andReturn(true);
 
-    $result = $this->testCacheableUserRepository->cache()->clearCache($methodName, $arguments);
+    $result = $testCacheableUserRepository->cache()->clearCache($methodName, $arguments);
 
     expect($result)->toBeTrue();
 });
 
 test('cache wrapper clear all cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     Cache::shouldReceive('flush')
         ->once();
 
-    $this->testCacheableUserRepository->cache()->clearAllCache();
+    $testCacheableUserRepository->cache()->clearAllCache();
 
     expect(true)->toBeTrue();
 });
 
 test('cache wrapper uses custom configuration', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+
     Config::set('arch.repository_cache.enabled', true);
     Config::set('arch.repository_cache.ttl', 7_200);
     Config::set('arch.repository_cache.prefix', 'custom_prefix');
     User::factory()->create(['email' => 'test@example.com']);
     $params = ['email' => 'test@example.com'];
 
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^custom_prefix:TestCacheableUserRepository:getOneByParams:[a-f0-9]{32}$/'),
@@ -169,13 +220,20 @@ test('cache wrapper uses custom configuration', function (): void {
         )
         ->andReturn(User::factory()->create());
 
-    $this->testCacheableUserRepository->cache()->getOneByParams($params);
+    $testCacheableUserRepository->cache()->getOneByParams($params);
 
     expect(true)->toBeTrue();
 });
 
 test('cache wrapper uses custom driver', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     $customDriver = 'my_driver';
     $customCacheMock = Mockery::mock(CacheRepository::class);
     User::factory()->create(['email' => 'test@example.com']);
@@ -196,13 +254,20 @@ test('cache wrapper uses custom driver', function (): void {
         )
         ->andReturn($expectedUser);
 
-    $result = $this->testCacheableUserRepository->cache($customDriver)->getOneByParams($params);
+    $result = $testCacheableUserRepository->cache($customDriver)->getOneByParams($params);
 
     expect($result)->toBeInstanceOf(User::class)
         ->and($result->id)->toBe($expectedUser->id);
 });
 
 test('cache wrapper clear cache with custom driver', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     $customDriver = 'my_driver';
     $customCacheMock = Mockery::mock(CacheRepository::class);
     $methodName = 'testMethod';
@@ -218,12 +283,19 @@ test('cache wrapper clear cache with custom driver', function (): void {
         ->with(Mockery::pattern(sprintf('/^arch_repo:TestCacheableUserRepository:%s:[a-f0-9]{32}$/', $methodName)))
         ->andReturn(true);
 
-    $result = $this->testCacheableUserRepository->cache($customDriver)->clearCache($methodName, $arguments);
+    $result = $testCacheableUserRepository->cache($customDriver)->clearCache($methodName, $arguments);
 
     expect($result)->toBeTrue();
 });
 
 test('cache wrapper clear all cache with custom driver', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     $customDriver = 'my_driver';
     $customCacheMock = Mockery::mock(CacheRepository::class);
     $storeMock = Mockery::mock();
@@ -240,13 +312,19 @@ test('cache wrapper clear all cache with custom driver', function (): void {
     $storeMock->shouldReceive('flush')
         ->once();
 
-    $this->testCacheableUserRepository->cache($customDriver)->clearAllCache();
+    $testCacheableUserRepository->cache($customDriver)->clearAllCache();
 
     expect(true)->toBeTrue();
 });
 
 test('cache wrapper uses default driver when no driver specified', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
     User::factory()->create(['email' => 'test@example.com']);
     $params = ['email' => 'test@example.com'];
     $expectedUser = User::factory()->create();
@@ -254,9 +332,9 @@ test('cache wrapper uses default driver when no driver specified', function (): 
     Cache::shouldReceive('store')
         ->once()
         ->withNoArgs()
-        ->andReturn($this->cacheMock);
+        ->andReturn($cacheMock);
 
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:TestCacheableUserRepository:getOneByParams:[a-f0-9]{32}$/'),
@@ -265,7 +343,7 @@ test('cache wrapper uses default driver when no driver specified', function (): 
         )
         ->andReturn($expectedUser);
 
-    $result = $this->testCacheableUserRepository->cache()->getOneByParams($params);
+    $result = $testCacheableUserRepository->cache()->getOneByParams($params);
 
     expect($result)->toBeInstanceOf(User::class)
         ->and($result->id)->toBe($expectedUser->id);

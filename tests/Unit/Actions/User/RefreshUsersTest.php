@@ -5,11 +5,8 @@ declare(strict_types = 1);
 use Pekral\Arch\Examples\Actions\User\RefreshUsers;
 use Pekral\Arch\Tests\Models\User;
 
-beforeEach(function (): void {
-    $this->refreshUsers = app(RefreshUsers::class);
-});
-
 test('refresh users refreshes all users', function (): void {
+    $refreshUsers = app(RefreshUsers::class);
     $users = User::factory()->count(10)->create();
     $refreshedData = $users->map(static fn (User $user): array => [
         'email' => fake()->email(),
@@ -20,9 +17,11 @@ test('refresh users refreshes all users', function (): void {
 
     /** @var array<int, array<mixed>> $data */
     $data = $refreshedData->values()->toArray();
-    expect($this->refreshUsers->handle($data))->toBe($refreshedData->count());
+    expect($refreshUsers->handle($data))->toBe($refreshedData->count());
 });
 
 test('import users without data returns zero', function (): void {
-    expect($this->refreshUsers->handle([]))->toBe(0);
+    $refreshUsers = app(RefreshUsers::class);
+    
+    expect($refreshUsers->handle([]))->toBe(0);
 });
