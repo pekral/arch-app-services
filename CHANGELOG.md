@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-12 (PR #26)
+
+
+- 📝 **Changed**: solve #25 feat: BaseModelService::getOrCreate method
+
 ## [Unreleased] - 2025-11-12 (PR #27)
 
 
