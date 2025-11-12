@@ -5,15 +5,12 @@ declare(strict_types = 1);
 use Pekral\Arch\Examples\Actions\User\GetUsers;
 use Pekral\Arch\Tests\Models\User;
 
-beforeEach(function (): void {
-    $this->getUsers = app(GetUsers::class);
-});
-
 test('get users returns paginated users', function (): void {
+    $getUsers = app(GetUsers::class);
     $users = User::factory()->count(30)->create();
     $usersIds = $users->pluck('id')->toArray();
 
-    $foundUsers = $this->getUsers->handle();
+    $foundUsers = $getUsers->handle();
 
     expect($foundUsers)->toHaveCount(config()->integer('arch.default_items_per_page'));
     
@@ -23,10 +20,11 @@ test('get users returns paginated users', function (): void {
 });
 
 test('get users with filters returns filtered users', function (): void {
+    $getUsers = app(GetUsers::class);
     User::factory()->count(5)->create(['name' => 'John']);
     User::factory()->count(5)->create(['name' => 'Jane']);
     
-    $foundUsers = $this->getUsers->handle(['name' => 'John']);
+    $foundUsers = $getUsers->handle(['name' => 'John']);
     
     expect($foundUsers)->toHaveCount(5);
     

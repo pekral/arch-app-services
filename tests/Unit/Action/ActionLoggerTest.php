@@ -10,16 +10,13 @@ use Pekral\Arch\Action\ActionLogger;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
-beforeEach(function (): void {
-    $this->logger = new TestClassWithActionLogger();
-});
-
 test('log action start writes info log', function (): void {
+    $logger = new TestClassWithActionLogger();
     Log::spy();
     $action = 'CreateUser';
     $context = ['user_id' => 123];
 
-    $this->logger->logActionStart($action, $context);
+    $logger->logActionStart($action, $context);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -27,10 +24,11 @@ test('log action start writes info log', function (): void {
 });
 
 test('log action start works without context', function (): void {
+    $logger = new TestClassWithActionLogger();
     Log::spy();
     $action = 'CreateUser';
 
-    $this->logger->logActionStart($action);
+    $logger->logActionStart($action);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -38,11 +36,12 @@ test('log action start works without context', function (): void {
 });
 
 test('log action success writes info log', function (): void {
+    $logger = new TestClassWithActionLogger();
     Log::spy();
     $action = 'CreateUser';
     $context = ['user_id' => 123, 'execution_time' => 0.5];
 
-    $this->logger->logActionSuccess($action, $context);
+    $logger->logActionSuccess($action, $context);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -50,10 +49,11 @@ test('log action success writes info log', function (): void {
 });
 
 test('log action success works without context', function (): void {
+    $logger = new TestClassWithActionLogger();
     Log::spy();
     $action = 'CreateUser';
 
-    $this->logger->logActionSuccess($action);
+    $logger->logActionSuccess($action);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -61,12 +61,13 @@ test('log action success works without context', function (): void {
 });
 
 test('log action failure writes error log', function (): void {
+    $logger = new TestClassWithActionLogger();
     Log::spy();
     $action = 'CreateUser';
     $error = 'Validation failed';
     $context = ['user_data' => ['email' => 'invalid']];
 
-    $this->logger->logActionFailure($action, $error, $context);
+    $logger->logActionFailure($action, $error, $context);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -74,11 +75,12 @@ test('log action failure writes error log', function (): void {
 });
 
 test('log action failure works without context', function (): void {
+    $logger = new TestClassWithActionLogger();
     Log::spy();
     $action = 'CreateUser';
     $error = 'Database connection failed';
 
-    $this->logger->logActionFailure($action, $error);
+    $logger->logActionFailure($action, $error);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -86,11 +88,12 @@ test('log action failure works without context', function (): void {
 });
 
 test('logging uses custom channel', function (): void {
+    $logger = new TestClassWithActionLogger();
     config(['arch.action_logging.channel' => 'custom']);
     Log::spy();
     $action = 'CustomAction';
 
-    $this->logger->logActionStart($action);
+    $logger->logActionStart($action);
 
     Log::shouldHaveReceived('channel')
         ->once()
@@ -98,18 +101,20 @@ test('logging uses custom channel', function (): void {
 });
 
 test('logging disabled skips all logging', function (): void {
+    $logger = new TestClassWithActionLogger();
     config(['arch.action_logging.enabled' => false]);
     Log::spy();
     $action = 'DisabledAction';
 
-    $this->logger->logActionStart($action);
-    $this->logger->logActionSuccess($action);
-    $this->logger->logActionFailure($action, 'error');
+    $logger->logActionStart($action);
+    $logger->logActionSuccess($action);
+    $logger->logActionFailure($action, 'error');
 
     Log::shouldNotHaveReceived('channel');
 });
 
 test('fallback logging when primary logger fails', function (): void {
+    $logger = new TestClassWithActionLogger();
     $action = 'FailingAction';
     $context = ['test' => 'data'];
     $logPath = storage_path('logs/arch.log');
@@ -129,7 +134,7 @@ test('fallback logging when primary logger fails', function (): void {
         ->with('stack')
         ->andReturn($mockLogger);
 
-    $this->logger->logActionStart($action, $context);
+    $logger->logActionStart($action, $context);
 
     expect(file_exists($logPath))->toBeTrue();
     
@@ -146,6 +151,7 @@ test('fallback logging when primary logger fails', function (): void {
 });
 
 test('fallback logging for all log levels', function (): void {
+    $logger = new TestClassWithActionLogger();
     $logPath = storage_path('logs/arch.log');
     
     if (file_exists($logPath)) {
@@ -165,9 +171,9 @@ test('fallback logging for all log levels', function (): void {
         ->with('stack')
         ->andReturn($mockLogger);
 
-    $this->logger->logActionStart('TestAction');
-    $this->logger->logActionSuccess('TestAction');
-    $this->logger->logActionFailure('TestAction', 'Test error');
+    $logger->logActionStart('TestAction');
+    $logger->logActionSuccess('TestAction');
+    $logger->logActionFailure('TestAction', 'Test error');
 
     expect(file_exists($logPath))->toBeTrue();
     
@@ -182,6 +188,7 @@ test('fallback logging for all log levels', function (): void {
 });
 
 test('no exception when both primary and fallback logging fail', function (): void {
+    $logger = new TestClassWithActionLogger();
     $mockLogger = Mockery::mock(LoggerInterface::class);
     $mockLogger->shouldReceive('info')
         ->once()
@@ -192,12 +199,13 @@ test('no exception when both primary and fallback logging fail', function (): vo
         ->with('stack')
         ->andReturn($mockLogger);
 
-    $this->logger->logActionStart('FailingAction');
+    $logger->logActionStart('FailingAction');
 
     expect(true)->toBeTrue();
 });
 
 test('fallback logging fails silently', function (): void {
+    $logger = new TestClassWithActionLogger();
     $logsPath = storage_path('logs');
     $archLogPath = storage_path('logs/arch.log');
     
@@ -221,7 +229,7 @@ test('fallback logging fails silently', function (): void {
         ->with('stack')
         ->andReturn($mockLogger);
 
-    $this->logger->logActionStart('FailingAction');
+    $logger->logActionStart('FailingAction');
     
     chmod($logsPath, 0755);
     

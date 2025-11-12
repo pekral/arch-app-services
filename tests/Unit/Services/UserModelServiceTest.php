@@ -10,30 +10,29 @@ use Pekral\Arch\Examples\Services\User\UserRepository;
 use Pekral\Arch\Tests\Models\User;
 use ReflectionClass;
 
-beforeEach(function (): void {
-    $this->userModelService = app(UserModelService::class);
-});
-
 test('get model manager returns correct instance', function (): void {
-    $manager = $this->userModelService->getModelManager();
+    $userModelService = app(UserModelService::class);
+    $manager = $userModelService->getModelManager();
 
     expect($manager)->toBeInstanceOf(UserModelManager::class);
 });
 
 test('get repository returns correct instance', function (): void {
-    $repository = $this->userModelService->getRepository();
+    $userModelService = app(UserModelService::class);
+    $repository = $userModelService->getRepository();
 
     expect($repository)->toBeInstanceOf(UserRepository::class);
 });
 
 test('create creates new user', function (): void {
+    $userModelService = app(UserModelService::class);
     $data = [
         'email' => 'test@example.com',
         'name' => 'Test User',
         'password' => 'password123',
     ];
 
-    $user = $this->userModelService->create($data);
+    $user = $userModelService->create($data);
 
     expect($user)->toBeInstanceOf(User::class)
         ->and($user->name)->toBe('Test User')
@@ -41,11 +40,12 @@ test('create creates new user', function (): void {
 });
 
 test('get model class returns correct class name', function (): void {
-    $reflection = new ReflectionClass($this->userModelService);
+    $userModelService = app(UserModelService::class);
+    $reflection = new ReflectionClass($userModelService);
     $method = $reflection->getMethod('getModelClass');
     $method->setAccessible(true);
 
-    $modelClass = $method->invoke($this->userModelService);
+    $modelClass = $method->invoke($userModelService);
 
     expect($modelClass)->toBe(User::class);
 });

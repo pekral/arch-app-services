@@ -8,23 +8,20 @@ use Illuminate\Support\Facades\Config;
 use Pekral\Arch\Examples\Actions\User\SearchUserCached;
 use Pekral\Arch\Tests\Models\User;
 
-beforeEach(function (): void {
-    $this->cacheMock = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->andReturn($this->cacheMock);
-
-    $this->searchUserCached = app(SearchUserCached::class);
-
+test('search user uses cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
-});
-
-test('search user uses cache', function (): void {
-    Config::set('arch.repository_cache.enabled', true);
+    
+    $searchUserCached = app(SearchUserCached::class);
+    
     $user = User::factory()->create();
     $filters = ['name' => $user->name, 'email' => $user->email];
     
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:UserRepository:findOneByParams:[a-f0-9]{32}$/'),
@@ -33,54 +30,92 @@ test('search user uses cache', function (): void {
         )
         ->andReturn($user);
 
-    $result = $this->searchUserCached->handle($filters);
+    $result = $searchUserCached->handle($filters);
 
-    expect($result)->not->toBeNull()
-        ->and($result->id)->toBe($user->id);
+    expect($result)->not->toBeNull();
+    
+    assert($result instanceof User);
+    expect($result->id)->toBe($user->id);
 });
 
 test('search user skips cache when disabled', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $searchUserCached = app(SearchUserCached::class);
+    
     $user = User::factory()->create();
     $filters = ['name' => $user->name, 'email' => $user->email];
 
-    $this->cacheMock->shouldNotReceive('remember');
+    $cacheMock->shouldNotReceive('remember');
 
-    $result = $this->searchUserCached->handle($filters);
+    $result = $searchUserCached->handle($filters);
 
-    expect($result)->not->toBeNull()
-        ->and($result->id)->toBe($user->id)
+    expect($result)->not->toBeNull();
+    
+    assert($result instanceof User);
+    expect($result->id)->toBe($user->id)
         ->and($result->name)->toBe($user->name)
         ->and($result->email)->toBe($user->email);
 });
 
 test('search user with real database', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $searchUserCached = app(SearchUserCached::class);
+    
     $user = User::factory()->create();
     
-    $foundUser = $this->searchUserCached->handle(['name' => $user->name, 'email' => $user->email]);
+    $foundUser = $searchUserCached->handle(['name' => $user->name, 'email' => $user->email]);
     
-    expect($foundUser)->not->toBeNull()
-        ->and($foundUser->id)->toBe($user->id)
+    expect($foundUser)->not->toBeNull();
+    
+    assert($foundUser instanceof User);
+    expect($foundUser->id)->toBe($user->id)
         ->and($foundUser->name)->toBe($user->name)
         ->and($foundUser->email)->toBe($user->email);
 });
 
 test('search non existing user returns null', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $searchUserCached = app(SearchUserCached::class);
+    
     User::factory()->create();
     
-    $foundUser = $this->searchUserCached->handle(['name' => fake()->name(), 'email' => fake()->email()]);
+    $foundUser = $searchUserCached->handle(['name' => fake()->name(), 'email' => fake()->email()]);
     
     expect($foundUser)->toBeNull();
 });
 
 test('search non existing user caches null', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $searchUserCached = app(SearchUserCached::class);
+    
     User::factory()->create();
     $filters = ['name' => fake()->name(), 'email' => fake()->email()];
     
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:UserRepository:findOneByParams:[a-f0-9]{32}$/'),
@@ -89,7 +124,7 @@ test('search non existing user caches null', function (): void {
         )
         ->andReturn(null);
 
-    $result = $this->searchUserCached->handle($filters);
+    $result = $searchUserCached->handle($filters);
     
     expect($result)->toBeNull();
 });

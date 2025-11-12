@@ -9,23 +9,20 @@ use Illuminate\Support\Facades\Config;
 use Pekral\Arch\Examples\Actions\User\GetUserCached;
 use Pekral\Arch\Tests\Models\User;
 
-beforeEach(function (): void {
-    $this->cacheMock = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->andReturn($this->cacheMock);
-
-    $this->getUserCached = app(GetUserCached::class);
-
+test('get user uses cache', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
-});
-
-test('get user uses cache', function (): void {
-    Config::set('arch.repository_cache.enabled', true);
+    
+    $getUserCached = app(GetUserCached::class);
+    
     $user = User::factory()->create();
     $filters = ['name' => $user->name, 'email' => $user->email];
     
-    $this->cacheMock->shouldReceive('remember')
+    $cacheMock->shouldReceive('remember')
         ->once()
         ->with(
             Mockery::pattern('/^arch_repo:UserRepository:getOneByParams:[a-f0-9]{32}$/'),
@@ -34,19 +31,27 @@ test('get user uses cache', function (): void {
         )
         ->andReturn($user);
 
-    $result = $this->getUserCached->handle($filters);
+    $result = $getUserCached->handle($filters);
 
     expect($result->id)->toBe($user->id);
 });
 
 test('get user skips cache when disabled', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $getUserCached = app(GetUserCached::class);
+    
     $user = User::factory()->create();
     $filters = ['name' => $user->name, 'email' => $user->email];
 
-    $this->cacheMock->shouldNotReceive('remember');
+    $cacheMock->shouldNotReceive('remember');
 
-    $result = $this->getUserCached->handle($filters);
+    $result = $getUserCached->handle($filters);
 
     expect($result->id)->toBe($user->id)
         ->and($result->name)->toBe($user->name)
@@ -54,10 +59,18 @@ test('get user skips cache when disabled', function (): void {
 });
 
 test('get user with real database', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $getUserCached = app(GetUserCached::class);
+    
     $user = User::factory()->create();
     
-    $foundUser = $this->getUserCached->handle(['name' => $user->name, 'email' => $user->email]);
+    $foundUser = $getUserCached->handle(['name' => $user->name, 'email' => $user->email]);
     
     expect($foundUser->id)->toBe($user->id)
         ->and($foundUser->name)->toBe($user->name)
@@ -65,8 +78,16 @@ test('get user with real database', function (): void {
 });
 
 test('get non existing user throws exception', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($cacheMock);
+    
     Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    
+    $getUserCached = app(GetUserCached::class);
+    
     User::factory()->create();
     
-    $this->getUserCached->handle(['name' => fake()->name(), 'email' => fake()->email()]);
+    $getUserCached->handle(['name' => fake()->name(), 'email' => fake()->email()]);
 })->throws(ModelNotFoundException::class);

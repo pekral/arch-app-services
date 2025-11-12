@@ -4,11 +4,8 @@ declare(strict_types = 1);
 
 use Pekral\Arch\Examples\Actions\User\ImportUsers;
 
-beforeEach(function (): void {
-    $this->importUsers = app(ImportUsers::class);
-});
-
 test('import users imports all users', function (): void {
+    $importUsers = app(ImportUsers::class);
     $data = [
         [
             'email' => fake()->email(),
@@ -22,9 +19,11 @@ test('import users imports all users', function (): void {
         ],
     ];
     
-    expect($this->importUsers->handle($data))->toBe(count($data));
+    expect($importUsers->handle($data))->toBe(count($data));
 });
 
 test('import users without data returns zero', function (): void {
-    expect($this->importUsers->handle([]))->toBe(0);
+    $importUsers = app(ImportUsers::class);
+    
+    expect($importUsers->handle([]))->toBe(0);
 });

@@ -28,9 +28,6 @@ final readonly class BulkOperationsDemo implements ArchAction
      */
     public function execute(): array
     {
-        // Clear existing users for clean demo
-        User::truncate();
-
         // Demo 1: Bulk create new users
         $newUsers = [
             ['name' => 'Alice Johnson', 'email' => 'alice@example.com', 'password' => 'password123'],
