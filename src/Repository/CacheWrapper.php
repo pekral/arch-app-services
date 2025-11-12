@@ -20,6 +20,7 @@ use function serialize;
  *
  * Usage:
  * $result = $repository->cache()->paginateByParams(['active' => true]);
+ * $result = $repository->cache('my_driver')->paginateByParams(['active' => true]);
  *
  * @method mixed paginateByParams(array<string, mixed> $params, array<string> $withRelations = [], ?int $itemsPerPage = null, array<string> $orderBy = [], array<string> $groupBy = [])
  * @method mixed getOneByParams(array<string, mixed> $params, array<string> $with = [], array<string> $orderBy = [])
@@ -29,7 +30,7 @@ use function serialize;
 final readonly class CacheWrapper
 {
 
-    public function __construct(private object $repository)
+    public function __construct(private object $repository, private ?string $driver = null)
     {
     }
 
@@ -50,6 +51,12 @@ final readonly class CacheWrapper
      */
     public function clearAllCache(): void
     {
+        if ($this->driver !== null) {
+            Cache::store($this->driver)->getStore()->flush();
+
+            return;
+        }
+
         Cache::flush();
     }
 
@@ -72,6 +79,10 @@ final readonly class CacheWrapper
      */
     private function getCacheRepository(): CacheRepository
     {
+        if ($this->driver !== null) {
+            return Cache::store($this->driver);
+        }
+
         return Cache::store();
     }
 
