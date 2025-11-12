@@ -11,6 +11,7 @@ parameters:
         - examples
         - phpstan
     tmpDir: build/phpstan
+    treatPhpDocTypesAsCertain: false
     
     bootstrapFiles:
         - vendor/autoload.php
@@ -30,12 +31,6 @@ parameters:
             path: tests/*
         -
             message: '#Call to an undefined static method Illuminate\\Support\\Facades\\[a-zA-Z]+::(shouldHaveReceived|shouldNotHaveReceived)\(\)\.#'
-            path: tests/*
-        -
-            message: '#Call to function assert\(\) with true will always evaluate to true\.#'
-            path: tests/*
-        -
-            message: '#Instanceof between .+ and .+ will always evaluate to true\.#'
             path: tests/*
 
 services:

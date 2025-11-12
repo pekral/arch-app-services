@@ -8,8 +8,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 use Pekral\Arch\Tests\Models\User;
 
-use function assert;
-
 test('paginate by params returns paginated results', function (): void {
     $userModelService = app(UserModelService::class);
     User::factory()->count(20)->create();
@@ -50,9 +48,10 @@ test('paginate by params with order by', function (): void {
     
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(2);
+    
     $firstUser = $result->items()[0];
-    assert($firstUser instanceof User);
-    expect($firstUser->name)->toBe('Bob');
+    expect($firstUser)->toBeInstanceOf(User::class)
+        ->and($firstUser->name)->toBe('Bob');
 });
 
 test('paginate by params with group by', function (): void {

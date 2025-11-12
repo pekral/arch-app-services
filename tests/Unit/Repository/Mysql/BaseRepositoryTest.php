@@ -17,10 +17,8 @@ test('get one by params with order by', function (): void {
     
     $foundUser = $userRepository->getOneByParams(['email' => 'alice@example.com'], [], ['name' => 'desc']);
     
-    expect($foundUser)->toBeInstanceOf(User::class);
-    
-    assert($foundUser instanceof User);
-    expect($foundUser->email)->toBe('alice@example.com');
+    expect($foundUser)->toBeInstanceOf(User::class)
+        ->and($foundUser->email)->toBe('alice@example.com');
 });
 
 test('find one by params with order by', function (): void {
@@ -31,8 +29,7 @@ test('find one by params with order by', function (): void {
     $foundUser = $userRepository->findOneByParams(['email' => 'alice@example.com'], [], ['name' => 'desc']);
     
     expect($foundUser)->toBeInstanceOf(User::class);
-    
-    assert($foundUser instanceof User);
+    assert($foundUser !== null);
     expect($foundUser->email)->toBe('alice@example.com');
 });
 
@@ -89,8 +86,7 @@ test('paginate by params with order by', function (): void {
     
     $firstUser = $result->first();
     expect($firstUser)->not->toBeNull();
-    
-    assert($firstUser instanceof User);
+    assert($firstUser !== null);
     expect($firstUser->name)->toBe('Bob');
 });
 
