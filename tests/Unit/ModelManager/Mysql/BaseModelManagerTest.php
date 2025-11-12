@@ -13,6 +13,96 @@ use Pekral\Arch\Tests\Unit\ModelManager\UserWithoutMassUpdateModelManager;
 final class BaseModelManagerTest extends TestCase
 {
 
+    public function testDeleteByParams(): void
+    {
+        $manager = app(UserModelManager::class);
+        User::factory()->create(['email' => 'delete@example.com']);
+
+        $result = $manager->deleteByParams(['email' => 'delete@example.com']);
+
+        $this->assertTrue($result);
+        $this->assertNull(User::query()->where('email', 'delete@example.com')->first());
+    }
+
+    public function testCreate(): void
+    {
+        $manager = app(UserModelManager::class);
+
+        $user = $manager->create([
+            'email' => 'new@example.com',
+            'name' => 'New User',
+            'password' => 'password123',
+        ]);
+
+        $this->assertInstanceOf(User::class, $user);
+        $this->assertSame('New User', $user->name);
+        $this->assertDatabaseHas('users', ['email' => 'new@example.com']);
+    }
+
+    public function testUpdate(): void
+    {
+        $manager = app(UserModelManager::class);
+        $user = User::factory()->create(['name' => 'Old Name']);
+
+        $result = $manager->update($user, ['name' => 'New Name']);
+
+        $this->assertTrue($result);
+        $user->refresh();
+        $this->assertSame('New Name', $user->name);
+    }
+
+    public function testBulkCreate(): void
+    {
+        $manager = app(UserModelManager::class);
+
+        $result = $manager->bulkCreate([
+            ['name' => 'User 1', 'email' => 'user1@example.com', 'password' => 'pass1'],
+            ['name' => 'User 2', 'email' => 'user2@example.com', 'password' => 'pass2'],
+            ['name' => 'User 3', 'email' => 'user3@example.com', 'password' => 'pass3'],
+        ]);
+
+        $this->assertSame(3, $result);
+        $this->assertDatabaseHas('users', ['email' => 'user1@example.com']);
+        $this->assertDatabaseHas('users', ['email' => 'user2@example.com']);
+        $this->assertDatabaseHas('users', ['email' => 'user3@example.com']);
+    }
+
+    public function testBulkCreateWithEmptyData(): void
+    {
+        $manager = app(UserModelManager::class);
+
+        $result = $manager->bulkCreate([]);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testBulkUpdate(): void
+    {
+        $manager = app(UserModelManager::class);
+        $user1 = User::factory()->create(['name' => 'User 1']);
+        $user2 = User::factory()->create(['name' => 'User 2']);
+
+        $result = $manager->bulkUpdate([
+            ['id' => $user1->id, 'name' => 'Updated User 1'],
+            ['id' => $user2->id, 'name' => 'Updated User 2'],
+        ]);
+
+        $this->assertSame(2, $result);
+        $user1->refresh();
+        $user2->refresh();
+        $this->assertSame('Updated User 1', $user1->name);
+        $this->assertSame('Updated User 2', $user2->name);
+    }
+
+    public function testBulkUpdateWithEmptyArray(): void
+    {
+        $manager = app(UserModelManager::class);
+
+        $result = $manager->bulkUpdate([]);
+
+        $this->assertSame(0, $result);
+    }
+
     public function testBulkUpdateWithMissingKeyColumn(): void
     {
         $manager = app(UserModelManager::class);

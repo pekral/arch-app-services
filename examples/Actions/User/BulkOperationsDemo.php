@@ -4,13 +4,14 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Actions\User;
 
+use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Examples\Services\User\UserModelManager;
 use Pekral\Arch\Tests\Models\User;
 
 /**
  * Action demonstrating various bulk operations with ModelManager.
  */
-final readonly class BulkOperationsDemo
+final readonly class BulkOperationsDemo implements ArchAction
 {
 
     public function __construct(private readonly UserModelManager $userModelManager)

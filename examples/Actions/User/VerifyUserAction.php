@@ -6,9 +6,10 @@ namespace Pekral\Arch\Examples\Actions\User;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
+use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Tests\Models\User;
 
-final class VerifyUserAction
+final class VerifyUserAction implements ArchAction
 {
 
     public function handle(User $user): void

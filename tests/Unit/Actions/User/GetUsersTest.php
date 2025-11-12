@@ -11,7 +11,7 @@ use Pekral\Arch\Tests\TestCase;
 use function config;
 use function in_array;
 
-final class TestGetUsers extends TestCase
+final class GetUsersTest extends TestCase
 {
 
     private GetUsers $getUsers;

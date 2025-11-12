@@ -5,9 +5,10 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Examples\Actions\User;
 
 use Illuminate\Pagination\LengthAwarePaginator;
+use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 
-final readonly class GetUsersCached
+final readonly class GetUsersCached implements ArchAction
 {
 
     public function __construct(private UserModelService $userModelService)
