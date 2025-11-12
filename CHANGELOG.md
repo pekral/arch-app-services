@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-12 (PR #20)
+
+
+- ✨ **Added**: support mass update from iksaku/laravel-mass-update package
+
 ## [Unreleased] - 2025-11-11 (PR #19)
 
 
