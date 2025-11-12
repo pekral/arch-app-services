@@ -1,38 +1,10 @@
 # Repository Caching
 
-The package provides automatic caching functionality for repository methods through the `CacheableRepository` trait and `CacheWrapper` class. This allows you to cache expensive database queries automatically with configurable TTL and cache keys.
+Repositories can opt in to transparent read caching by using the `Pekral\Arch\Repository\CacheableRepository` trait. The trait exposes a `cache()` helper that returns a `CacheWrapper` proxy. All method calls made through this proxy are cached automatically.
 
-## Architecture
-
-### Main Components
-
-1. **CacheableRepository Trait** - Adds caching capability to repositories
-2. **CacheWrapper Class** - Proxy class that handles automatic caching
-3. **Configuration** - Configurable TTL, prefix, and enable/disable options
-
-### How It Works
-
-The caching system uses Laravel's cache system with automatically generated cache keys based on:
-- Repository class name
-- Method name
-- Method arguments (serialized and hashed)
-
-## Basic Usage
-
-### Adding Caching to Repository
+## Enabling caching for a repository
 
 ```php
-<?php
-
-namespace App\Repositories;
-
-use Pekral\Arch\Repository\CacheableRepository;
-use Pekral\Arch\Repository\Mysql\BaseRepository;
-use App\Models\User;
-
-/**
- * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\App\Models\User>
- */
 final class UserRepository extends BaseRepository
 {
     use CacheableRepository;
@@ -44,378 +16,89 @@ final class UserRepository extends BaseRepository
 }
 ```
 
-### Using Cached Repository Methods
+Wrap read calls in the proxy to cache results:
 
 ```php
-<?php
+$user = $userRepository->cache()->getOneByParams(['email' => 'user@example.com']);
 
-namespace App\Actions\User;
-
-use App\Repositories\UserRepository;
-use App\Models\User;
-
-final readonly class GetUserCached
-{
-    public function __construct(private UserRepository $userRepository)
-    {
-    }
-
-    /**
-     * @param array<string, mixed> $filters
-     */
-    public function handle(array $filters): User
-    {
-        // Automatically cached for configured TTL
-        return $this->userRepository->cache()->getOneByParams($filters);
-    }
-}
+$paginator = $userRepository->cache()->paginateByParams(
+    ['active' => true],
+    ['posts'],
+    15,
+    ['created_at' => 'desc'],
+);
 ```
 
-### Cached Methods
+> The proxy simply forwards method calls to the underlying repository and stores the result in Laravel's cache store. Write operations should continue to use the repository directly.
 
-All repository methods are automatically cached when using the `cache()` wrapper:
+## Cache key format
 
-```php
-// Cached pagination
-$users = $userRepository->cache()->paginateByParams([
-    'active' => true
-], ['posts'], 15);
+Cache keys are generated from:
 
-// Cached single record retrieval
-$user = $userRepository->cache()->getOneByParams([
-    'email' => 'user@example.com'
-]);
+1. Configured prefix (`arch.repository_cache.prefix`, default `arch_repo`)
+2. Repository class basename
+3. Target method name
+4. MD5 hash of the serialized argument array
 
-// Cached count
-$count = $userRepository->cache()->countByParams([
-    'role' => 'admin'
-]);
+Example: `arch_repo:UserRepository:getOneByParams:f03f9a…`
 
-// Cached find
-$user = $userRepository->cache()->findOneByParams([
-    'name' => 'John Doe'
-]);
-```
+## Clearing cache entries
 
-## Cache Management
-
-### Clearing Specific Cache Entries
+Use the helper methods provided by `CacheWrapper`:
 
 ```php
-// Clear cache for specific method and parameters
+// Remove cache for a specific argument combination
 $userRepository->cache()->clearCache('getOneByParams', [
-    'email' => 'user@example.com'
+    ['email' => 'user@example.com'], // arguments array as received by the method
 ]);
 
-// Clear cache for pagination with specific parameters
-$userRepository->cache()->clearCache('paginateByParams', [
-    'active' => true
-], ['posts'], 15);
-```
-
-### Clearing All Cache
-
-```php
-// Clear all cache entries (use with caution)
+// Flush the entire cache namespace (or the selected driver)
 $userRepository->cache()->clearAllCache();
 ```
 
-### Cache Key Generation
-
-Cache keys are automatically generated using:
-- Repository class name (basename)
-- Method name
-- Serialized and MD5-hashed arguments
-- Configurable prefix
-
-Example cache key:
-```
-arch_repo:UserRepository:getOneByParams:a1b2c3d4e5f6...
-```
+When `clearAllCache()` is called with a custom driver (`cache('redis')`), the underlying store is flushed. Without a custom driver the default cache store is cleared.
 
 ## Configuration
 
-### Basic Configuration
-
-Configure caching in `config/arch.php`:
+Settings are located in `config/arch.php`:
 
 ```php
-return [
-    'repository_cache' => [
-        'enabled' => env('ARCH_REPOSITORY_CACHE_ENABLED', true),
-        'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600), // 1 hour default
-        'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
-    ],
-];
-```
-
-### Environment Variables
-
-```bash
-# Enable/disable repository caching
-ARCH_REPOSITORY_CACHE_ENABLED=true
-
-# Cache TTL in seconds (default: 3600 = 1 hour)
-ARCH_REPOSITORY_CACHE_TTL=3600
-
-# Cache key prefix (default: arch_repo)
-ARCH_REPOSITORY_CACHE_PREFIX=arch_repo
-```
-
-### Laravel Cache Configuration
-
-Make sure you have a proper cache driver configured in `config/cache.php`:
-
-```php
-'default' => env('CACHE_DRIVER', 'redis'),
-
-'stores' => [
-    'redis' => [
-        'driver' => 'redis',
-        'connection' => 'cache',
-    ],
-    
-    'file' => [
-        'driver' => 'file',
-        'path' => storage_path('framework/cache/data'),
-    ],
-],
-```
-
-## Advanced Usage
-
-### Conditional Caching
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use App\Repositories\UserRepository;
-use App\Models\User;
-
-final readonly class GetUserWithConditionalCache
-{
-    public function __construct(private UserRepository $userRepository)
-    {
-    }
-
-    /**
-     * @param array<string, mixed> $filters
-     */
-    public function handle(array $filters, bool $useCache = true): User
-    {
-        if ($useCache) {
-            return $this->userRepository->cache()->getOneByParams($filters);
-        }
-        
-        // Bypass cache
-        return $this->userRepository->getOneByParams($filters);
-    }
-}
-```
-
-### Cache Invalidation Strategies
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use App\Repositories\UserRepository;
-use App\Models\User;
-
-final readonly class UpdateUserAndInvalidateCache
-{
-    public function __construct(private UserRepository $userRepository)
-    {
-    }
-
-    public function handle(User $user, array $data): User
-    {
-        // Update user
-        $user->update($data);
-        
-        // Invalidate related cache entries
-        $this->userRepository->cache()->clearCache('getOneByParams', [
-            'id' => $user->id
-        ]);
-        
-        $this->userRepository->cache()->clearCache('getOneByParams', [
-            'email' => $user->email
-        ]);
-        
-        return $user;
-    }
-}
-```
-
-### Using with Actions
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use App\Repositories\UserRepository;
-use App\Models\User;
-
-final readonly class GetUsersCached
-{
-    public function __construct(private UserRepository $userRepository)
-    {
-    }
-
-    /**
-     * @param array<string, mixed> $filters
-     */
-    public function handle(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
-    {
-        return $this->userRepository->cache()->paginateByParams(
-            $filters,
-            ['posts', 'profile'],
-            20,
-            ['created_at' => 'desc']
-        );
-    }
-}
-```
-
-## Performance Considerations
-
-### Cache Hit Optimization
-
-```php
-// Good: Specific cache keys
-$user = $userRepository->cache()->getOneByParams([
-    'email' => 'specific@example.com'
-]);
-
-// Avoid: Too generic parameters that might not hit cache
-$users = $userRepository->cache()->paginateByParams([
-    'created_at' => '>', now()->subDays(1) // This creates new cache key every time
-]);
-```
-
-### Memory Usage
-
-```php
-// For large datasets, consider shorter TTL
-// In config/arch.php
 'repository_cache' => [
-    'ttl' => 300, // 5 minutes for large datasets
+    'enabled' => env('ARCH_REPOSITORY_CACHE_ENABLED', true),
+    'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600),
+    'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
 ],
 ```
 
-### Cache Warming
+- **enabled** – toggle caching globally.
+- **ttl** – time to live in seconds (default one hour).
+- **prefix** – string used as the first segment of every cache key.
+
+The helper honours the cache driver specified through Laravel's standard configuration. You may switch drivers per call by passing the driver name: `$repository->cache('redis')->getOneByParams([...])`.
+
+## Behavioural notes
+
+- Caching is skipped entirely when `arch.repository_cache.enabled` is set to `false`.
+- Empty payloads for `cache()->paginateByParams()` or similar methods are still cached; choose parameters carefully to avoid generating too many unique keys.
+- When arguments contain objects, they are serialized as provided. Prefer simple arrays where possible.
+
+## Invalidating stale data
+
+Because the proxy only caches read queries, it is your responsibility to invalidate cache entries after write operations:
 
 ```php
-<?php
+$user = $userRepository->getOneByParams(['email' => 'user@example.com']);
+$user->update($data);
 
-namespace App\Console\Commands;
-
-use App\Repositories\UserRepository;
-use Illuminate\Console\Command;
-
-class WarmUserCache extends Command
-{
-    protected $signature = 'cache:warm-users';
-    
-    public function handle(UserRepository $userRepository): int
-    {
-        // Warm cache for frequently accessed data
-        $userRepository->cache()->paginateByParams(['active' => true]);
-        $userRepository->cache()->countByParams(['role' => 'admin']);
-        
-        $this->info('User cache warmed successfully.');
-        
-        return 0;
-    }
-}
-```
-
-## Monitoring and Debugging
-
-### Cache Statistics
-
-```php
-use Illuminate\Support\Facades\Cache;
-
-// Check cache driver
-$driver = Cache::getDefaultDriver();
-echo "Using cache driver: {$driver}";
-
-// Check cache store
-$store = Cache::store();
-echo "Cache store: " . get_class($store);
-```
-
-### Debug Cache Keys
-
-```php
-// Add logging to see generated cache keys
-Log::info('Cache key generated', [
-    'repository' => 'UserRepository',
-    'method' => 'getOneByParams',
-    'args_hash' => md5(serialize($arguments))
+$userRepository->cache()->clearCache('getOneByParams', [
+    ['email' => 'user@example.com'],
 ]);
 ```
 
-### Cache Miss Detection
-
-```php
-// Monitor cache performance
-$startTime = microtime(true);
-$result = $userRepository->cache()->getOneByParams($filters);
-$endTime = microtime(true);
-
-if ($endTime - $startTime > 0.1) {
-    Log::warning('Slow cache operation detected', [
-        'duration' => $endTime - $startTime,
-        'method' => 'getOneByParams'
-    ]);
-}
-```
-
-## Best Practices
-
-1. **Use specific cache keys** - Avoid overly generic parameters
-2. **Set appropriate TTL** - Balance between performance and data freshness
-3. **Invalidate cache on updates** - Clear related cache entries when data changes
-4. **Monitor cache performance** - Track hit rates and response times
-5. **Use different TTL for different data types** - Critical data vs. frequently changing data
-6. **Test cache behavior** - Ensure cache invalidation works correctly
+Consider wrapping cache invalidation inside your service layer so the logic stays close to the write operation.
 
 ## Troubleshooting
 
-### Cache Not Working
-
-```php
-// Check if caching is enabled
-if (!config('arch.repository_cache.enabled')) {
-    echo "Repository caching is disabled";
-}
-
-// Check cache driver
-if (Cache::getDefaultDriver() === 'array') {
-    echo "Using array cache driver - cache won't persist";
-}
-```
-
-### Memory Issues
-
-```php
-// Reduce TTL for memory-intensive operations
-'repository_cache' => [
-    'ttl' => 60, // 1 minute for large datasets
-],
-```
-
-### Cache Key Conflicts
-
-```php
-// Use unique prefixes for different environments
-'repository_cache' => [
-    'prefix' => 'arch_repo_' . app()->environment(),
-],
-```
+- Ensure PCOV or another coverage driver is disabled when debugging cache issues; `Cache::flush()` is used when no driver is provided.
+- When using the `array` cache driver, cached results exist only for the current request. Switch to a persistent store (`redis`, `memcached`, `file`, …) for long-lived entries.
+- If you introduce new parameters to a repository method, remember to supply the same shape when calling `clearCache()`. The hash depends on both order and values.

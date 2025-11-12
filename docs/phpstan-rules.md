@@ -318,6 +318,6 @@ These rules provide:
 ## See Also
 
 - [Repository Caching](repository-caching.md)
-- [ModelManager Documentation](ModelManager.md)
-- [DataBuilder Documentation](DataBuilder.md)
+- [Model Manager](model-manager.md)
+- [Data Builder](data-builder.md)
 
