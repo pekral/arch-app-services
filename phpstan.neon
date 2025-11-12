@@ -7,7 +7,6 @@ parameters:
     level: max
     paths:
         - src
-        - tests
         - examples
         - phpstan
     tmpDir: build/phpstan
@@ -18,20 +17,6 @@ parameters:
     
     scanDirectories:
         - phpstan
-    
-    ignoreErrors:
-        -
-            message: '#Cannot call method [a-zA-Z0-9_]+\(\) on mixed\.#'
-            path: tests/*
-        -
-            message: '#Cannot access property \$[a-zA-Z0-9_]+ on mixed\.#'
-            path: tests/*
-        -
-            message: '#Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy::throws\(\)\.#'
-            path: tests/*
-        -
-            message: '#Call to an undefined static method Illuminate\\Support\\Facades\\[a-zA-Z]+::(shouldHaveReceived|shouldNotHaveReceived)\(\)\.#'
-            path: tests/*
 
 services:
     -
