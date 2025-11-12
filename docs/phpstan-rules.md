@@ -4,10 +4,51 @@ This project includes custom PHPStan rules to enforce architectural patterns and
 
 ## Overview
 
-The custom rules ensure that:
-- Actions use Repository pattern for data retrieval
-- Actions use ModelManager pattern for data persistence
-- Direct Eloquent operations are performed only in appropriate layers
+The custom rules enforce strict architectural separation to maintain clean, testable, and maintainable code.
+
+### Architecture Layers & Responsibilities
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                       ACTION LAYER                       │
+│  • Business logic orchestration                         │
+│  • Simple retrieval without conditions (User::get())   │
+│  • Delegates to Service layer                           │
+└─────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────┐
+│                      SERVICE LAYER                       │
+│  • Coordinates Repository and ModelManager              │
+│  • Transaction handling                                  │
+│  • Complex business operations                           │
+└─────────────────────────────────────────────────────────┘
+            ↓                                    ↓
+┌──────────────────────────┐      ┌──────────────────────────┐
+│    REPOSITORY LAYER      │      │   MODELMANAGER LAYER     │
+│  • Data RETRIEVAL        │      │  • Data PERSISTENCE      │
+│  • SELECT with WHERE     │      │  • INSERT operations     │
+│  • Query conditions      │      │  • UPDATE operations     │
+│  • Eloquent scopes       │      │  • DELETE operations     │
+│  • Aggregates with WHERE │      │  • Bulk operations       │
+└──────────────────────────┘      └──────────────────────────┘
+            ↓                                    ↓
+            └──────────────┬─────────────────────┘
+                          ↓
+                   ┌──────────────┐
+                   │   DATABASE   │
+                   └──────────────┘
+```
+
+**Key Principles:**
+- **Repository** → Data retrieval with conditions (SELECT queries with WHERE)
+- **ModelManager** → Data persistence (INSERT, UPDATE, DELETE operations)
+- **Actions** → Business logic coordination (NO direct database queries with conditions)
+
+This ensures:
+- Clear separation of concerns
+- Improved testability
+- Consistent data access patterns
+- Easy to maintain and refactor
 
 ## Rules
 
@@ -15,7 +56,7 @@ The custom rules ensure that:
 
 **Purpose:** Prevents direct Eloquent storage method calls in Action classes.
 
-**Rationale:** Actions should delegate data persistence to ModelManager classes, maintaining separation of concerns and following the repository/manager pattern.
+**Rationale:** Actions should delegate data persistence to ModelManager classes. All INSERT, UPDATE, and DELETE operations must be encapsulated in ModelManager classes to maintain separation of concerns and ensure consistent data persistence patterns.
 
 **Violations detected:**
 - Calling `save()`, `create()`, `update()`, `delete()`, `forceDelete()` on Eloquent models in Action classes
@@ -49,41 +90,94 @@ final readonly class CreateUser implements ArchAction
     
     public function execute(array $data): User
     {
-        // ✅ Correct: Using ModelManager through Service
+        // ✅ Correct: Data persistence through ModelManager
+        // Service delegates to ModelManager internally
         return $this->userModelService->create($data);
     }
 }
 ```
 
+**Architecture flow:**
+```
+Action → Service → ModelManager → Database (INSERT/UPDATE/DELETE)
+```
+
 ### 2. NoDirectDatabaseQueriesInActionsRule
 
-**Purpose:** Prevents direct database query calls in Action classes.
+**Purpose:** Prevents SQL queries with conditions (WHERE clauses or Eloquent scopes) in Action classes.
 
-**Rationale:** Actions should retrieve data through Repository pattern, not by directly querying models. This ensures proper data access layer separation and makes code more testable.
+**Rationale:** Actions must delegate data operations to appropriate layers:
+- **Repository classes** - for data retrieval with conditions (SELECT queries with WHERE)
+- **ModelManager classes** - for data persistence (INSERT, UPDATE, DELETE operations)
+
+Simple retrieval methods (`get()`, `all()`, `count()`, etc.) are allowed WITHOUT conditions. Any query with WHERE clauses or scopes must be encapsulated in Repository classes.
+
+**Rule logic:**
+1. **Allowed without conditions:** `get()`, `all()`, `first()`, `find()`, `count()`, `sum()`, `avg()`, `min()`, `max()`, `exists()`, `pluck()`
+2. **Always forbidden:** `where()`, `whereIn()`, `orderBy()`, `limit()`, `join()`, `select()`, `with()`, `has()`, and all other query builder methods
+3. **Eloquent scopes forbidden:** Any custom scope (e.g., `->active()`, `->published()`) cannot be used in Actions
 
 **Violations detected:**
-- Query builder methods: `where()`, `whereIn()`, `whereBetween()`, `whereNull()`, etc.
-- Retrieval methods: `find()`, `findOrFail()`, `first()`, `firstOrFail()`, `get()`, `all()`
-- Aggregate methods: `count()`, `sum()`, `avg()`, `min()`, `max()`
-- Relationship methods: `with()`, `withCount()`, `has()`, `whereHas()`
-- Other query methods: `orderBy()`, `limit()`, `join()`, `select()`
 
-**Example violation:**
+**Type 1: Direct query builder methods**
+```php
+// ❌ where(), whereIn(), orderBy(), etc. are always forbidden
+User::where('active', true)->get();
+User::whereIn('status', ['active', 'pending'])->count();
+User::orderBy('created_at')->get();
+```
+
+**Type 2: Retrieval methods after conditions**
+```php
+// ❌ get(), count(), sum() etc. after WHERE or scopes
+User::where('verified', true)->count();
+User::active()->sum('points');  // active() is a scope
+```
+
+**Type 3: Eloquent scopes**
+```php
+// ❌ Custom scopes cannot be called in Actions
+User::active()->get();
+User::published()->count();
+User::verified()->first();
+```
+
+**Allowed patterns:**
 
 ```php
-final readonly class GetActiveUsers implements ArchAction
+final readonly class GetAllUsers implements ArchAction
 {
     public function execute(): Collection
     {
-        // ❌ Violation: Direct query in Action
-        return User::where('active', true)
-            ->orderBy('name')
-            ->get();
+        // ✅ Simple get() without conditions is allowed
+        return User::get();
     }
 }
 ```
 
-**Correct approach:**
+```php
+final readonly class CountAllUsers implements ArchAction
+{
+    public function execute(): int
+    {
+        // ✅ Simple count() without conditions is allowed
+        return User::count();
+    }
+}
+```
+
+```php
+final readonly class GetUserById implements ArchAction
+{
+    public function execute(int $id): ?User
+    {
+        // ✅ Simple find() is allowed
+        return User::find($id);
+    }
+}
+```
+
+**Correct approach for queries with conditions:**
 
 ```php
 final readonly class GetActiveUsers implements ArchAction
@@ -94,10 +188,33 @@ final readonly class GetActiveUsers implements ArchAction
     
     public function execute(): Collection
     {
-        // ✅ Correct: Using Repository through Service
+        // ✅ Correct: Data retrieval with conditions through Repository
+        // Service delegates to Repository internally
         return $this->userModelService->findByParams(['active' => true]);
     }
 }
+```
+
+```php
+final readonly class CountVerifiedUsers implements ArchAction
+{
+    public function __construct(
+        private UserModelService $userModelService
+    ) {}
+    
+    public function execute(): int
+    {
+        // ✅ Correct: Aggregates with conditions through Repository
+        // Service delegates to Repository internally
+        return $this->userModelService->countByParams(['verified' => true]);
+    }
+}
+```
+
+**Architecture layers:**
+```
+Action → Service → Repository (for data retrieval with conditions)
+Action → Service → ModelManager (for data persistence)
 ```
 
 ### 3. OnlyModelManagersCanPersistDataRule

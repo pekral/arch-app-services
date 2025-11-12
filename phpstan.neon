@@ -38,7 +38,7 @@ parameters:
             message: '#Instanceof between .+ and .+ will always evaluate to true\.#'
             path: tests/*
         -
-            message: '#Direct database query method#'
+            message: '#(Query builder method|Eloquent scope|Calling) .+ (cannot be called|is not allowed) in Action classes#'
             path: examples/*
 
 services:

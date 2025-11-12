@@ -19,21 +19,13 @@ use PHPStan\Type\Type;
 final class NoDirectDatabaseQueriesInActionsRule implements Rule
 {
 
-    private const array QUERY_BUILDER_METHODS = [
-        'where',
-        'whereIn',
-        'whereNotIn',
-        'whereBetween',
-        'whereNull',
-        'whereNotNull',
-        'orWhere',
-        'find',
-        'findOrFail',
-        'first',
-        'firstOrFail',
+    private const array ALLOWED_RETRIEVAL_METHODS = [
         'get',
         'all',
-        'pluck',
+        'first',
+        'firstOrFail',
+        'find',
+        'findOrFail',
         'count',
         'sum',
         'avg',
@@ -41,19 +33,74 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
         'max',
         'exists',
         'doesntExist',
+        'pluck',
+    ];
+
+    private const array ALWAYS_FORBIDDEN_METHODS = [
+        'where',
+        'whereIn',
+        'whereNotIn',
+        'whereBetween',
+        'whereNotBetween',
+        'whereNull',
+        'whereNotNull',
+        'orWhere',
+        'whereDate',
+        'whereMonth',
+        'whereDay',
+        'whereYear',
+        'whereTime',
+        'whereColumn',
+        'whereHas',
+        'whereDoesntHave',
+        'orWhereHas',
+        'orWhereDoesntHave',
+        'withWhereHas',
         'orderBy',
+        'orderByDesc',
+        'latest',
+        'oldest',
+        'inRandomOrder',
         'limit',
+        'take',
         'offset',
+        'skip',
         'join',
         'leftJoin',
         'rightJoin',
+        'crossJoin',
         'select',
+        'selectRaw',
+        'addSelect',
         'with',
         'withCount',
+        'withSum',
+        'withAvg',
+        'withMin',
+        'withMax',
         'has',
-        'whereHas',
         'doesntHave',
-        'whereDoesntHave',
+        'orHas',
+        'orDoesntHave',
+        'groupBy',
+        'having',
+        'havingRaw',
+        'orHaving',
+        'orHavingRaw',
+        'truncate',
+        'delete',
+        'chunk',
+        'chunkById',
+        'each',
+        'lazy',
+        'lazyById',
+        'cursor',
+    ];
+
+    private const array SAFE_BUILDER_METHODS = [
+        'query',
+        'newQuery',
+        'toBase',
     ];
 
     public function getNodeType(): string
@@ -77,7 +124,7 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
 
         $methodName = $this->getMethodName($node);
 
-        if ($methodName === null || !$this->isQueryBuilderMethod($methodName)) {
+        if ($methodName === null) {
             return [];
         }
 
@@ -87,7 +134,113 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
             return [];
         }
 
-        return $this->createErrorMessage($methodName);
+        if ($this->isAlwaysForbiddenMethod($methodName)) {
+            return $this->createErrorMessage($methodName);
+        }
+
+        if ($this->isAllowedRetrievalMethod($methodName)) {
+            return $this->handleRetrievalMethod($node, $scope, $methodName);
+        }
+
+        if ($this->isSafeBuilderMethod($methodName)) {
+            return [];
+        }
+
+        return $this->createScopeErrorMessage($methodName);
+    }
+
+    /**
+     * @return array<int, \PHPStan\Rules\RuleError>
+     */
+    private function handleRetrievalMethod(Node $node, Scope $scope, string $methodName): array
+    {
+        if (!$node instanceof MethodCall) {
+            return [];
+        }
+
+        $conditionalInfo = $this->findConditionalMethodInChain($node->var, $scope);
+
+        if ($conditionalInfo !== null) {
+            $conditionType = $conditionalInfo['type'] === 'scope' ? 'scope' : 'query builder method';
+            $errorMessage = sprintf(
+                'Calling "%s()" after %s "%s()" is not allowed in Action classes. Data retrieval with conditions must be encapsulated in Repository class.',
+                $methodName,
+                $conditionType,
+                $conditionalInfo['method'],
+            );
+
+            return [
+                RuleErrorBuilder::message($errorMessage)->build(),
+            ];
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array{method: string, type: string}|null
+     */
+    private function findConditionalMethodInChain(Node $node, Scope $scope): ?array
+    {
+        $currentNode = $node;
+
+        while ($currentNode instanceof MethodCall) {
+            $conditionalInfo = $this->checkMethodCallForCondition($currentNode, $scope);
+
+            if ($conditionalInfo !== null) {
+                return $conditionalInfo;
+            }
+
+            $currentNode = $currentNode->var;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{method: string, type: string}|null
+     */
+    private function checkMethodCallForCondition(MethodCall $node, Scope $scope): ?array
+    {
+        if (!$node->name instanceof Node\Identifier) {
+            return null;
+        }
+
+        $methodName = $node->name->toString();
+
+        if ($this->isAlwaysForbiddenMethod($methodName)) {
+            return ['method' => $methodName, 'type' => 'conditional'];
+        }
+
+        if ($this->isSafeBuilderMethod($methodName)) {
+            return null;
+        }
+
+        if ($this->isPotentialScope($node, $scope)) {
+            return ['method' => $methodName, 'type' => 'scope'];
+        }
+
+        return null;
+    }
+
+    private function isPotentialScope(MethodCall $node, Scope $scope): bool
+    {
+        if (!$node->name instanceof Node\Identifier) {
+            return false;
+        }
+
+        $methodName = $node->name->toString();
+
+        if ($this->isAllowedRetrievalMethod($methodName)
+            || $this->isAlwaysForbiddenMethod($methodName)
+            || $this->isSafeBuilderMethod($methodName)
+        ) {
+            return false;
+        }
+
+        $callerType = $scope->getType($node->var);
+
+        return $this->isEloquentModelOrBuilder($callerType);
     }
 
     private function isValidMethodOrStaticCall(Node $node): bool
@@ -108,9 +261,19 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
         return $node->name->toString();
     }
 
-    private function isQueryBuilderMethod(string $methodName): bool
+    private function isAllowedRetrievalMethod(string $methodName): bool
     {
-        return in_array($methodName, self::QUERY_BUILDER_METHODS, true);
+        return in_array($methodName, self::ALLOWED_RETRIEVAL_METHODS, true);
+    }
+
+    private function isAlwaysForbiddenMethod(string $methodName): bool
+    {
+        return in_array($methodName, self::ALWAYS_FORBIDDEN_METHODS, true);
+    }
+
+    private function isSafeBuilderMethod(string $methodName): bool
+    {
+        return in_array($methodName, self::SAFE_BUILDER_METHODS, true);
     }
 
     private function getCallerType(Node $node, Scope $scope): ?Type
@@ -134,7 +297,22 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
         return [
             RuleErrorBuilder::message(
                 sprintf(
-                    'Direct database query method "%s()" cannot be called in Action classes. Use Repository pattern instead.',
+                    'Query builder method "%s()" cannot be called in Action classes. Data retrieval with conditions must be in Repository class.',
+                    $methodName,
+                ),
+            )->build(),
+        ];
+    }
+
+    /**
+     * @return array<int, \PHPStan\Rules\RuleError>
+     */
+    private function createScopeErrorMessage(string $methodName): array
+    {
+        return [
+            RuleErrorBuilder::message(
+                sprintf(
+                    'Eloquent scope "%s()" cannot be called in Action classes. Data retrieval with conditions must be in Repository class.',
                     $methodName,
                 ),
             )->build(),

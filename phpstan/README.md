@@ -26,16 +26,35 @@ Prevents direct Eloquent storage method calls in Action classes.
 
 ### 2. NoDirectDatabaseQueriesInActionsRule
 
-Prevents direct database query calls in Action classes.
+Prevents SQL queries with conditions (WHERE clauses or Eloquent scopes) in Action classes.
 
-**Blocked methods:**
-- Query builders: `where()`, `whereIn()`, `whereBetween()`, `whereNull()`, etc.
-- Retrieval: `find()`, `findOrFail()`, `first()`, `firstOrFail()`, `get()`, `all()`
-- Aggregates: `count()`, `sum()`, `avg()`, `min()`, `max()`
-- Relationships: `with()`, `withCount()`, `has()`, `whereHas()`
-- Other: `orderBy()`, `limit()`, `join()`, `select()`
+**Architecture Responsibility:**
+- **Repository** → Data retrieval with conditions (SELECT with WHERE)
+- **ModelManager** → Data persistence (INSERT, UPDATE, DELETE)
+- **Actions** → Simple retrieval without conditions is allowed
 
-**Rationale:** Actions should retrieve data through Repository pattern.
+**Rule Logic:**
+- **Allowed without conditions:** `get()`, `all()`, `first()`, `find()`, `count()`, `sum()`, `avg()`, `min()`, `max()`, `exists()`, `pluck()`
+- **Always blocked:** `where()`, `whereIn()`, `orderBy()`, `limit()`, `join()`, `select()`, `with()`, `has()`, etc.
+- **Eloquent scopes blocked:** Custom query scopes like `->active()`, `->published()`, etc.
+
+**Examples:**
+```php
+// ✅ Allowed - simple retrieval without conditions
+User::get();
+User::count();
+User::find($id);
+
+// ❌ Blocked - must be in Repository
+User::where('active', true)->get();
+User::orderBy('name')->count();
+
+// ❌ Blocked - scopes must be in Repository
+User::active()->get();
+User::published()->count();
+```
+
+**Rationale:** Data retrieval with conditions must be encapsulated in Repository classes for consistent data access patterns.
 
 ### 3. OnlyModelManagersCanPersistDataRule
 
