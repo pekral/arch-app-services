@@ -178,4 +178,16 @@ abstract readonly class BaseModelService
         return $this->getModelManager()->updateOrCreate($attributes, $values);
     }
 
+    /**
+     * Get existing record or create a new one if it doesn't exist.
+     *
+     * @param array<string, mixed> $attributes Attributes to search for
+     * @param array<string, mixed> $values Values to use when creating
+     * @return TModel
+     */
+    public function getOrCreate(array $attributes, array $values = []): Model
+    {
+        return $this->getModelManager()->getOrCreate($attributes, $values);
+    }
+
 }
