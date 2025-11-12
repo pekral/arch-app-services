@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\ModelManager\Mysql;
 
 use Illuminate\Database\Eloquent\Model;
+use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
 
 /**
  * Base class for managing Eloquent model operations (CRUD).
@@ -149,6 +150,39 @@ abstract class BaseModelManager
         }
         
         return $updatedCount;
+    }
+
+    /**
+     * Mass update records using CASE WHEN SQL statement.
+     * Requires model to use MassUpdatable trait from iksaku/laravel-mass-update package.
+     *
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<int, array<TKey, TValue>|\Illuminate\Database\Eloquent\Model> $values Array of records to update or Model instances
+     * @param array<int, string>|string|null $uniqueBy Column(s) to use as unique identifier (defaults to model's primary key)
+     * @return int Number of updated records
+     * @throws \Pekral\Arch\Exceptions\MassUpdateNotAvailable
+     */
+    public function rawMassUpdate(array $values, null|array|string $uniqueBy = null): int
+    {
+        if ($values === []) {
+            return 0;
+        }
+
+        if (!trait_exists('Iksaku\Laravel\MassUpdate\MassUpdatable')) {
+            throw MassUpdateNotAvailable::missingPackage();
+        }
+
+        $modelClassName = $this->getModelClassName();
+
+        if (!in_array('Iksaku\Laravel\MassUpdate\MassUpdatable', class_uses_recursive($modelClassName), true)) {
+            throw MassUpdateNotAvailable::traitNotUsed($modelClassName);
+        }
+
+        $model = new $modelClassName();
+
+        /** @phpstan-ignore-next-line */
+        return $model->newQuery()->massUpdate($values, $uniqueBy);
     }
 
     /**

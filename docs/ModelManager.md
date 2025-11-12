@@ -82,6 +82,98 @@ $updatedCount = $userModelManager->bulkUpdate($updates);
 // Returns: 3
 ```
 
+#### `rawMassUpdate(array $values, array|string|null $uniqueBy = null): int`
+
+Performs efficient mass updates using a single SQL query with CASE WHEN statements. This method is significantly faster than `bulkUpdate()` for large datasets as it executes in a single database query.
+
+**Requirements:**
+- Model must use the `MassUpdatable` trait from `iksaku/laravel-mass-update` package
+- Install the package: `composer require iksaku/laravel-mass-update`
+- The method will throw `MassUpdateNotAvailableException` if:
+  - The package is not installed
+  - The model doesn't use the `MassUpdatable` trait
+
+**Parameters:**
+- `$values`: Array of records to update (can be arrays or Model instances)
+- `$uniqueBy`: Column(s) to use as unique identifier (defaults to model's primary key)
+
+**Example with array data:**
+
+```php
+$updates = [
+    ['id' => 1, 'name' => 'Alice Updated', 'status' => 'active'],
+    ['id' => 2, 'name' => 'Bob Updated', 'status' => 'inactive'],
+    ['id' => 3, 'name' => 'Charlie Updated', 'status' => 'active'],
+];
+
+$updatedCount = $userModelManager->rawMassUpdate($updates);
+// Returns: 3 (number of records actually updated)
+```
+
+**Example with custom unique column:**
+
+```php
+$updates = [
+    ['email' => 'alice@example.com', 'name' => 'Alice Updated'],
+    ['email' => 'bob@example.com', 'name' => 'Bob Updated'],
+];
+
+$updatedCount = $userModelManager->rawMassUpdate($updates, 'email');
+// Returns: 2
+```
+
+**Example with multiple unique columns:**
+
+```php
+$updates = [
+    ['year' => 2024, 'month' => 1, 'revenue' => 50000],
+    ['year' => 2024, 'month' => 2, 'revenue' => 55000],
+];
+
+$updatedCount = $reportModelManager->rawMassUpdate($updates, ['year', 'month']);
+// Returns: 2
+```
+
+**Example with Model instances:**
+
+```php
+$user1 = User::find(1);
+$user2 = User::find(2);
+
+$user1->name = 'Alice Updated';
+$user2->name = 'Bob Updated';
+
+$updatedCount = $userModelManager->rawMassUpdate([$user1, $user2]);
+// Returns: 2
+```
+
+**Important Notes:**
+- Only dirty (modified) Model instances will be updated
+- The `uniqueBy` columns cannot be updated (they are used for filtering)
+- Timestamps (`updated_at`) are automatically updated
+- Much faster than `bulkUpdate()` for large datasets (executes in single query)
+- Model events (saving, saved, etc.) are NOT fired during mass updates
+
+**Model Setup:**
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Iksaku\Laravel\MassUpdate\MassUpdatable;
+
+class User extends Model
+{
+    use MassUpdatable;
+    
+    // ...
+}
+```
+
+**Performance Comparison:**
+
+For 1000 records:
+- `bulkUpdate()`: 1000 separate UPDATE queries
+- `rawMassUpdate()`: 1 optimized UPDATE query with CASE statements
+
 ### Deletion Operations
 
 #### `deleteByParams(array $parameters): bool`
