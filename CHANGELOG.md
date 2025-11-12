@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-12 (PR #27)
+
+
+- 📝 **Changed**: resolve #23 feat: cache repository support driver now
+
 ## [Unreleased] - 2025-11-12 (PR #20)
 
 
