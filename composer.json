@@ -21,6 +21,7 @@
   ],
   "require": {
     "php": "^8.4",
+    "ext-simplexml": "*",
     "illuminate/contracts": "^12.0",
     "illuminate/database": "^12.0",
     "illuminate/pagination": "^12.0",
@@ -42,7 +43,8 @@
     "phpstan/phpstan-phpunit": "^2.0.8",
     "rector/rector": "^2.2.7",
     "roave/security-advisories": "dev-latest",
-    "squizlabs/php_codesniffer": ">=4.0.1"
+    "squizlabs/php_codesniffer": ">=4.0.1",
+    "symfony/console": "^7.3"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
@@ -57,6 +59,9 @@
       "Pekral\\Arch\\Tests\\": "tests/"
     }
   },
+  "bin": [
+    "bin/arch-coverage"
+  ],
   "config": {
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
@@ -87,7 +92,8 @@
       "@rector-check",
       "@analyse",
       "@security-audit",
-      "@test:coverage"
+      "@test:coverage",
+      "@test:action-coverage"
     ],
     "coverage": [
       "echo \"📊 Running code coverage analysis...\"",
@@ -136,6 +142,10 @@
     "security-audit": [
       "echo \"🔒 Running Composer security audit...\"",
       "composer audit --format=summary"
+    ],
+    "test:action-coverage": [
+      "echo \"📊 Checking action coverage...\"",
+      "bin/arch-coverage examples/Actions"
     ],
     "test:coverage": [
       "echo \"📊 Running coverage tests with 100% minimum...\"",
