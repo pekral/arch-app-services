@@ -216,12 +216,125 @@ final class CacheableRepositoryTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function testCacheWrapperUsesCustomDriver(): void
+    {
+        // Arrange
+        Config::set('arch.repository_cache.enabled', true);
+        $customDriver = 'my_driver';
+        $customCacheMock = Mockery::mock(CacheRepository::class);
+        User::factory()->create(['email' => 'test@example.com']);
+        $params = ['email' => 'test@example.com'];
+        $expectedUser = User::factory()->create();
+
+        Cache::shouldReceive('store')
+            ->once()
+            ->with($customDriver)
+            ->andReturn($customCacheMock);
+
+        $customCacheMock->shouldReceive('remember')
+            ->once()
+            ->with(
+                Mockery::pattern('/^arch_repo:TestCacheableUserRepository:getOneByParams:[a-f0-9]{32}$/'),
+                3_600,
+                Mockery::type('callable'),
+            )
+            ->andReturn($expectedUser);
+
+        // Act
+        $result = $this->testCacheableUserRepository->cache($customDriver)->getOneByParams($params);
+
+        // Assert
+        $this->assertInstanceOf(User::class, $result);
+        $this->assertEquals($expectedUser->id, $result->id);
+    }
+
+    public function testCacheWrapperClearCacheWithCustomDriver(): void
+    {
+        // Arrange
+        $customDriver = 'my_driver';
+        $customCacheMock = Mockery::mock(CacheRepository::class);
+        $methodName = 'testMethod';
+        $arguments = ['param1' => 'value1'];
+
+        Cache::shouldReceive('store')
+            ->once()
+            ->with($customDriver)
+            ->andReturn($customCacheMock);
+
+        $customCacheMock->shouldReceive('forget')
+            ->once()
+            ->with(Mockery::pattern(sprintf('/^arch_repo:TestCacheableUserRepository:%s:[a-f0-9]{32}$/', $methodName)))
+            ->andReturn(true);
+
+        // Act
+        $result = $this->testCacheableUserRepository->cache($customDriver)->clearCache($methodName, $arguments);
+
+        // Assert
+        $this->assertTrue($result);
+    }
+
+    public function testCacheWrapperClearAllCacheWithCustomDriver(): void
+    {
+        // Arrange
+        $customDriver = 'my_driver';
+        $customCacheMock = Mockery::mock(CacheRepository::class);
+        $storeMock = Mockery::mock();
+
+        Cache::shouldReceive('store')
+            ->once()
+            ->with($customDriver)
+            ->andReturn($customCacheMock);
+
+        $customCacheMock->shouldReceive('getStore')
+            ->once()
+            ->andReturn($storeMock);
+
+        $storeMock->shouldReceive('flush')
+            ->once();
+
+        // Act
+        $this->testCacheableUserRepository->cache($customDriver)->clearAllCache();
+
+        // Assert - expectations verified by Mockery
+        $this->addToAssertionCount(1);
+    }
+
+    public function testCacheWrapperUsesDefaultDriverWhenNoDriverSpecified(): void
+    {
+        // Arrange
+        Config::set('arch.repository_cache.enabled', true);
+        User::factory()->create(['email' => 'test@example.com']);
+        $params = ['email' => 'test@example.com'];
+        $expectedUser = User::factory()->create();
+
+        Cache::shouldReceive('store')
+            ->once()
+            ->withNoArgs()
+            ->andReturn($this->cacheMock);
+
+        $this->cacheMock->shouldReceive('remember')
+            ->once()
+            ->with(
+                Mockery::pattern('/^arch_repo:TestCacheableUserRepository:getOneByParams:[a-f0-9]{32}$/'),
+                3_600,
+                Mockery::type('callable'),
+            )
+            ->andReturn($expectedUser);
+
+        // Act
+        $result = $this->testCacheableUserRepository->cache()->getOneByParams($params);
+
+        // Assert
+        $this->assertInstanceOf(User::class, $result);
+        $this->assertEquals($expectedUser->id, $result->id);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->cacheMock = Mockery::mock(CacheRepository::class);
-        Cache::shouldReceive('store')->andReturn($this->cacheMock);
+        Cache::shouldReceive('store')->byDefault()->andReturn($this->cacheMock);
 
         $this->testCacheableUserRepository = new TestCacheableUserRepository();
 
