@@ -9,6 +9,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/src',
         __DIR__ . '/tests',
         __DIR__ . '/examples',
+        __DIR__ . '/phpstan',
     ]);
 
     $rectorConfig->skip([

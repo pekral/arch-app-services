@@ -9,10 +9,14 @@ parameters:
         - src
         - tests
         - examples
+        - phpstan
     tmpDir: build/phpstan
     
     bootstrapFiles:
         - vendor/autoload.php
+    
+    scanDirectories:
+        - phpstan
     
     ignoreErrors:
         - 
@@ -42,3 +46,20 @@ parameters:
         -
             message: '~Parameter #1 \$object of method ReflectionMethod::invoke\(\) expects object\|null, mixed given\.~'
             path: tests/*
+        -
+            message: '#Direct database query method#'
+            path: examples/*
+
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoEloquentStorageMethodsInActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoDirectDatabaseQueriesInActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\OnlyModelManagersCanPersistDataRule
+        tags:
+            - phpstan.rules.rule

@@ -51,7 +51,8 @@
   "prefer-stable": true,
   "autoload": {
     "psr-4": {
-      "Pekral\\Arch\\": "src/"
+      "Pekral\\Arch\\": "src/",
+      "Pekral\\Arch\\PHPStan\\": "phpstan/"
     }
   },
   "autoload-dev": {
@@ -118,19 +119,19 @@
     ],
     "phpcs-check": [
       "echo \"✅ Running PHP CodeSniffer check...\"",
-      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/"
+      "vendor/bin/phpcs --standard=ruleset.xml src/ tests/ examples/ phpstan/"
     ],
     "phpcs-fix": [
       "echo \"🔧 Running PHP CodeSniffer fix...\"",
-      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ || true"
+      "vendor/bin/phpcbf --standard=ruleset.xml src/ tests/ examples/ phpstan/ || true"
     ],
     "pint-check": [
       "echo \"🎨 Running Laravel Pint check...\"",
-      "vendor/bin/pint src/ tests/ examples/ --test"
+      "vendor/bin/pint src/ tests/ examples/ phpstan/ --test"
     ],
     "pint-fix": [
       "echo \"🎨 Running Laravel Pint fixes...\"",
-      "vendor/bin/pint src/ tests/ examples/"
+      "vendor/bin/pint src/ tests/ examples/ phpstan/"
     ],
     "rector-check": [
       "echo \"🔄 Running Rector check (dry-run)...\"",

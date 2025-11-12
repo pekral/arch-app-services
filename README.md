@@ -19,6 +19,7 @@
 - **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
 - **Data Validation**: Integrated validation using Laravel's validation system
 - **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
+- **PHPStan Rules**: Custom architecture rules enforcing best practices
 - **Type Safety**: Full PHPDoc type annotations and generics support
 - **Laravel 12+ Ready**: Built for modern Laravel features and conventions
 - **100% Test Coverage**: Comprehensive test suite ensuring reliability
@@ -1009,6 +1010,57 @@ The command will list which Actions need more test coverage:
 ```
 
 Write additional tests to cover the missing code paths in these Actions.
+
+## PHPStan Architecture Rules
+
+The package includes custom PHPStan rules that enforce architectural best practices:
+
+### Available Rules
+
+1. **NoEloquentStorageMethodsInActionsRule** - Prevents direct Eloquent storage method calls (`save()`, `create()`, `delete()`, etc.) in Action classes
+2. **NoDirectDatabaseQueriesInActionsRule** - Prevents direct database query calls (`where()`, `find()`, `get()`, etc.) in Action classes
+3. **OnlyModelManagersCanPersistDataRule** - Ensures data persistence operations are only performed in ModelManager or ModelService classes
+
+### Why These Rules?
+
+These rules enforce clean architecture by ensuring:
+- Actions use Repository pattern for data retrieval
+- Actions use ModelManager pattern for data persistence
+- Database operations are properly separated by concerns
+
+### Example Violations
+
+```php
+// ❌ Violation: Direct query in Action
+final readonly class GetUsers implements ArchAction
+{
+    public function execute(): Collection
+    {
+        return User::where('active', true)->get(); // PHPStan error!
+    }
+}
+
+// ✅ Correct: Using Repository
+final readonly class GetUsers implements ArchAction
+{
+    public function __construct(private UserModelService $service) {}
+    
+    public function execute(): Collection
+    {
+        return $this->service->findByParams(['active' => true]);
+    }
+}
+```
+
+### Running Rules
+
+The rules are automatically enforced when running PHPStan:
+
+```bash
+composer analyse
+```
+
+For detailed documentation about the PHPStan rules, see [PHPStan Rules Documentation](docs/phpstan-rules.md).
 
 ## Testing
 

@@ -8,6 +8,12 @@ All notable changes to `arch-app-services` will be documented in this file.
 - 🐛 **Fixed**: test in PEST style now
 - 📝 **Changed**: resolve #18 feat: package check commands
 - 🐛 **Fixed**: running pest coverage
+- ✨ **Added**: Custom PHPStan rules for enforcing architectural patterns
+  - NoEloquentStorageMethodsInActionsRule: Prevents direct Eloquent storage method calls in Actions
+  - NoDirectDatabaseQueriesInActionsRule: Prevents direct database queries in Actions
+  - OnlyModelManagersCanPersistDataRule: Ensures data persistence only in ModelManager or ModelService classes
+- 📝 **Added**: PHPStan rules documentation in docs/phpstan-rules.md
+- 🔧 **Changed**: OnlyModelManagersCanPersistDataRule now allows persistence methods in BaseModelService classes
 
 ## [Unreleased] - 2025-11-12 (PR #28)
 
