@@ -87,8 +87,7 @@
       "@rector-check",
       "@analyse",
       "@security-audit",
-      "@test",
-      "echo \"✅ All checks completed!\""
+      "@test:coverage"
     ],
     "coverage": [
       "echo \"📊 Running code coverage analysis...\"",
@@ -137,10 +136,6 @@
     "security-audit": [
       "echo \"🔒 Running Composer security audit...\"",
       "composer audit --format=summary"
-    ],
-    "test": [
-      "echo \"🧪 Running tests...\"",
-      "vendor/bin/phpunit --no-coverage"
     ],
     "test:coverage": [
       "echo \"📊 Running coverage tests with 100% minimum...\"",

@@ -13,13 +13,8 @@
     </testsuites>
     <source>
         <include>
-            <directory suffix=".php">src/</directory>
-            <directory suffix=".php">example/</directory>
+            <directory suffix=".php">./src</directory>
         </include>
-        <exclude>
-            <directory>tests/</directory>
-            <directory>vendor/</directory>
-        </exclude>
     </source>
     <php>
         <env name="DB_CONNECTION" value="sqlite"/>
