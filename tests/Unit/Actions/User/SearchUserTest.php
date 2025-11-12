@@ -2,49 +2,28 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Pekral\Arch\Examples\Actions\User\SearchUser;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-use function fake;
+beforeEach(function (): void {
+    $this->searchUser = app(SearchUser::class);
+});
 
-final class SearchUserTest extends TestCase
-{
+test('search user finds existing user', function (): void {
+    $user = User::factory()->create();
+    
+    $foundUser = $this->searchUser->handle(['name' => $user->name, 'email' => $user->email]);
+    
+    expect($foundUser)->not->toBeNull()
+        ->and($foundUser->id)->toBe($user->id)
+        ->and($foundUser->name)->toBe($user->name)
+        ->and($foundUser->email)->toBe($user->email);
+});
 
-    private SearchUser $searchUser;
-
-    public function testSearchUser(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        
-        // Act
-        $foundUser = $this->searchUser->handle(['name' => $user->name, 'email' => $user->email]);
-        
-        // Assert
-        $this->assertNotNull($foundUser);
-        $this->assertEquals($user->toArray(), $foundUser->toArray());
-    }
-
-    public function testSearchNonExistingUser(): void
-    {
-        // Arrange
-        User::factory()->create();
-        
-        // Act
-        $foundUser = $this->searchUser->handle(['name' => fake()->name(), 'email' => fake()->email()]);
-        
-        // Assert
-        $this->assertNull($foundUser);
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->searchUser = app(SearchUser::class);
-    }
-
-}
+test('search non existing user returns null', function (): void {
+    User::factory()->create();
+    
+    $foundUser = $this->searchUser->handle(['name' => fake()->name(), 'email' => fake()->email()]);
+    
+    expect($foundUser)->toBeNull();
+});

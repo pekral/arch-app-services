@@ -9,170 +9,112 @@ use Illuminate\Database\Eloquent\RelationNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Pekral\Arch\Examples\Services\User\UserRepository;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-final class BaseRepositoryTest extends TestCase
-{
+beforeEach(function (): void {
+    $this->userRepository = app(UserRepository::class);
+});
 
-    private UserRepository $userRepository;
+test('get one by params with order by', function (): void {
+    User::factory()->create(['name' => 'Alice', 'email' => 'alice@example.com']);
+    User::factory()->create(['name' => 'Bob', 'email' => 'bob@example.com']);
+    
+    $foundUser = $this->userRepository->getOneByParams(['email' => 'alice@example.com'], [], ['name' => 'desc']);
+    
+    expect($foundUser)->toBeInstanceOf(User::class)
+        ->and($foundUser->email)->toBe('alice@example.com');
+});
 
-    public function testGetOneByParamsWithOrderBy(): void
-    {
-        // Arrange
-        User::factory()->create(['name' => 'Alice', 'email' => 'alice@example.com']);
-        User::factory()->create(['name' => 'Bob', 'email' => 'bob@example.com']);
-        
-        // Act
-        $foundUser = $this->userRepository->getOneByParams(['email' => 'alice@example.com'], [], ['name' => 'desc']);
-        
-        // Assert
-        $this->assertInstanceOf(User::class, $foundUser);
-        $this->assertEquals('alice@example.com', $foundUser->email);
-    }
+test('find one by params with order by', function (): void {
+    User::factory()->create(['name' => 'Alice', 'email' => 'alice@example.com']);
+    User::factory()->create(['name' => 'Bob', 'email' => 'bob@example.com']);
+    
+    $foundUser = $this->userRepository->findOneByParams(['email' => 'alice@example.com'], [], ['name' => 'desc']);
+    
+    expect($foundUser)->toBeInstanceOf(User::class)
+        ->and($foundUser->email)->toBe('alice@example.com');
+});
 
-    public function testFindOneByParamsWithOrderBy(): void
-    {
-        // Arrange
-        User::factory()->create(['name' => 'Alice', 'email' => 'alice@example.com']);
-        User::factory()->create(['name' => 'Bob', 'email' => 'bob@example.com']);
-        
-        // Act
-        $foundUser = $this->userRepository->findOneByParams(['email' => 'alice@example.com'], [], ['name' => 'desc']);
-        
-        // Assert
-        $this->assertInstanceOf(User::class, $foundUser);
-        $this->assertEquals('alice@example.com', $foundUser->email);
-    }
+test('count by params with group by', function (): void {
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(3)->create(['name' => 'Jane']);
+    
+    $count = $this->userRepository->countByParams([], ['name']);
+    
+    expect($count)->toBeGreaterThanOrEqual(2);
+});
 
-    public function testCountByParamsWithGroupBy(): void
-    {
-        // Arrange
-        User::factory()->count(5)->create(['name' => 'John']);
-        User::factory()->count(3)->create(['name' => 'Jane']);
-        
-        // Act
-        $count = $this->userRepository->countByParams([], ['name']);
-        
-        // Assert
-        $this->assertGreaterThanOrEqual(2, $count);
-    }
+test('paginate by params returns paginated results', function (): void {
+    User::factory()->count(20)->create();
 
-    public function testPaginateByParams(): void
-    {
-        // Arrange
-        User::factory()->count(20)->create();
+    $result = $this->userRepository->paginateByParams([]);
 
-        // Act
-        $result = $this->userRepository->paginateByParams([]);
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(15);
+});
 
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(15, $result);
-    }
+test('paginate by params with filters', function (): void {
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(5)->create(['name' => 'Jane']);
+    
+    $result = $this->userRepository->paginateByParams(['name' => 'John']);
+    
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(5);
+});
 
-    public function testPaginateByParamsWithFilters(): void
-    {
-        // Arrange
-        User::factory()->count(5)->create(['name' => 'John']);
-        User::factory()->count(5)->create(['name' => 'Jane']);
-        
-        // Act
-        $result = $this->userRepository->paginateByParams(['name' => 'John']);
-        
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(5, $result);
-    }
+test('paginate by params with custom per page', function (): void {
+    User::factory()->count(20)->create();
+    
+    $result = $this->userRepository->paginateByParams([], [], 10);
+    
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(10);
+});
 
-    public function testPaginateByParamsWithCustomPerPage(): void
-    {
-        // Arrange
-        User::factory()->count(20)->create();
-        
-        // Act
-        $result = $this->userRepository->paginateByParams([], [], 10);
-        
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(10, $result);
-    }
+test('paginate by params with order by', function (): void {
+    User::factory()->create(['name' => 'Alice']);
+    User::factory()->create(['name' => 'Bob']);
+    
+    $result = $this->userRepository->paginateByParams([], [], null, ['name' => 'desc']);
+    
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(2);
+    
+    $firstUser = $result->first();
+    expect($firstUser)->not->toBeNull()
+        ->and($firstUser->name)->toBe('Bob');
+});
 
-    public function testPaginateByParamsWithOrderBy(): void
-    {
-        // Arrange
-        User::factory()->create(['name' => 'Alice']);
-        User::factory()->create(['name' => 'Bob']);
-        
-        // Act
-        $result = $this->userRepository->paginateByParams([], [], null, ['name' => 'desc']);
-        
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(2, $result);
-        $firstUser = $result->first();
-        $this->assertNotNull($firstUser);
-        $this->assertEquals('Bob', $firstUser->name);
-    }
+test('paginate by params with group by', function (): void {
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(3)->create(['name' => 'Jane']);
+    
+    $result = $this->userRepository->paginateByParams([], [], null, [], ['name']);
+    
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(2);
+});
 
-    public function testPaginateByParamsWithGroupBy(): void
-    {
-        // Arrange
-        User::factory()->count(5)->create(['name' => 'John']);
-        User::factory()->count(3)->create(['name' => 'Jane']);
-        
-        // Act
-        $result = $this->userRepository->paginateByParams([], [], null, [], ['name']);
-        
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(2, $result);
-    }
+test('paginate by params with empty with relations', function (): void {
+    User::factory()->count(5)->create();
+    
+    $result = $this->userRepository->paginateByParams([], []);
+    
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(5);
+});
 
-    public function testPaginateByParamsWithEmptyWithRelations(): void
-    {
-        // Arrange
-        User::factory()->count(5)->create();
-        
-        // Act
-        $result = $this->userRepository->paginateByParams([], []);
-        
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(5, $result);
-    }
+test('paginate by params with non existent relation throws exception', function (): void {
+    User::factory()->count(5)->create();
+    
+    $this->userRepository->paginateByParams([], ['non_existent_relation']);
+})->throws(RelationNotFoundException::class, 'non_existent_relation');
 
-    public function testPaginateByParamsWithNonEmptyWithRelations(): void
-    {
-        // Arrange
-        User::factory()->count(5)->create();
-        
-        // Act
-        try {
-            $this->userRepository->paginateByParams([], ['non_existent_relation']);
-        } catch (RelationNotFoundException $e) {
-            // Assert
-            $this->assertStringContainsString('non_existent_relation', $e->getMessage());
-        }
-    }
-
-    public function testQuery(): void
-    {
-        // Arrange
-        User::factory()->count(3)->create();
-        
-        // Act
-        $query = $this->userRepository->query();
-        
-        // Assert
-        $this->assertInstanceOf(Builder::class, $query);
-        $this->assertEquals(3, $query->count());
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->userRepository = app(UserRepository::class);
-    }
-
-}
+test('query returns builder instance', function (): void {
+    User::factory()->count(3)->create();
+    
+    $query = $this->userRepository->query();
+    
+    expect($query)->toBeInstanceOf(Builder::class)
+        ->and($query->count())->toBe(3);
+});

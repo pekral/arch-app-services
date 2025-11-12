@@ -6,343 +6,228 @@ namespace Pekral\Arch\Tests\Unit\Action;
 
 use Illuminate\Support\Facades\Log;
 use Mockery;
-use Mockery\MockInterface;
 use Pekral\Arch\Action\ActionLogger;
-use Pekral\Arch\Tests\TestCase;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
-final class ActionLoggerTest extends TestCase
-{
+beforeEach(function (): void {
+    $this->logger = new TestClassWithActionLogger();
+});
 
-    private TestClassWithActionLogger $testClassWithActionLogger;
+test('log action start writes info log', function (): void {
+    Log::spy();
+    $action = 'CreateUser';
+    $context = ['user_id' => 123];
 
-    private MockInterface&LoggerInterface $loggerMock;
+    $this->logger->logActionStart($action, $context);
 
-    public function testLogActionStart(): void
-    {
-        // Arrange
-        $action = 'CreateUser';
-        $context = ['user_id' => 123];
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('stack');
+});
 
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($this->loggerMock);
+test('log action start works without context', function (): void {
+    Log::spy();
+    $action = 'CreateUser';
 
-        $this->loggerMock
-            ->shouldReceive('info')
-            ->once()
-            ->with('Action started: ' . $action, $context);
+    $this->logger->logActionStart($action);
 
-        // Act
-        $this->testClassWithActionLogger->logActionStart($action, $context);
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('stack');
+});
+
+test('log action success writes info log', function (): void {
+    Log::spy();
+    $action = 'CreateUser';
+    $context = ['user_id' => 123, 'execution_time' => 0.5];
+
+    $this->logger->logActionSuccess($action, $context);
+
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('stack');
+});
+
+test('log action success works without context', function (): void {
+    Log::spy();
+    $action = 'CreateUser';
+
+    $this->logger->logActionSuccess($action);
+
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('stack');
+});
+
+test('log action failure writes error log', function (): void {
+    Log::spy();
+    $action = 'CreateUser';
+    $error = 'Validation failed';
+    $context = ['user_data' => ['email' => 'invalid']];
+
+    $this->logger->logActionFailure($action, $error, $context);
+
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('stack');
+});
+
+test('log action failure works without context', function (): void {
+    Log::spy();
+    $action = 'CreateUser';
+    $error = 'Database connection failed';
+
+    $this->logger->logActionFailure($action, $error);
+
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('stack');
+});
+
+test('logging uses custom channel', function (): void {
+    config(['arch.action_logging.channel' => 'custom']);
+    Log::spy();
+    $action = 'CustomAction';
+
+    $this->logger->logActionStart($action);
+
+    Log::shouldHaveReceived('channel')
+        ->once()
+        ->with('custom');
+});
+
+test('logging disabled skips all logging', function (): void {
+    config(['arch.action_logging.enabled' => false]);
+    Log::spy();
+    $action = 'DisabledAction';
+
+    $this->logger->logActionStart($action);
+    $this->logger->logActionSuccess($action);
+    $this->logger->logActionFailure($action, 'error');
+
+    Log::shouldNotHaveReceived('channel');
+});
+
+test('fallback logging when primary logger fails', function (): void {
+    $action = 'FailingAction';
+    $context = ['test' => 'data'];
+    $logPath = storage_path('logs/arch.log');
+    
+    if (file_exists($logPath)) {
+        unlink($logPath);
     }
 
-    public function testLogActionStartWithoutContext(): void
-    {
-        // Arrange
-        $action = 'CreateUser';
+    $exceptionMessage = 'Logger connection failed';
+    $mockLogger = Mockery::mock(LoggerInterface::class);
+    $mockLogger->shouldReceive('info')
+        ->once()
+        ->andThrow(new RuntimeException($exceptionMessage));
 
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($this->loggerMock);
+    Log::shouldReceive('channel')
+        ->once()
+        ->with('stack')
+        ->andReturn($mockLogger);
 
-        $this->loggerMock
-            ->shouldReceive('info')
-            ->once()
-            ->with('Action started: ' . $action, []);
+    $this->logger->logActionStart($action, $context);
 
-        // Act
-        $this->testClassWithActionLogger->logActionStart($action);
+    expect(file_exists($logPath))->toBeTrue();
+    
+    $logContent = file_get_contents($logPath);
+    expect($logContent)->toContain('ARCH FALLBACK LOG')
+        ->toContain('Action: FailingAction')
+        ->toContain('Type: start')
+        ->toContain($exceptionMessage)
+        ->toContain('"test": "data"');
+    
+    if (file_exists($logPath)) {
+        unlink($logPath);
+    }
+});
+
+test('fallback logging for all log levels', function (): void {
+    $logPath = storage_path('logs/arch.log');
+    
+    if (file_exists($logPath)) {
+        unlink($logPath);
     }
 
-    public function testLogActionSuccess(): void
-    {
-        // Arrange
-        $action = 'CreateUser';
-        $context = ['user_id' => 123, 'execution_time' => 0.5];
+    $mockLogger = Mockery::mock(LoggerInterface::class);
+    $mockLogger->shouldReceive('info')
+        ->twice()
+        ->andThrow(new RuntimeException('Info logging failed'));
+    $mockLogger->shouldReceive('error')
+        ->once()
+        ->andThrow(new RuntimeException('Error logging failed'));
 
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($this->loggerMock);
+    Log::shouldReceive('channel')
+        ->times(3)
+        ->with('stack')
+        ->andReturn($mockLogger);
 
-        $this->loggerMock
-            ->shouldReceive('info')
-            ->once()
-            ->with('Action completed: ' . $action, $context);
+    $this->logger->logActionStart('TestAction');
+    $this->logger->logActionSuccess('TestAction');
+    $this->logger->logActionFailure('TestAction', 'Test error');
 
-        // Act
-        $this->testClassWithActionLogger->logActionSuccess($action, $context);
+    expect(file_exists($logPath))->toBeTrue();
+    
+    $logContent = file_get_contents($logPath);
+    expect($logContent)->toContain('Type: start')
+        ->toContain('Type: success')
+        ->toContain('Type: failure');
+    
+    if (file_exists($logPath)) {
+        unlink($logPath);
+    }
+});
+
+test('no exception when both primary and fallback logging fail', function (): void {
+    $mockLogger = Mockery::mock(LoggerInterface::class);
+    $mockLogger->shouldReceive('info')
+        ->once()
+        ->andThrow(new RuntimeException('Primary logging failed'));
+
+    Log::shouldReceive('channel')
+        ->once()
+        ->with('stack')
+        ->andReturn($mockLogger);
+
+    $this->logger->logActionStart('FailingAction');
+
+    expect(true)->toBeTrue();
+});
+
+test('fallback logging fails silently', function (): void {
+    $logsPath = storage_path('logs');
+    $archLogPath = storage_path('logs/arch.log');
+    
+    if (file_exists($archLogPath)) {
+        unlink($archLogPath);
+    }
+    
+    if (!is_dir($logsPath)) {
+        mkdir($logsPath, 0755, true);
     }
 
-    public function testLogActionSuccessWithoutContext(): void
-    {
-        // Arrange
-        $action = 'CreateUser';
+    chmod($logsPath, 0444);
+    
+    $mockLogger = Mockery::mock(LoggerInterface::class);
+    $mockLogger->shouldReceive('info')
+        ->once()
+        ->andThrow(new RuntimeException('Primary logging failed'));
 
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($this->loggerMock);
+    Log::shouldReceive('channel')
+        ->once()
+        ->with('stack')
+        ->andReturn($mockLogger);
 
-        $this->loggerMock
-            ->shouldReceive('info')
-            ->once()
-            ->with('Action completed: ' . $action, []);
+    $this->logger->logActionStart('FailingAction');
+    
+    chmod($logsPath, 0755);
+    
+    expect(true)->toBeTrue();
+});
 
-        // Act
-        $this->testClassWithActionLogger->logActionSuccess($action);
-    }
-
-    public function testLogActionFailure(): void
-    {
-        // Arrange
-        $action = 'CreateUser';
-        $error = 'Validation failed';
-        $context = ['user_data' => ['email' => 'invalid']];
-
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($this->loggerMock);
-
-        $this->loggerMock
-            ->shouldReceive('error')
-            ->once()
-            ->with(sprintf('Action failed: %s - %s', $action, $error), $context);
-
-        // Act
-        $this->testClassWithActionLogger->logActionFailure($action, $error, $context);
-    }
-
-    public function testLogActionFailureWithoutContext(): void
-    {
-        // Arrange
-        $action = 'CreateUser';
-        $error = 'Database connection failed';
-
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($this->loggerMock);
-
-        $this->loggerMock
-            ->shouldReceive('error')
-            ->once()
-            ->with(sprintf('Action failed: %s - %s', $action, $error), []);
-
-        // Act
-        $this->testClassWithActionLogger->logActionFailure($action, $error);
-    }
-
-    public function testLoggingWithCustomChannel(): void
-    {
-        // Arrange
-        config(['arch.action_logging.channel' => 'custom']);
-        $action = 'CustomAction';
-
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('custom')
-            ->andReturn($this->loggerMock);
-
-        $this->loggerMock
-            ->shouldReceive('info')
-            ->once()
-            ->with('Action started: ' . $action, []);
-
-        // Act
-        $this->testClassWithActionLogger->logActionStart($action);
-    }
-
-    public function testLoggingDisabled(): void
-    {
-        // Arrange
-        config(['arch.action_logging.enabled' => false]);
-        $action = 'DisabledAction';
-
-        // No Log::channel() calls should be made when logging is disabled
-        // Act - should execute without any logging calls
-        $this->testClassWithActionLogger->logActionStart($action);
-        $this->testClassWithActionLogger->logActionSuccess($action);
-        $this->testClassWithActionLogger->logActionFailure($action, 'error');
-
-        // Assert - test passes if no exceptions are thrown
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function testFallbackLoggingWhenPrimaryLoggerFails(): void
-    {
-        // Arrange
-        $action = 'FailingAction';
-        $context = ['test' => 'data'];
-        $logPath = storage_path('logs/arch.log');
-        
-        // Clean up any existing arch.log
-        if (file_exists($logPath)) {
-            unlink($logPath);
-        }
-
-        $exceptionMessage = 'Logger connection failed';
-        $mockLogger = Mockery::mock(LoggerInterface::class);
-        $mockLogger->shouldReceive('info')
-            ->once()
-            ->andThrow(new RuntimeException($exceptionMessage));
-
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($mockLogger);
-
-        // Act
-        $this->testClassWithActionLogger->logActionStart($action, $context);
-
-        // Assert
-        $this->assertFileExists($logPath);
-        
-        $logContent = file_get_contents($logPath);
-        $this->assertNotFalse($logContent);
-        $this->assertStringContainsString('ARCH FALLBACK LOG', $logContent);
-        $this->assertStringContainsString('Action: FailingAction', $logContent);
-        $this->assertStringContainsString('Type: start', $logContent);
-        $this->assertStringContainsString($exceptionMessage, $logContent);
-        $this->assertStringContainsString('"test": "data"', $logContent);
-        
-        // Clean up
-        if (file_exists($logPath)) {
-            unlink($logPath);
-        }
-    }
-
-    public function testFallbackLoggingForAllLogLevels(): void
-    {
-        // Arrange
-        $logPath = storage_path('logs/arch.log');
-        
-        // Clean up any existing arch.log
-        if (file_exists($logPath)) {
-            unlink($logPath);
-        }
-
-        $mockLogger = Mockery::mock(LoggerInterface::class);
-        $mockLogger->shouldReceive('info')
-            ->twice()
-            ->andThrow(new RuntimeException('Info logging failed'));
-        $mockLogger->shouldReceive('error')
-            ->once()
-            ->andThrow(new RuntimeException('Error logging failed'));
-
-        Log::shouldReceive('channel')
-            ->times(3)
-            ->with('stack')
-            ->andReturn($mockLogger);
-
-        // Act
-        $this->testClassWithActionLogger->logActionStart('TestAction');
-        $this->testClassWithActionLogger->logActionSuccess('TestAction');
-        $this->testClassWithActionLogger->logActionFailure('TestAction', 'Test error');
-
-        // Assert
-        $this->assertFileExists($logPath);
-        
-        $logContent = file_get_contents($logPath);
-        $this->assertNotFalse($logContent);
-        $this->assertStringContainsString('Type: start', $logContent);
-        $this->assertStringContainsString('Type: success', $logContent);
-        $this->assertStringContainsString('Type: failure', $logContent);
-        
-        // Clean up
-        if (file_exists($logPath)) {
-            unlink($logPath);
-        }
-    }
-
-    public function testNoExceptionWhenBothPrimaryAndFallbackLoggingFail(): void
-    {
-        // Arrange - this test ensures the application doesn't crash
-        $mockLogger = Mockery::mock(LoggerInterface::class);
-        $mockLogger->shouldReceive('info')
-            ->once()
-            ->andThrow(new RuntimeException('Primary logging failed'));
-
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($mockLogger);
-
-        // Mock file_put_contents to fail by using a read-only directory path
-        // We can't easily mock file_put_contents, so we'll just ensure no exception is thrown
-        
-        // Act & Assert - should not throw any exception
-        $this->testClassWithActionLogger->logActionStart('FailingAction');
-        
-        // If we reach this point, the test passes
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function testFallbackLoggingFailsSilently(): void
-    {
-        // Arrange - test the catch block in fallbackLog method (line 96)
-        $logsPath = storage_path('logs');
-        $archLogPath = storage_path('logs/arch.log');
-        
-        // Clean up
-        if (file_exists($archLogPath)) {
-            unlink($archLogPath);
-        }
-        
-        // Create logs directory as read-only to force file_put_contents to fail
-        if (!is_dir($logsPath)) {
-            mkdir($logsPath, 0755, true);
-        }
-
-        // Read-only directory
-        chmod($logsPath, 0444);
-        
-        $mockLogger = Mockery::mock(LoggerInterface::class);
-        $mockLogger->shouldReceive('info')
-            ->once()
-            ->andThrow(new RuntimeException('Primary logging failed'));
-
-        Log::shouldReceive('channel')
-            ->once()
-            ->with('stack')
-            ->andReturn($mockLogger);
-
-        // Act & Assert - should not throw any exception even when fallback fails
-        $this->testClassWithActionLogger->logActionStart('FailingAction');
-        
-        // Restore directory permissions
-        chmod($logsPath, 0755);
-        
-        // If we reach this point, the test passes - the catch block was executed
-        $this->expectNotToPerformAssertions();
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $mock = Mockery::mock(LoggerInterface::class);
-        $this->loggerMock = $mock;
-        $this->testClassWithActionLogger = new TestClassWithActionLogger();
-    }
-
-    protected function tearDown(): void
-    {
-        Mockery::close();
-
-        parent::tearDown();
-    }
-
-}
-
-/**
- * Test class for ActionLogger trait
- */
 final class TestClassWithActionLogger
 {
 

@@ -2,47 +2,27 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Pekral\Arch\Examples\Actions\User\RefreshUsers;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-use function fake;
+beforeEach(function (): void {
+    $this->refreshUsers = app(RefreshUsers::class);
+});
 
-final class RefreshUsersTest extends TestCase
-{
+test('refresh users refreshes all users', function (): void {
+    $users = User::factory()->count(10)->create();
+    $refreshedData = $users->map(static fn (User $user): array => [
+        'email' => fake()->email(),
+        'id' => $user->id,
+        'name' => fake()->name(),
+        'password' => fake()->password(),
+    ]);
 
-    private RefreshUsers $refreshUsers;
+    /** @var array<int, array<mixed>> $data */
+    $data = $refreshedData->values()->toArray();
+    expect($this->refreshUsers->handle($data))->toBe($refreshedData->count());
+});
 
-    public function testRefreshUsers(): void
-    {
-        // Arrange
-        $users = User::factory()->count(10)->create();
-        $refreshedData = $users->map(static fn (User $user): array => [
-            'email' => fake()->email(),
-            'id' => $user->id,
-            'name' => fake()->name(),
-            'password' => fake()->password(),
-        ]);
-
-        // Act & Assert
-        /** @var array<int, array<mixed>> $data */
-        $data = $refreshedData->values()->toArray();
-        $this->assertSame($refreshedData->count(), $this->refreshUsers->handle($data));
-    }
-
-    public function testImportUsersWithoutData(): void
-    {
-        // Act & Assert
-        $this->assertSame(0, $this->refreshUsers->handle([]));
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->refreshUsers = app(RefreshUsers::class);
-    }
-
-}
+test('import users without data returns zero', function (): void {
+    expect($this->refreshUsers->handle([]))->toBe(0);
+});

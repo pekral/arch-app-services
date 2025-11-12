@@ -2,28 +2,19 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Pekral\Arch\Examples\Actions\User\BulkOperationsDemo;
-use Pekral\Arch\Tests\TestCase;
+use Pekral\Arch\Tests\Models\User;
 
-final class BulkOperationsDemoTest extends TestCase
-{
+test('execute performs bulk operations correctly', function (): void {
+    $action = app(BulkOperationsDemo::class);
 
-    public function testExecute(): void
-    {
-        $action = app(BulkOperationsDemo::class);
+    $result = $action->execute();
 
-        $result = $action->execute();
-
-        $this->assertSame(3, $result['bulk_create_result']);
-        $this->assertSame(3, $result['insert_or_ignore_result']);
-        $this->assertSame(5, $result['bulk_update_result']);
-        $this->assertSame(5, $result['final_user_count']);
-
-        $this->assertDatabaseHas('users', ['name' => 'Alice Johnson (Updated)']);
-        $this->assertDatabaseHas('users', ['name' => 'Bob Smith (Updated)']);
-        $this->assertDatabaseHas('users', ['name' => 'Charlie Brown (Updated)']);
-    }
-
-}
+    expect($result['bulk_create_result'])->toBe(3)
+        ->and($result['insert_or_ignore_result'])->toBe(3)
+        ->and($result['bulk_update_result'])->toBe(5)
+        ->and($result['final_user_count'])->toBe(5)
+        ->and(User::query()->where('name', 'Alice Johnson (Updated)')->exists())->toBeTrue()
+        ->and(User::query()->where('name', 'Bob Smith (Updated)')->exists())->toBeTrue()
+        ->and(User::query()->where('name', 'Charlie Brown (Updated)')->exists())->toBeTrue();
+});

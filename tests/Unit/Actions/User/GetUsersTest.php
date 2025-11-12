@@ -2,59 +2,35 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Pekral\Arch\Examples\Actions\User\GetUsers;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-use function config;
-use function in_array;
+beforeEach(function (): void {
+    $this->getUsers = app(GetUsers::class);
+});
 
-final class GetUsersTest extends TestCase
-{
+test('get users returns paginated users', function (): void {
+    $users = User::factory()->count(30)->create();
+    $usersIds = $users->pluck('id')->toArray();
 
-    private GetUsers $getUsers;
+    $foundUsers = $this->getUsers->handle();
 
-    public function testGetUsers(): void
-    {
-        // Arrange
-        $users = User::factory()->count(30)->create();
-        $usersIds = $users->pluck('id')->toArray();
+    expect($foundUsers)->toHaveCount(config()->integer('arch.default_items_per_page'));
+    
+    $foundUsers->collect()->each(function (User $user) use ($usersIds): void {
+        expect(in_array($user->id, $usersIds, true))->toBeTrue();
+    });
+});
 
-        // Act
-        $foundUsers = $this->getUsers->handle();
-
-        // Assert
-        $this->assertCount(config()->integer('arch.default_items_per_page'), $foundUsers);
-        $foundUsers->collect()->each(callback: function (mixed $user) use ($usersIds): void {
-            /** @var \Pekral\Arch\Tests\Models\User $user */
-            $this->assertTrue(in_array($user->id, $usersIds, true));
-        });
-    }
-
-    public function testGetUsersWithFilters(): void
-    {
-        // Arrange
-        User::factory()->count(5)->create(['name' => 'John']);
-        User::factory()->count(5)->create(['name' => 'Jane']);
-        
-        // Act
-        $foundUsers = $this->getUsers->handle(['name' => 'John']);
-        
-        // Assert
-        $this->assertCount(5, $foundUsers);
-        $foundUsers->collect()->each(callback: function (mixed $user): void {
-            /** @var \Pekral\Arch\Tests\Models\User $user */
-            $this->assertEquals('John', $user->name);
-        });
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->getUsers = app(GetUsers::class);
-    }
-
-}
+test('get users with filters returns filtered users', function (): void {
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(5)->create(['name' => 'Jane']);
+    
+    $foundUsers = $this->getUsers->handle(['name' => 'John']);
+    
+    expect($foundUsers)->toHaveCount(5);
+    
+    $foundUsers->collect()->each(function (User $user): void {
+        expect($user->name)->toBe('John');
+    });
+});

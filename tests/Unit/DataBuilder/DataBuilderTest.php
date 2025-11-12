@@ -7,87 +7,55 @@ namespace Pekral\Arch\Tests\Unit\DataBuilder;
 use Closure;
 use InvalidArgumentException;
 use Pekral\Arch\DataBuilder\DataBuilder;
-use Pekral\Arch\Tests\TestCase;
 
-final class DataBuilderTest extends TestCase
-{
+test('build processes data with integer keys', function (): void {
+    $builder = new TestClassWithDataBuilder();
+    $data = ['name' => 'John', 'email' => 'john@example.com'];
+    $pipelines = [
+        TestPipe::class,
+        TestPipe2::class,
+    ];
 
-    private TestClassWithDataBuilder $testClassWithDataBuilder;
+    $result = $builder->build($data, $pipelines);
 
-    public function testBuildWithIntegerKeys(): void
-    {
-        // Arrange
-        $data = ['name' => 'John', 'email' => 'john@example.com'];
-        $pipelines = [
-            TestPipe::class,
-            TestPipe2::class,
-        ];
+    expect($result)->toBe(['name' => 'John', 'email' => 'john@example.com', 'processed' => true, 'processed2' => true]);
+});
 
-        // Act
-        $result = $this->testClassWithDataBuilder->build($data, $pipelines);
+test('build processes data with string keys', function (): void {
+    $builder = new TestClassWithDataBuilder();
+    $data = ['name' => 'Jane', 'email' => 'jane@example.com'];
+    $pipelines = [
+        'pipe1' => TestPipe::class,
+        'pipe2' => TestPipe2::class,
+    ];
 
-        // Assert
-        $this->assertEquals(['name' => 'John', 'email' => 'john@example.com', 'processed' => true, 'processed2' => true], $result);
-    }
+    $result = $builder->build($data, $pipelines);
 
-    public function testBuildWithStringKeys(): void
-    {
-        // Arrange
-        $data = ['name' => 'Jane', 'email' => 'jane@example.com'];
-        $pipelines = [
-            'pipe1' => TestPipe::class,
-            'pipe2' => TestPipe2::class,
-        ];
+    expect($result)->toBe(['name' => 'Jane', 'email' => 'jane@example.com', 'processed' => true, 'processed2' => true]);
+});
 
-        // Act
-        $result = $this->testClassWithDataBuilder->build($data, $pipelines);
+test('build throws exception with mixed keys', function (): void {
+    $builder = new TestClassWithDataBuilder();
+    $data = ['name' => 'Bob'];
+    // phpcs:ignore SlevomatCodingStandard.Arrays.DisallowPartiallyKeyed
+    $pipelines = [
+        TestPipe::class,
+        'specific' => TestPipe2::class,
+    ];
 
-        // Assert
-        $this->assertEquals(['name' => 'Jane', 'email' => 'jane@example.com', 'processed' => true, 'processed2' => true], $result);
-    }
+    $builder->build($data, $pipelines);
+})->throws(InvalidArgumentException::class, 'Pipes keys must be either string or integer');
 
-    public function testBuildWithMixedKeys(): void
-    {
-        // Arrange
-        $data = ['name' => 'Bob'];
-        // phpcs:ignore SlevomatCodingStandard.Arrays.DisallowPartiallyKeyed
-        $pipelines = [
-            TestPipe::class,
-            'specific' => TestPipe2::class,
-        ];
+test('build returns original data with empty pipelines', function (): void {
+    $builder = new TestClassWithDataBuilder();
+    $data = ['name' => 'Alice'];
+    $pipelines = [];
 
-        // Act & Assert
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pipes keys must be either string or integer');
-        
-        $this->testClassWithDataBuilder->build($data, $pipelines);
-    }
+    $result = $builder->build($data, $pipelines);
 
-    public function testBuildWithEmptyPipelines(): void
-    {
-        // Arrange
-        $data = ['name' => 'Alice'];
-        $pipelines = [];
+    expect($result)->toBe(['name' => 'Alice']);
+});
 
-        // Act
-        $result = $this->testClassWithDataBuilder->build($data, $pipelines);
-
-        // Assert
-        $this->assertSame(['name' => 'Alice'], $result);
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->testClassWithDataBuilder = new TestClassWithDataBuilder();
-    }
-
-}
-
-/**
- * Test class for DataBuilder trait
- */
 final class TestClassWithDataBuilder
 {
 
@@ -95,9 +63,6 @@ final class TestClassWithDataBuilder
 
 }
 
-/**
- * Test pipe that adds a 'processed' flag
- */
 final class TestPipe
 {
 
@@ -117,9 +82,6 @@ final class TestPipe
 
 }
 
-/**
- * Test pipe that adds a 'processed2' flag
- */
 final class TestPipe2
 {
 

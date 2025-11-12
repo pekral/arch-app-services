@@ -2,49 +2,29 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Pekral\Arch\Examples\Actions\User\ImportUsers;
-use Pekral\Arch\Tests\TestCase;
 
-use function fake;
+beforeEach(function (): void {
+    $this->importUsers = app(ImportUsers::class);
+});
 
-final class ImportUsersTest extends TestCase
-{
+test('import users imports all users', function (): void {
+    $data = [
+        [
+            'email' => fake()->email(),
+            'name' => fake()->name(),
+            'password' => fake()->password(),
+        ],
+        [
+            'email' => fake()->email(),
+            'name' => fake()->name(),
+            'password' => fake()->password(),
+        ],
+    ];
+    
+    expect($this->importUsers->handle($data))->toBe(count($data));
+});
 
-    private ImportUsers $importUsers;
-
-    public function testImportUsers(): void
-    {
-        // Arrange
-        $data = [
-            [
-                'email' => fake()->email(),
-                'name' => fake()->name(),
-                'password' => fake()->password(),
-            ],
-            [
-                'email' => fake()->email(),
-                'name' => fake()->name(),
-                'password' => fake()->password(),
-            ],
-        ];
-        
-        // Act & Assert
-        $this->assertSame(count($data), $this->importUsers->handle($data));
-    }
-
-    public function testImportUsersWithoutData(): void
-    {
-        // Act & Assert
-        $this->assertSame(0, $this->importUsers->handle([]));
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->importUsers = app(ImportUsers::class);
-    }
-
-}
+test('import users without data returns zero', function (): void {
+    expect($this->importUsers->handle([]))->toBe(0);
+});

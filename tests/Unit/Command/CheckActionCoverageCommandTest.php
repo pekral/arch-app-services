@@ -2,124 +2,112 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Command;
-
 use Pekral\Arch\Command\CheckActionCoverageCommand;
-use Pekral\Arch\Tests\TestCase;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
-final class CheckActionCoverageCommandTest extends TestCase
+test('configure sets command name and description', function (): void {
+    $command = new CheckActionCoverageCommand();
+
+    expect($command->getName())->toBe('arch:check-action-coverage')
+        ->and($command->getDescription())->toContain('100%');
+});
+
+test('execute with valid source path and actions', function (): void {
+    $tempDir = createTempDirWithAction();
+
+    $application = new Application();
+    $command = new CheckActionCoverageCommand();
+    $application->add($command);
+
+    $commandTester = new CommandTester($command);
+    $commandTester->execute([
+        'source' => $tempDir,
+    ]);
+
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Running Tests for Action Classes');
+
+    removeTempDir($tempDir);
+});
+
+test('execute with invalid source path', function (): void {
+    $application = new Application();
+    $command = new CheckActionCoverageCommand();
+    $application->add($command);
+
+    $commandTester = new CommandTester($command);
+    $commandTester->execute([
+        'source' => '/non/existent/path',
+    ]);
+
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Source path is not valid')
+        ->and($commandTester->getStatusCode())->toBe(1);
+});
+
+test('execute with no action classes', function (): void {
+    $tempDir = sys_get_temp_dir() . '/test-no-actions-' . uniqid();
+    mkdir($tempDir);
+
+    $application = new Application();
+    $command = new CheckActionCoverageCommand();
+    $application->add($command);
+
+    $commandTester = new CommandTester($command);
+    $commandTester->execute([
+        'source' => $tempDir,
+    ]);
+
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('No Action classes found')
+        ->and($commandTester->getStatusCode())->toBe(0);
+
+    rmdir($tempDir);
+});
+
+test('execute with actions but no tests', function (): void {
+    $tempDir = createTempDirWithAction();
+
+    $application = new Application();
+    $command = new CheckActionCoverageCommand();
+    $application->add($command);
+
+    $commandTester = new CommandTester($command);
+    $commandTester->execute([
+        'source' => $tempDir,
+    ]);
+
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Running Tests for Action Classes');
+
+    removeTempDir($tempDir);
+});
+
+test('execute with filtered actions', function (): void {
+    $tempDir = createTempDirWithCommandAndPipes();
+
+    $application = new Application();
+    $command = new CheckActionCoverageCommand();
+    $application->add($command);
+
+    $commandTester = new CommandTester($command);
+    $commandTester->execute([
+        'source' => $tempDir,
+    ]);
+
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('No Action classes found');
+
+    removeTempDir($tempDir);
+});
+
+function createTempDirWithAction(): string
 {
+    $tempDir = sys_get_temp_dir() . '/test-actions-' . uniqid();
+    mkdir($tempDir);
 
-    public function testConfigure(): void
-    {
-        $command = new CheckActionCoverageCommand();
-
-        $this->assertSame('arch:check-action-coverage', $command->getName());
-        $this->assertStringContainsString('100%', $command->getDescription());
-    }
-
-    public function testExecuteWithValidSourcePathAndActions(): void
-    {
-        $tempDir = $this->createTempDirWithAction();
-
-        $application = new Application();
-        $command = new CheckActionCoverageCommand();
-        $application->add($command);
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([
-            'source' => $tempDir,
-        ]);
-
-        $output = $commandTester->getDisplay();
-        $this->assertStringContainsString('Running Tests for Action Classes', $output);
-
-        $this->removeTempDir($tempDir);
-    }
-
-    public function testExecuteWithInvalidSourcePath(): void
-    {
-        $application = new Application();
-        $command = new CheckActionCoverageCommand();
-        $application->add($command);
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([
-            'source' => '/non/existent/path',
-        ]);
-
-        $output = $commandTester->getDisplay();
-        $this->assertStringContainsString('Source path is not valid', $output);
-        $this->assertSame(1, $commandTester->getStatusCode());
-    }
-
-    public function testExecuteWithNoActionClasses(): void
-    {
-        $tempDir = sys_get_temp_dir() . '/test-no-actions-' . uniqid();
-        mkdir($tempDir);
-
-        $application = new Application();
-        $command = new CheckActionCoverageCommand();
-        $application->add($command);
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([
-            'source' => $tempDir,
-        ]);
-
-        $output = $commandTester->getDisplay();
-        $this->assertStringContainsString('No Action classes found', $output);
-        $this->assertSame(0, $commandTester->getStatusCode());
-
-        rmdir($tempDir);
-    }
-
-    public function testExecuteWithActionsButNoTests(): void
-    {
-        $tempDir = $this->createTempDirWithAction();
-
-        $application = new Application();
-        $command = new CheckActionCoverageCommand();
-        $application->add($command);
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([
-            'source' => $tempDir,
-        ]);
-
-        $output = $commandTester->getDisplay();
-        $this->assertStringContainsString('Running Tests for Action Classes', $output);
-
-        $this->removeTempDir($tempDir);
-    }
-
-    public function testExecuteWithFilteredActions(): void
-    {
-        $tempDir = $this->createTempDirWithCommandAndPipes();
-
-        $application = new Application();
-        $command = new CheckActionCoverageCommand();
-        $application->add($command);
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([
-            'source' => $tempDir,
-        ]);
-
-        $output = $commandTester->getDisplay();
-        $this->assertStringContainsString('No Action classes found', $output);
-
-        $this->removeTempDir($tempDir);
-    }
-
-    private function createTempDirWithAction(): string
-    {
-        $tempDir = sys_get_temp_dir() . '/test-actions-' . uniqid();
-        mkdir($tempDir);
-
-        $actionContent = <<<'PHP'
+    $actionContent = <<<'PHP'
 <?php
 namespace Test;
 use Pekral\Arch\Action\ArchAction;
@@ -128,19 +116,19 @@ final class TestAction implements ArchAction {
 }
 PHP;
 
-        file_put_contents($tempDir . '/TestAction.php', $actionContent);
+    file_put_contents($tempDir . '/TestAction.php', $actionContent);
 
-        return $tempDir;
-    }
+    return $tempDir;
+}
 
-    private function createTempDirWithCommandAndPipes(): string
-    {
-        $tempDir = sys_get_temp_dir() . '/test-filtered-' . uniqid();
-        mkdir($tempDir);
-        mkdir($tempDir . '/Command');
-        mkdir($tempDir . '/Pipes');
+function createTempDirWithCommandAndPipes(): string
+{
+    $tempDir = sys_get_temp_dir() . '/test-filtered-' . uniqid();
+    mkdir($tempDir);
+    mkdir($tempDir . '/Command');
+    mkdir($tempDir . '/Pipes');
 
-        $commandContent = <<<'PHP'
+    $commandContent = <<<'PHP'
 <?php
 namespace Test\Command;
 use Pekral\Arch\Action\ArchAction;
@@ -149,7 +137,7 @@ final class TestCommand implements ArchAction {
 }
 PHP;
 
-        $pipeContent = <<<'PHP'
+    $pipeContent = <<<'PHP'
 <?php
 namespace Test\Pipes;
 use Pekral\Arch\Action\ArchAction;
@@ -158,36 +146,34 @@ final class TestPipe implements ArchAction {
 }
 PHP;
 
-        file_put_contents($tempDir . '/Command/TestCommand.php', $commandContent);
-        file_put_contents($tempDir . '/Pipes/TestPipe.php', $pipeContent);
+    file_put_contents($tempDir . '/Command/TestCommand.php', $commandContent);
+    file_put_contents($tempDir . '/Pipes/TestPipe.php', $pipeContent);
 
-        return $tempDir;
+    return $tempDir;
+}
+
+function removeTempDir(string $dir): void
+{
+    removeDirRecursive($dir);
+}
+
+function removeDirRecursive(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
     }
 
-    private function removeTempDir(string $dir): void
-    {
-        $this->removeDirRecursive($dir);
-    }
+    $files = glob($dir . '/*');
 
-    private function removeDirRecursive(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        $files = glob($dir . '/*');
-
-        if ($files !== false) {
-            foreach ($files as $file) {
-                if (is_dir($file)) {
-                    $this->removeDirRecursive($file);
-                } else {
-                    unlink($file);
-                }
+    if ($files !== false) {
+        foreach ($files as $file) {
+            if (is_dir($file)) {
+                removeDirRecursive($file);
+            } else {
+                unlink($file);
             }
         }
-
-        rmdir($dir);
     }
 
+    rmdir($dir);
 }

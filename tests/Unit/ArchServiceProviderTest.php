@@ -2,37 +2,21 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit;
-
 use Pekral\Arch\ArchServiceProvider;
-use Pekral\Arch\Tests\TestCase;
 
-final class ArchServiceProviderTest extends TestCase
-{
+test('register configures arch settings', function (): void {
+    $provider = new ArchServiceProvider(app());
+    
+    $provider->register();
+    
+    expect(config()->has('arch'))->toBeTrue()
+        ->and(config('arch.default_items_per_page'))->toBe(15);
+});
 
-    public function testRegister(): void
-    {
-        // Arrange
-        $provider = new ArchServiceProvider(app());
-        
-        // Act
-        $provider->register();
-        
-        // Assert
-        $this->assertTrue(config()->has('arch'));
-        $this->assertEquals(15, config('arch.default_items_per_page'));
-    }
-
-    public function testBootInConsole(): void
-    {
-        // Arrange
-        $provider = new ArchServiceProvider(app());
-        
-        // Act
-        $provider->boot();
-        
-        // Assert
-        $this->assertTrue(config()->has('arch'));
-    }
-
-}
+test('boot works in console', function (): void {
+    $provider = new ArchServiceProvider(app());
+    
+    $provider->boot();
+    
+    expect(config()->has('arch'))->toBeTrue();
+});

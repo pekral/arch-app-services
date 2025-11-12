@@ -2,32 +2,16 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Pekral\Arch\Examples\Actions\User\CountVerifiedUsers;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-final class CountVerifiedUsersTest extends TestCase
-{
+beforeEach(function (): void {
+    $this->countVerifiedUsers = app(CountVerifiedUsers::class);
+});
 
-    private CountVerifiedUsers $countVerifiedUsers;
-
-    public function testCountVerifiedUsers(): void
-    {
-        // Arrange
-        User::factory()->count(10)->create(['email_verified_at' => null]);
-        $verifiedUsers = User::factory()->count(10)->create(['email_verified_at' => now()]);
-        
-        // Act & Assert
-        $this->assertEquals($verifiedUsers->count(), $this->countVerifiedUsers->handle());
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->countVerifiedUsers = app(CountVerifiedUsers::class);
-    }
-
-}
+test('count verified users returns correct count', function (): void {
+    User::factory()->count(10)->create(['email_verified_at' => null]);
+    $verifiedUsers = User::factory()->count(10)->create(['email_verified_at' => now()]);
+    
+    expect($this->countVerifiedUsers->handle())->toBe($verifiedUsers->count());
+});

@@ -2,38 +2,23 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Exceptions;
-
 use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
-use Pekral\Arch\Tests\TestCase;
 
-final class MassUpdateNotAvailableExceptionTest extends TestCase
-{
+test('missing package creates exception with correct message', function (): void {
+    $exception = MassUpdateNotAvailable::missingPackage();
 
-    public function testMissingPackage(): void
-    {
-        // Act
-        $exception = MassUpdateNotAvailable::missingPackage();
+    expect($exception)->toBeInstanceOf(MassUpdateNotAvailable::class)
+        ->and($exception->getMessage())->toContain('iksaku/laravel-mass-update')
+        ->toContain('composer require');
+});
 
-        // Assert
-        $this->assertInstanceOf(MassUpdateNotAvailable::class, $exception);
-        $this->assertStringContainsString('iksaku/laravel-mass-update', $exception->getMessage());
-        $this->assertStringContainsString('composer require', $exception->getMessage());
-    }
+test('trait not used creates exception with correct message', function (): void {
+    $modelClass = 'App\Models\User';
 
-    public function testTraitNotUsed(): void
-    {
-        // Arrange
-        $modelClass = 'App\Models\User';
+    $exception = MassUpdateNotAvailable::traitNotUsed($modelClass);
 
-        // Act
-        $exception = MassUpdateNotAvailable::traitNotUsed($modelClass);
-
-        // Assert
-        $this->assertInstanceOf(MassUpdateNotAvailable::class, $exception);
-        $this->assertStringContainsString($modelClass, $exception->getMessage());
-        $this->assertStringContainsString('MassUpdatable', $exception->getMessage());
-        $this->assertStringContainsString('use Iksaku\Laravel\MassUpdate\MassUpdatable', $exception->getMessage());
-    }
-
-}
+    expect($exception)->toBeInstanceOf(MassUpdateNotAvailable::class)
+        ->and($exception->getMessage())->toContain($modelClass)
+        ->toContain('MassUpdatable')
+        ->toContain('use Iksaku\Laravel\MassUpdate\MassUpdatable');
+});

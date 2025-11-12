@@ -2,85 +2,52 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User\Pipes;
-
 use Pekral\Arch\Examples\Actions\User\Pipes\UcFirstNamePipe;
-use Pekral\Arch\Tests\TestCase;
 
-final class UcFirstNamePipeTest extends TestCase
-{
+beforeEach(function (): void {
+    $this->ucFirstNamePipe = new UcFirstNamePipe();
+});
 
-    private UcFirstNamePipe $ucFirstNamePipe;
+test('handle with name converts to ucfirst', function (): void {
+    $data = ['name' => 'john', 'email' => 'test@example.com'];
+    
+    $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
+    
+    expect($result['name'])->toBe('John')
+        ->and($result['email'])->toBe('test@example.com');
+});
 
-    public function testHandleWithName(): void
-    {
-        // Arrange
-        $data = ['name' => 'john', 'email' => 'test@example.com'];
-        
-        // Act
-        $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
-        
-        // Assert
-        $this->assertEquals('John', $result['name']);
-        $this->assertEquals('test@example.com', $result['email']);
-    }
+test('handle with upper case name converts to ucfirst', function (): void {
+    $data = ['name' => 'JOHN', 'email' => 'test@example.com'];
+    
+    $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
+    
+    expect($result['name'])->toBe('John')
+        ->and($result['email'])->toBe('test@example.com');
+});
 
-    public function testHandleWithUpperCaseName(): void
-    {
-        // Arrange
-        $data = ['name' => 'JOHN', 'email' => 'test@example.com'];
-        
-        // Act
-        $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
-        
-        // Assert
-        $this->assertEquals('John', $result['name']);
-        $this->assertEquals('test@example.com', $result['email']);
-    }
+test('handle with mixed case name converts to ucfirst', function (): void {
+    $data = ['name' => 'jOhN', 'email' => 'test@example.com'];
+    
+    $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
+    
+    expect($result['name'])->toBe('John')
+        ->and($result['email'])->toBe('test@example.com');
+});
 
-    public function testHandleWithMixedCaseName(): void
-    {
-        // Arrange
-        $data = ['name' => 'jOhN', 'email' => 'test@example.com'];
-        
-        // Act
-        $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
-        
-        // Assert
-        $this->assertEquals('John', $result['name']);
-        $this->assertEquals('test@example.com', $result['email']);
-    }
+test('handle without name returns unchanged data', function (): void {
+    $data = ['email' => 'test@example.com'];
+    
+    $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
+    
+    expect($result)->toBe(['email' => 'test@example.com']);
+});
 
-    public function testHandleWithoutName(): void
-    {
-        // Arrange
-        $data = ['email' => 'test@example.com'];
-        
-        // Act
-        $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
-        
-        // Assert
-        $this->assertSame(['email' => 'test@example.com'], $result);
-    }
-
-    public function testHandleWithNonStringName(): void
-    {
-        // Arrange
-        $data = ['name' => 123, 'email' => 'test@example.com'];
-        
-        // Act
-        $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
-        
-        // Assert
-        $this->assertEquals(123, $result['name']);
-        $this->assertEquals('test@example.com', $result['email']);
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->ucFirstNamePipe = new UcFirstNamePipe();
-    }
-
-}
+test('handle with non string name returns unchanged', function (): void {
+    $data = ['name' => 123, 'email' => 'test@example.com'];
+    
+    $result = $this->ucFirstNamePipe->handle($data, static fn ($data): array => $data);
+    
+    expect($result['name'])->toBe(123)
+        ->and($result['email'])->toBe('test@example.com');
+});

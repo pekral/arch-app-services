@@ -2,138 +2,93 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Illuminate\Validation\ValidationException;
 use Pekral\Arch\Examples\Actions\User\UpdateUser;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-use function assert;
-use function fake;
+test('update user with valid data', function (): void {
+    $user = User::factory()->create([
+        'email' => 'OLD@EXAMPLE.COM',
+        'name' => 'old name',
+    ]);
+    $updateUserAction = app(UpdateUser::class);
+    $data = [
+        'email' => 'NEW@EXAMPLE.COM',
+        'name' => 'new name',
+    ];
 
-final class UpdateUserTest extends TestCase
-{
+    $result = $updateUserAction->execute($user, $data);
 
-    public function testUpdateUserWithValidData(): void
-    {
-        // Arrange
-        $user = User::factory()->create([
-            'email' => 'OLD@EXAMPLE.COM',
-            'name' => 'old name',
-        ]);
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [
-            'email' => 'NEW@EXAMPLE.COM',
-            'name' => 'new name',
-        ];
+    expect($result)->toBe($user);
+    
+    $user->refresh();
+    expect($user->email)->toBe('new@example.com')
+        ->and($user->name)->toBe('New name');
+});
 
-        // Act
-        $result = $updateUserAction->execute($user, $data);
+test('update user with invalid email throws exception', function (): void {
+    $user = User::factory()->create();
+    $updateUserAction = app(UpdateUser::class);
+    $data = [
+        'email' => 'invalid-email',
+        'name' => 'Test Name',
+    ];
 
-        // Assert
-        $this->assertSame($user, $result);
-        $user->refresh();
-        $this->assertEquals('new@example.com', $user->email);
-        $this->assertEquals('New name', $user->name);
-    }
+    $updateUserAction->execute($user, $data);
+})->throws(ValidationException::class);
 
-    public function testUpdateUserWithInvalidEmail(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [
-            'email' => 'invalid-email',
-            'name' => 'Test Name',
-        ];
+test('update user with missing email throws exception', function (): void {
+    $user = User::factory()->create();
+    $updateUserAction = app(UpdateUser::class);
+    $data = [
+        'name' => 'Test Name',
+    ];
 
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateUserAction->execute($user, $data);
-    }
+    $updateUserAction->execute($user, $data);
+})->throws(ValidationException::class);
 
-    public function testUpdateUserWithMissingEmail(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [
-            'name' => 'Test Name',
-        ];
+test('update user with missing name throws exception', function (): void {
+    $user = User::factory()->create();
+    $updateUserAction = app(UpdateUser::class);
+    $data = [
+        'email' => fake()->email(),
+    ];
 
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateUserAction->execute($user, $data);
-    }
+    $updateUserAction->execute($user, $data);
+})->throws(ValidationException::class);
 
-    public function testUpdateUserWithMissingName(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [
-            'email' => fake()->email(),
-        ];
+test('update user transforms email to lowercase', function (): void {
+    $user = User::factory()->create();
+    $updateUserAction = app(UpdateUser::class);
+    $data = [
+        'email' => 'UPPERCASE@EXAMPLE.COM',
+        'name' => 'Test',
+    ];
 
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateUserAction->execute($user, $data);
-    }
+    $updateUserAction->execute($user, $data);
 
-    public function testUpdateUserTransformsEmailToLowercase(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [
-            'email' => 'UPPERCASE@EXAMPLE.COM',
-            'name' => 'Test',
-        ];
+    $user->refresh();
+    expect($user->email)->toBe('uppercase@example.com');
+});
 
-        // Act
-        $updateUserAction->execute($user, $data);
+test('update user transforms name to ucfirst', function (): void {
+    $user = User::factory()->create();
+    $updateUserAction = app(UpdateUser::class);
+    $data = [
+        'email' => fake()->email(),
+        'name' => 'lowercase name',
+    ];
 
-        // Assert
-        $user->refresh();
-        $this->assertEquals('uppercase@example.com', $user->email);
-    }
+    $updateUserAction->execute($user, $data);
 
-    public function testUpdateUserTransformsNameToUcfirst(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [
-            'email' => fake()->email(),
-            'name' => 'lowercase name',
-        ];
+    $user->refresh();
+    expect($user->name)->toBe('Lowercase name');
+});
 
-        // Act
-        $updateUserAction->execute($user, $data);
+test('update user with empty data throws exception', function (): void {
+    $user = User::factory()->create();
+    $updateUserAction = app(UpdateUser::class);
+    $data = [];
 
-        // Assert
-        $user->refresh();
-        $this->assertEquals('Lowercase name', $user->name);
-    }
-
-    public function testUpdateUserWithEmptyData(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $updateUserAction = $this->app?->make(UpdateUser::class);
-        assert($updateUserAction instanceof UpdateUser);
-        $data = [];
-
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateUserAction->execute($user, $data);
-    }
-
-}
+    $updateUserAction->execute($user, $data);
+})->throws(ValidationException::class);

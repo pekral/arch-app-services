@@ -2,158 +2,114 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Mockery;
-use Mockery\MockInterface;
 use Pekral\Arch\Examples\Actions\User\GetUsersCached;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-use function config;
-use function in_array;
+beforeEach(function (): void {
+    $this->cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->andReturn($this->cacheMock);
 
-final class GetUsersCachedTest extends TestCase
-{
+    $this->getUsersCached = app(GetUsersCached::class);
 
-    private GetUsersCached $getUsersCached;
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+});
 
-    /**
-     * @var \Mockery\MockInterface&\Illuminate\Contracts\Cache\Repository
-     */
-    private MockInterface $cacheMock;
+test('get users uses cache', function (): void {
+    Config::set('arch.repository_cache.enabled', true);
+    User::factory()->count(30)->create();
 
-    public function testGetUsersUsesCache(): void
-    {
-        // Arrange
-        Config::set('arch.repository_cache.enabled', true);
-        User::factory()->count(30)->create();
+    $expectedResult = new LengthAwarePaginator(
+        collect(),
+        30,
+        config()->integer('arch.default_items_per_page'),
+        1,
+    );
 
-        $expectedResult = new LengthAwarePaginator(
-            collect(),
-            30,
-            config()->integer('arch.default_items_per_page'),
-            1,
-        );
+    $this->cacheMock->shouldReceive('remember')
+        ->once()
+        ->with(
+            Mockery::pattern('/^arch_repo:UserRepository:paginateByParams:[a-f0-9]{32}$/'),
+            3_600,
+            Mockery::type('callable'),
+        )
+        ->andReturn($expectedResult);
 
-        $this->cacheMock->shouldReceive('remember')
-            ->once()
-            ->with(
-                Mockery::pattern('/^arch_repo:UserRepository:paginateByParams:[a-f0-9]{32}$/'),
-                3_600,
-                Mockery::type('callable'),
-            )
-            ->andReturn($expectedResult);
+    $result = $this->getUsersCached->handle();
 
-        // Act
-        $result = $this->getUsersCached->handle();
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result->total())->toBe($expectedResult->total());
+});
 
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertEquals($expectedResult->total(), $result->total());
-    }
+test('get users skips cache when disabled', function (): void {
+    Config::set('arch.repository_cache.enabled', false);
+    User::factory()->count(20)->create();
 
-    public function testGetUsersSkipsCacheWhenDisabled(): void
-    {
-        // Arrange
-        Config::set('arch.repository_cache.enabled', false);
-        User::factory()->count(20)->create();
+    $this->cacheMock->shouldNotReceive('remember');
 
-        $this->cacheMock->shouldNotReceive('remember');
+    $result = $this->getUsersCached->handle();
 
-        // Act
-        $result = $this->getUsersCached->handle();
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result)->toHaveCount(config()->integer('arch.default_items_per_page'));
+});
 
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertCount(config()->integer('arch.default_items_per_page'), $result);
-    }
+test('get users with real database', function (): void {
+    Config::set('arch.repository_cache.enabled', false);
+    $users = User::factory()->count(30)->create();
+    $usersIds = $users->pluck('id')->toArray();
 
-    public function testGetUsersWithRealDatabase(): void
-    {
-        // Arrange
-        Config::set('arch.repository_cache.enabled', false);
-        $users = User::factory()->count(30)->create();
-        $usersIds = $users->pluck('id')->toArray();
+    $foundUsers = $this->getUsersCached->handle();
 
-        // Act
-        $foundUsers = $this->getUsersCached->handle();
+    expect($foundUsers)->toHaveCount(config()->integer('arch.default_items_per_page'));
+    
+    $foundUsers->collect()->each(function (User $user) use ($usersIds): void {
+        expect(in_array($user->id, $usersIds, true))->toBeTrue();
+    });
+});
 
-        // Assert
-        $this->assertCount(config()->integer('arch.default_items_per_page'), $foundUsers);
-        $foundUsers->collect()->each(callback: function (mixed $user) use ($usersIds): void {
-            /** @var \Pekral\Arch\Tests\Models\User $user */
-            $this->assertTrue(in_array($user->id, $usersIds, true));
-        });
-    }
+test('get users with filters uses cache', function (): void {
+    Config::set('arch.repository_cache.enabled', true);
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(5)->create(['name' => 'Jane']);
+    $filters = ['name' => 'John'];
 
-    public function testGetUsersWithFiltersUsesCache(): void
-    {
-        // Arrange
-        Config::set('arch.repository_cache.enabled', true);
-        User::factory()->count(5)->create(['name' => 'John']);
-        User::factory()->count(5)->create(['name' => 'Jane']);
-        $filters = ['name' => 'John'];
+    $expectedResult = new LengthAwarePaginator(
+        collect(),
+        5,
+        config()->integer('arch.default_items_per_page'),
+        1,
+    );
 
-        $expectedResult = new LengthAwarePaginator(
-            collect(),
-            5,
-            config()->integer('arch.default_items_per_page'),
-            1,
-        );
+    $this->cacheMock->shouldReceive('remember')
+        ->once()
+        ->with(
+            Mockery::pattern('/^arch_repo:UserRepository:paginateByParams:[a-f0-9]{32}$/'),
+            3_600,
+            Mockery::type('callable'),
+        )
+        ->andReturn($expectedResult);
 
-        $this->cacheMock->shouldReceive('remember')
-            ->once()
-            ->with(
-                Mockery::pattern('/^arch_repo:UserRepository:paginateByParams:[a-f0-9]{32}$/'),
-                3_600,
-                Mockery::type('callable'),
-            )
-            ->andReturn($expectedResult);
+    $result = $this->getUsersCached->handle($filters);
 
-        // Act
-        $result = $this->getUsersCached->handle($filters);
+    expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($result->total())->toBe($expectedResult->total());
+});
 
-        // Assert
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertEquals($expectedResult->total(), $result->total());
-    }
+test('get users with filters real database', function (): void {
+    Config::set('arch.repository_cache.enabled', false);
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(5)->create(['name' => 'Jane']);
 
-    public function testGetUsersWithFiltersRealDatabase(): void
-    {
-        // Arrange
-        Config::set('arch.repository_cache.enabled', false);
-        User::factory()->count(5)->create(['name' => 'John']);
-        User::factory()->count(5)->create(['name' => 'Jane']);
+    $foundUsers = $this->getUsersCached->handle(['name' => 'John']);
 
-        // Act
-        $foundUsers = $this->getUsersCached->handle(['name' => 'John']);
-
-        // Assert
-        $this->assertCount(5, $foundUsers);
-        $foundUsers->collect()->each(callback: function (mixed $user): void {
-            /** @var \Pekral\Arch\Tests\Models\User $user */
-            $this->assertEquals('John', $user->name);
-        });
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->cacheMock = Mockery::mock(CacheRepository::class);
-        Cache::shouldReceive('store')->andReturn($this->cacheMock);
-
-        $this->getUsersCached = app(GetUsersCached::class);
-
-        // Set default cache config
-        Config::set('arch.repository_cache.enabled', true);
-        Config::set('arch.repository_cache.ttl', 3_600);
-        Config::set('arch.repository_cache.prefix', 'arch_repo');
-    }
-
-}
+    expect($foundUsers)->toHaveCount(5);
+    
+    $foundUsers->collect()->each(function (User $user): void {
+        expect($user->name)->toBe('John');
+    });
+});

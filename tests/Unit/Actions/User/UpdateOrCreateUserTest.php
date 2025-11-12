@@ -2,171 +2,110 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Unit\Actions\User;
-
 use Illuminate\Validation\ValidationException;
 use Pekral\Arch\Examples\Actions\User\UpdateOrCreateUser;
 use Pekral\Arch\Tests\Models\User;
-use Pekral\Arch\Tests\TestCase;
 
-use function assert;
-use function fake;
+test('update or create user creates new record', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => 'newuser@example.com'];
+    $values = ['name' => 'New User', 'password' => 'password123'];
+    
+    $result = $updateOrCreateUserAction->execute($attributes, $values);
+    
+    expect($result)->toBeInstanceOf(User::class)
+        ->and($result->email)->toBe('newuser@example.com')
+        ->and($result->name)->toBe('New user')
+        ->and(User::query()->where('email', 'newuser@example.com')->where('name', 'New user')->exists())->toBeTrue();
+});
 
-final class UpdateOrCreateUserTest extends TestCase
-{
+test('update or create user updates existing record', function (): void {
+    $existingUser = User::factory()->create([
+        'email' => 'existing@example.com',
+        'name' => 'Original Name',
+    ]);
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => 'existing@example.com'];
+    $values = ['name' => 'Updated Name'];
+    
+    $result = $updateOrCreateUserAction->execute($attributes, $values);
+    
+    expect($result->id)->toBe($existingUser->id)
+        ->and($result->email)->toBe('existing@example.com')
+        ->and($result->name)->toBe('Updated name');
+    
+    $existingUser->refresh();
+    expect($existingUser->name)->toBe('Updated name');
+});
 
-    public function testUpdateOrCreateUserCreatesNewRecord(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => 'newuser@example.com'];
-        $values = ['name' => 'New User', 'password' => 'password123'];
-        
-        // Act
-        $result = $updateOrCreateUserAction->execute($attributes, $values);
-        
-        // Assert
-        $this->assertInstanceOf(User::class, $result);
-        $this->assertEquals('newuser@example.com', $result->email);
-        $this->assertEquals('New user', $result->name);
-        $this->assertDatabaseHas('users', [
-            'email' => 'newuser@example.com',
-            'name' => 'New user',
-        ]);
-    }
+test('update or create user with invalid email', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => 'invalid-email'];
+    $values = ['name' => 'Test Name'];
+    
+    $updateOrCreateUserAction->execute($attributes, $values);
+})->throws(ValidationException::class);
 
-    public function testUpdateOrCreateUserUpdatesExistingRecord(): void
-    {
-        // Arrange
-        $existingUser = User::factory()->create([
-            'email' => 'existing@example.com',
-            'name' => 'Original Name',
-        ]);
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => 'existing@example.com'];
-        $values = ['name' => 'Updated Name'];
-        
-        // Act
-        $result = $updateOrCreateUserAction->execute($attributes, $values);
-        
-        // Assert
-        $this->assertSame($existingUser->id, $result->id);
-        $this->assertEquals('existing@example.com', $result->email);
-        $this->assertEquals('Updated name', $result->name);
-        $existingUser->refresh();
-        $this->assertEquals('Updated name', $existingUser->name);
-    }
+test('update or create user with missing email', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = [];
+    $values = ['name' => 'Test Name'];
+    
+    $updateOrCreateUserAction->execute($attributes, $values);
+})->throws(ValidationException::class);
 
-    public function testUpdateOrCreateUserWithInvalidEmail(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => 'invalid-email'];
-        $values = ['name' => 'Test Name'];
-        
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateOrCreateUserAction->execute($attributes, $values);
-    }
+test('update or create user with missing name', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => fake()->email()];
+    $values = [];
+    
+    $updateOrCreateUserAction->execute($attributes, $values);
+})->throws(ValidationException::class);
 
-    public function testUpdateOrCreateUserWithMissingEmail(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = [];
-        $values = ['name' => 'Test Name'];
-        
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateOrCreateUserAction->execute($attributes, $values);
-    }
+test('update or create user transforms email to lowercase', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => 'UPPERCASE@EXAMPLE.COM'];
+    $values = ['name' => 'Test', 'password' => 'password123'];
+    
+    $result = $updateOrCreateUserAction->execute($attributes, $values);
+    
+    expect($result->email)->toBe('uppercase@example.com')
+        ->and(User::query()->where('email', 'uppercase@example.com')->exists())->toBeTrue();
+});
 
-    public function testUpdateOrCreateUserWithMissingName(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => fake()->email()];
-        $values = [];
-        
-        // Act & Assert
-        $this->expectException(ValidationException::class);
-        $updateOrCreateUserAction->execute($attributes, $values);
-    }
+test('update or create user transforms name to ucfirst', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => fake()->email()];
+    $values = ['name' => 'lowercase name', 'password' => 'password123'];
+    
+    $result = $updateOrCreateUserAction->execute($attributes, $values);
+    
+    expect($result->name)->toBe('Lowercase name');
+});
 
-    public function testUpdateOrCreateUserTransformsEmailToLowercase(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => 'UPPERCASE@EXAMPLE.COM'];
-        $values = ['name' => 'Test', 'password' => 'password123'];
-        
-        // Act
-        $result = $updateOrCreateUserAction->execute($attributes, $values);
-        
-        // Assert
-        $this->assertEquals('uppercase@example.com', $result->email);
-        $this->assertDatabaseHas('users', ['email' => 'uppercase@example.com']);
-    }
+test('update or create user with email in values', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = ['email' => 'test@example.com'];
+    $values = ['email' => 'UPDATED@EXAMPLE.COM', 'name' => 'Test User', 'password' => 'password123'];
+    
+    $result = $updateOrCreateUserAction->execute($attributes, $values);
+    
+    expect($result->email)->toBe('updated@example.com')
+        ->and($result->name)->toBe('Test user')
+        ->and(User::query()->where('email', 'updated@example.com')->where('name', 'Test user')->exists())->toBeTrue();
+});
 
-    public function testUpdateOrCreateUserTransformsNameToUcfirst(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => fake()->email()];
-        $values = ['name' => 'lowercase name', 'password' => 'password123'];
-        
-        // Act
-        $result = $updateOrCreateUserAction->execute($attributes, $values);
-        
-        // Assert
-        $this->assertEquals('Lowercase name', $result->name);
-    }
-
-    public function testUpdateOrCreateUserWithEmailInValues(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = ['email' => 'test@example.com'];
-        $values = ['email' => 'UPDATED@EXAMPLE.COM', 'name' => 'Test User', 'password' => 'password123'];
-        
-        // Act
-        $result = $updateOrCreateUserAction->execute($attributes, $values);
-        
-        // Assert
-        $this->assertEquals('updated@example.com', $result->email);
-        $this->assertEquals('Test user', $result->name);
-        $this->assertDatabaseHas('users', [
-            'email' => 'updated@example.com',
-            'name' => 'Test user',
-        ]);
-    }
-
-    public function testUpdateOrCreateUserWithOnlyAttributes(): void
-    {
-        // Arrange
-        $updateOrCreateUserAction = $this->app?->make(UpdateOrCreateUser::class);
-        assert($updateOrCreateUserAction instanceof UpdateOrCreateUser);
-        $attributes = [
-            'email' => 'test@example.com',
-            'name' => 'test user',
-            'password' => 'password123',
-        ];
-        $values = [];
-        
-        // Act
-        $result = $updateOrCreateUserAction->execute($attributes, $values);
-        
-        // Assert
-        $this->assertEquals('test@example.com', $result->email);
-        $this->assertEquals('test user', $result->name);
-    }
-
-}
+test('update or create user with only attributes', function (): void {
+    $updateOrCreateUserAction = app(UpdateOrCreateUser::class);
+    $attributes = [
+        'email' => 'test@example.com',
+        'name' => 'test user',
+        'password' => 'password123',
+    ];
+    $values = [];
+    
+    $result = $updateOrCreateUserAction->execute($attributes, $values);
+    
+    expect($result->email)->toBe('test@example.com')
+        ->and($result->name)->toBe('test user');
+});
