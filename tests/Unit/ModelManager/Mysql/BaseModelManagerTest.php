@@ -135,6 +135,74 @@ final class BaseModelManagerTest extends TestCase
         $this->assertEquals('Original Name', $existingUser->name);
     }
 
+    public function testGetOrCreateCreatesNewRecord(): void
+    {
+        $manager = app(UserModelManager::class);
+
+        $result = $manager->getOrCreate(
+            ['email' => 'newuser@example.com'],
+            ['name' => 'New User', 'password' => 'password123'],
+        );
+
+        $this->assertDatabaseHas('users', ['email' => 'newuser@example.com']);
+        $this->assertInstanceOf(User::class, $result);
+        $this->assertEquals('newuser@example.com', $result->email);
+        $this->assertEquals('New User', $result->name);
+    }
+
+    public function testGetOrCreateReturnsExistingRecord(): void
+    {
+        $manager = app(UserModelManager::class);
+        $existingUser = User::factory()->create([
+            'email' => 'existing@example.com',
+            'name' => 'Original Name',
+        ]);
+
+        $result = $manager->getOrCreate(
+            ['email' => 'existing@example.com'],
+            ['name' => 'Updated Name'],
+        );
+
+        $this->assertSame($existingUser->id, $result->id);
+        $existingUser->refresh();
+        $this->assertEquals('Original Name', $existingUser->name);
+        $this->assertEquals('Original Name', $result->name);
+    }
+
+    public function testGetOrCreateWithOnlyAttributes(): void
+    {
+        $manager = app(UserModelManager::class);
+
+        $result = $manager->getOrCreate([
+            'email' => 'test@example.com',
+            'name' => 'Test User',
+            'password' => 'password123',
+        ]);
+
+        $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
+        $this->assertEquals('test@example.com', $result->email);
+        $this->assertEquals('Test User', $result->name);
+    }
+
+    public function testGetOrCreateReturnsExistingWithEmptyValues(): void
+    {
+        $manager = app(UserModelManager::class);
+        $existingUser = User::factory()->create([
+            'email' => 'existing@example.com',
+            'name' => 'Original Name',
+        ]);
+
+        $result = $manager->getOrCreate(
+            ['email' => 'existing@example.com'],
+            [],
+        );
+
+        $this->assertSame($existingUser->id, $result->id);
+        $existingUser->refresh();
+        $this->assertEquals('Original Name', $existingUser->name);
+        $this->assertEquals('Original Name', $result->name);
+    }
+
     public function testRawMassUpdateWithEmptyData(): void
     {
         $manager = app(UserModelManager::class);
