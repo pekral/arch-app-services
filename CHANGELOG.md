@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-12 (PR #28)
+
+
+- 📝 **Changed**: resolve #18 feat: package check commands
+- 🐛 **Fixed**: running pest coverage
+
 ## [Unreleased] - 2025-11-12
 
 
