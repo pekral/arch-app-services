@@ -184,10 +184,6 @@ abstract class BaseModelManager
             return 0;
         }
 
-        if (!trait_exists('Iksaku\Laravel\MassUpdate\MassUpdatable')) {
-            throw MassUpdateNotAvailable::missingPackage();
-        }
-
         $modelClassName = $this->getModelClassName();
 
         if (!in_array('Iksaku\Laravel\MassUpdate\MassUpdatable', class_uses_recursive($modelClassName), true)) {

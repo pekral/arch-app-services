@@ -61,9 +61,6 @@
       "Pekral\\Arch\\Tests\\": "tests/"
     }
   },
-  "bin": [
-    "bin/arch-coverage"
-  ],
   "config": {
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
@@ -94,8 +91,7 @@
       "@rector-check",
       "@analyse",
       "@security-audit",
-      "@test:coverage",
-      "@test:action-coverage"
+      "@test:coverage"
     ],
     "coverage": [
       "echo \"📊 Running code coverage analysis...\"",
@@ -145,13 +141,9 @@
       "echo \"🔒 Running Composer security audit...\"",
       "composer audit --format=summary"
     ],
-    "test:action-coverage": [
-      "echo \"📊 Checking action coverage...\"",
-      "bin/arch-coverage examples/Actions"
-    ],
     "test:coverage": [
       "echo \"📊 Running coverage tests with 100% minimum...\"",
-      "php -dpcov.enabled=1 -dpcov.directory=src/ -dxdebug.mode=off vendor/bin/pest --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text --min=100"
+      "php -dpcov.enabled=1 -dpcov.directory=. -dxdebug.mode=off vendor/bin/pest --coverage --coverage-filter=src --coverage-filter=examples --min=100"
     ]
   }
 }

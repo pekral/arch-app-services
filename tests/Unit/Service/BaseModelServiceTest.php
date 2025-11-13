@@ -4,7 +4,9 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\Service;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Mockery;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 use Pekral\Arch\Tests\Models\User;
 
@@ -63,4 +65,15 @@ test('paginate by params with group by', function (): void {
     
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(2);
+});
+
+test('delete model returns false when delete returns null', function (): void {
+    $userModelService = app(UserModelService::class);
+    
+    $mockUser = Mockery::mock(Model::class);
+    $mockUser->shouldReceive('delete')->once()->andReturn(null);
+    
+    $result = $userModelService->deleteModel($mockUser);
+    
+    expect($result)->toBeFalse();
 });
