@@ -2,6 +2,14 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-13 (PR #36)
+
+
+- 📝 **Changed**: resolve #33 feat: ModelManager::class support direct remove model  # Please enter the commit message for your changes. Lines starting
+- 🐛 **Fixed**: remove bad command
+- 🔧 **Changed**: composer update dependencies
+- 📚 **Documentation**: refresh docs
+
 ## [Unreleased] - 2025-11-13
 
 
