@@ -2,6 +2,20 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-13
+
+
+- 🐛 **Fixed**: remove bad command
+- 🔧 **Changed**: composer update dependencies
+- 📚 **Documentation**: refresh docs
+- 🐛 **Fixed**: more tests
+- 🐛 **Fixed**: phpstan ignore treatPhpDocTypesAsCertain
+- 🐛 **Fixed**: phpstan erros fix
+- 🐛 **Fixed**: modify phpstan rules
+- 🐛 **Fixed**: phpstan errors in test has gone away
+- ✨ **Added**: beta of PHPStan rules for check arch
+- 🐛 **Fixed**: test in PEST style now
+
 ## [Unreleased] - 2025-11-12
 
 
