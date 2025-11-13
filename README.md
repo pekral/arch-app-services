@@ -479,6 +479,7 @@ final class UserController extends Controller
 - `bulkUpdate(array $dataArray, string $keyColumn = 'id')` - Bulk update records
 - `rawMassUpdate(array $values, array|string|null $uniqueBy = null)` - Mass update records using CASE WHEN SQL statement (requires MassUpdatable trait)
 - `deleteByParams(array $parameters)` - Delete by parameters
+- `bulkDeleteByParams(array $parameters)` - Batch delete by parameters
 
 ### Service Methods (Combines Repository + Model Manager)
 
@@ -487,6 +488,7 @@ final class UserController extends Controller
 - `updateModel(Model $model, array $data)` - Update existing model
 - `deleteModel(Model $model)` - Delete model
 - `deleteByParams(array $parameters)` - Delete by parameters
+- `bulkDeleteByParams(array $parameters)` - Batch delete by parameters
 
 **Read Operations:**
 - `findOneByParams(array $parameters, array $with = [], array $orderBy = [])` - Find one or null
@@ -498,6 +500,7 @@ final class UserController extends Controller
 - `bulkCreate(array $data)` - Bulk create records
 - `insertOrIgnore(array $data)` - Bulk insert records, ignoring duplicates
 - `bulkUpdate(array $data, string $keyColumn = 'id')` - Bulk update records
+- `bulkDeleteByParams(array $parameters)` - Batch delete by parameters
 
 ## Data Builder Usage
 
