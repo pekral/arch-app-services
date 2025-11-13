@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-13 (PR #35)
+
+
+- 🔧 **Changed**: new NoLaravelHelpersForActionsRule for PHPStan
+
 ## [Unreleased] - 2025-11-13 (PR #36)
 
 
