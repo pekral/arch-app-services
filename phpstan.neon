@@ -35,3 +35,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\NoLaravelHelpersForActionsRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ServiceNamingConventionRule
+        tags:
+            - phpstan.rules.rule

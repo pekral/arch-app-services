@@ -775,6 +775,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 2. **NoDirectDatabaseQueriesInActionsRule** - Prevents direct database query calls (`where()`, `find()`, `get()`, etc.) in Action classes
 3. **OnlyModelManagersCanPersistDataRule** - Ensures data persistence operations are only performed in ModelManager or ModelService classes
 4. **NoLaravelHelpersForActionsRule** - Prevents using Laravel helper functions (`app()`, `resolve()`, `make()`) to resolve Action classes. Actions must be injected via constructor
+5. **ServiceNamingConventionRule** - Ensures that all Service classes extending `BaseModelService` end with `ModelService` suffix
 
 ### Why These Rules?
 

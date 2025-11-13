@@ -320,6 +320,37 @@ final readonly class ProcessUser implements ArchAction
 
 **Note:** This rule only applies within Action classes (classes implementing `ArchAction` interface). Using Laravel helpers for non-Action classes is not restricted by this rule.
 
+### 5. ServiceNamingConventionRule
+
+**Purpose:** Ensures that all Service classes extending `BaseModelService` follow a consistent naming convention by ending with `ModelService`.
+
+**Rationale:** Enforces consistent naming conventions across the codebase, making it easier to identify Service classes and maintain code organization. This convention helps developers quickly recognize Service classes and their purpose.
+
+**Violations detected:**
+- Service classes extending `BaseModelService` that do not end with `ModelService` suffix
+
+**Example violation:**
+
+```php
+// ❌ Violation: Service class does not end with ModelService
+final readonly class UserService extends BaseModelService
+{
+    // ...
+}
+```
+
+**Correct approach:**
+
+```php
+// ✅ Correct: Service class ends with ModelService
+final readonly class UserModelService extends BaseModelService
+{
+    // ...
+}
+```
+
+**Note:** This rule only applies to classes that extend `BaseModelService`. The base class itself (`BaseModelService`) is excluded from this check.
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -340,6 +371,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\NoLaravelHelpersForActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ServiceNamingConventionRule
         tags:
             - phpstan.rules.rule
 ```
