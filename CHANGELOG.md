@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-13 (PR #37)
+
+
+- 📝 **Changed**: resolve #32 feat: batch delete by params
+
 ## [Unreleased] - 2025-11-13 (PR #35)
 
 
