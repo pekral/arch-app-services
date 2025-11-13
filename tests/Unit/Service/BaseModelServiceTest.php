@@ -67,13 +67,23 @@ test('paginate by params with group by', function (): void {
         ->and($result->items())->toHaveCount(2);
 });
 
+test('delete model removes user', function (): void {
+    $userModelService = app(UserModelService::class);
+    $user = User::factory()->create(['email' => 'delete@example.com']);
+
+    $result = $userModelService->deleteModel($user);
+
+    expect($result)->toBeTrue()
+        ->and(User::query()->where('email', 'delete@example.com')->first())->toBeNull();
+});
+
 test('delete model returns false when delete returns null', function (): void {
     $userModelService = app(UserModelService::class);
-    
+
     $mockUser = Mockery::mock(Model::class);
     $mockUser->shouldReceive('delete')->once()->andReturn(null);
-    
+
     $result = $userModelService->deleteModel($mockUser);
-    
+
     expect($result)->toBeFalse();
 });
