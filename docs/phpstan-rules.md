@@ -268,6 +268,58 @@ final readonly class UserModelService extends BaseModelService
 }
 ```
 
+### 4. NoLaravelHelpersForActionsRule
+
+**Purpose:** Prevents using Laravel helper functions (`app()`, `resolve()`, `make()`) to resolve Action classes. Actions must be injected via constructor dependency injection.
+
+**Rationale:** Enforces proper dependency injection pattern for Action classes. Using service locator pattern (helper functions) makes code harder to test, less explicit, and violates dependency inversion principle. Constructor injection makes dependencies explicit and enables better testability.
+
+**Violations detected:**
+- Using `app()`, `resolve()`, or `make()` helper functions to resolve Action classes in Action classes
+- Works with both class constants (`GetUser::class`) and variables containing Action class names
+
+**Example violations:**
+
+```php
+final readonly class ProcessUser implements ArchAction
+{
+    public function execute(User $user): void
+    {
+        // ❌ Violation: Using app() helper with class constant
+        $action = app(GetUser::class);
+        
+        // ❌ Violation: Using resolve() helper with class constant
+        $action2 = resolve(GetUser::class);
+        
+        // ❌ Violation: Using make() helper with class constant
+        $action3 = make(GetUser::class);
+        
+        // ❌ Violation: Using helper with variable containing Action class
+        $actionClass = GetUser::class;
+        $action4 = app($actionClass);
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final readonly class ProcessUser implements ArchAction
+{
+    public function __construct(
+        private GetUser $getUserAction
+    ) {}
+    
+    public function execute(User $user): void
+    {
+        // ✅ Correct: Action injected via constructor
+        $user = $this->getUserAction->handle(['id' => $user->id]);
+    }
+}
+```
+
+**Note:** This rule only applies within Action classes (classes implementing `ArchAction` interface). Using Laravel helpers for non-Action classes is not restricted by this rule.
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -284,6 +336,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\OnlyModelManagersCanPersistDataRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoLaravelHelpersForActionsRule
         tags:
             - phpstan.rules.rule
 ```
