@@ -31,3 +31,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\OnlyModelManagersCanPersistDataRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoLaravelHelpersForActionsRule
+        tags:
+            - phpstan.rules.rule
