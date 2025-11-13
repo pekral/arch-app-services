@@ -40,6 +40,10 @@ Applies attributes to an existing model and calls `save()`. Returns the boolean 
 
 Runs a `where($parameters)->delete()` query on the underlying model. Returns `true` when any record was deleted.
 
+### `bulkDeleteByParams(array $parameters): void`
+
+Runs a `where($parameters)->delete()` query on the underlying model. Performs the deletion without returning a count.
+
 ### `bulkCreate(array $dataArray): int`
 
 Calls `Model::insert()` with the provided array. When the payload is empty `0` is returned. Otherwise the method returns the number of rows passed in (the return value from Eloquent is cast to a count).
@@ -98,7 +102,7 @@ final class UserModelService extends BaseModelService
 }
 ```
 
-Read operations (`findOneByParams`, `paginateByParams`, …) are executed through the repository, while write operations (`create`, `bulkUpdate`, `deleteByParams`, …) use the model manager internally.
+Read operations (`findOneByParams`, `paginateByParams`, …) are executed through the repository, while write operations (`create`, `bulkUpdate`, `deleteByParams`, `bulkDeleteByParams`, …) use the model manager internally.
 
 ## When to choose each method
 
@@ -107,7 +111,8 @@ Read operations (`findOneByParams`, `paginateByParams`, …) are executed throug
 - Use `insertOrIgnore()` to avoid duplicate key errors (no information about skipped rows is returned).
 - Use `bulkUpdate()` for batched updates when model events are not required but dataset size is moderate.
 - Use `rawMassUpdate()` for very large updates where a single SQL statement is preferable and the model can adopt the `MassUpdatable` trait.
-- Use `deleteByParams()` for soft deletes or hard deletes through query builders.
+- Use `deleteByParams()` for soft deletes or hard deletes through query builders when you need to know if any records were deleted (returns boolean).
+- Use `bulkDeleteByParams()` for batch deletions when you don't need the return value (returns void).
 
 ## Related files
 

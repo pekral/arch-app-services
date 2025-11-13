@@ -7,6 +7,8 @@ namespace Pekral\Arch\ModelManager\Mysql;
 use Illuminate\Database\Eloquent\Model;
 use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
 
+use function assert;
+
 /**
  * Base class for managing Eloquent model operations (CRUD).
  *
@@ -34,6 +36,24 @@ abstract class BaseModelManager
         $model = new $modelClassName();
 
         return (bool) $model->newQuery()
+            ->where($parameters)
+            ->delete();
+    }
+
+    /**
+     * Batch delete records by parameters.
+     *
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<TKey, TValue> $parameters
+     */
+    public function bulkDeleteByParams(array $parameters): void
+    {
+        $modelClassName = $this->getModelClassName();
+        $model = new $modelClassName();
+        assert($model instanceof Model);
+
+        $model->newQuery()
             ->where($parameters)
             ->delete();
     }

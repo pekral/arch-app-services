@@ -87,3 +87,52 @@ test('delete model returns false when delete returns null', function (): void {
 
     expect($result)->toBeFalse();
 });
+
+test('bulk delete by params deletes matching records', function (): void {
+    $userModelService = app(UserModelService::class);
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(3)->create(['name' => 'Jane']);
+
+    $userModelService->bulkDeleteByParams(['name' => 'John']);
+
+    expect(User::query()->where('name', 'John')->count())->toBe(0)
+        ->and(User::query()->where('name', 'Jane')->count())->toBe(3);
+});
+
+test('bulk delete by params with multiple conditions', function (): void {
+    $userModelService = app(UserModelService::class);
+    User::factory()->create(['name' => 'John', 'email' => 'john1@example.com']);
+    User::factory()->create(['name' => 'John', 'email' => 'john2@example.com']);
+    User::factory()->create(['name' => 'Jane', 'email' => 'jane@example.com']);
+
+    $userModelService->bulkDeleteByParams(['name' => 'John', 'email' => 'john1@example.com']);
+
+    expect(User::query()->where('name', 'John')->where('email', 'john1@example.com')->count())->toBe(0)
+        ->and(User::query()->where('name', 'John')->count())->toBe(1);
+});
+
+test('bulk delete by params with no matching records does nothing', function (): void {
+    $userModelService = app(UserModelService::class);
+    User::factory()->count(3)->create(['name' => 'John']);
+
+    $userModelService->bulkDeleteByParams(['name' => 'NonExistent']);
+
+    expect(User::query()->where('name', 'John')->count())->toBe(3);
+});
+
+test('bulk delete by params deletes all records when no conditions', function (): void {
+    $userModelService = app(UserModelService::class);
+    User::factory()->count(5)->create();
+
+    $userModelService->bulkDeleteByParams([]);
+
+    expect(User::count())->toBe(0);
+});
+
+test('bulk delete by params with empty table does nothing', function (): void {
+    $userModelService = app(UserModelService::class);
+
+    $userModelService->bulkDeleteByParams(['name' => 'John']);
+
+    expect(User::count())->toBe(0);
+});

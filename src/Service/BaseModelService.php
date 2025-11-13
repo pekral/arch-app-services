@@ -138,6 +138,16 @@ abstract readonly class BaseModelService
     }
 
     /**
+     * Batch delete records by parameters.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function bulkDeleteByParams(array $parameters): void
+    {
+        $this->getModelManager()->bulkDeleteByParams($parameters);
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $data

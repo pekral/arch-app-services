@@ -21,6 +21,55 @@ test('delete by params deletes matching record', function (): void {
         ->and(User::query()->where('email', 'delete@example.com')->first())->toBeNull();
 });
 
+test('bulk delete by params deletes matching records', function (): void {
+    $manager = app(UserModelManager::class);
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(3)->create(['name' => 'Jane']);
+
+    $manager->bulkDeleteByParams(['name' => 'John']);
+
+    expect(User::query()->where('name', 'John')->count())->toBe(0)
+        ->and(User::query()->where('name', 'Jane')->count())->toBe(3);
+});
+
+test('bulk delete by params with multiple conditions', function (): void {
+    $manager = app(UserModelManager::class);
+    User::factory()->create(['name' => 'John', 'email' => 'john1@example.com']);
+    User::factory()->create(['name' => 'John', 'email' => 'john2@example.com']);
+    User::factory()->create(['name' => 'Jane', 'email' => 'jane@example.com']);
+
+    $manager->bulkDeleteByParams(['name' => 'John', 'email' => 'john1@example.com']);
+
+    expect(User::query()->where('name', 'John')->where('email', 'john1@example.com')->count())->toBe(0)
+        ->and(User::query()->where('name', 'John')->count())->toBe(1);
+});
+
+test('bulk delete by params with no matching records does nothing', function (): void {
+    $manager = app(UserModelManager::class);
+    User::factory()->count(3)->create(['name' => 'John']);
+
+    $manager->bulkDeleteByParams(['name' => 'NonExistent']);
+
+    expect(User::query()->where('name', 'John')->count())->toBe(3);
+});
+
+test('bulk delete by params deletes all records when no conditions', function (): void {
+    $manager = app(UserModelManager::class);
+    User::factory()->count(5)->create();
+
+    $manager->bulkDeleteByParams([]);
+
+    expect(User::count())->toBe(0);
+});
+
+test('bulk delete by params with empty table does nothing', function (): void {
+    $manager = app(UserModelManager::class);
+
+    $manager->bulkDeleteByParams(['name' => 'John']);
+
+    expect(User::count())->toBe(0);
+});
+
 test('delete deletes model instance', function (): void {
     $manager = app(UserModelManager::class);
     $user = User::factory()->create(['email' => 'delete@example.com']);
