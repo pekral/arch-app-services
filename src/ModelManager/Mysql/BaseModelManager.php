@@ -39,6 +39,20 @@ abstract class BaseModelManager
     }
 
     /**
+     * @param TModel $model
+     */
+    public function delete(Model $model): bool
+    {
+        $result = $model->delete();
+
+        if ($result === null) {
+            return false;
+        }
+
+        return $result;
+    }
+
+    /**
      * @template TKey as string
      * @template TValue
      * @param array<TKey, TValue> $data

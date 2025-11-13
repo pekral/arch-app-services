@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\ModelManager\Mysql;
 
+use Illuminate\Database\Eloquent\Model;
+use Mockery;
 use Pekral\Arch\Examples\Services\User\UserModelManager;
 use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
 use Pekral\Arch\Tests\Models\User;
@@ -17,6 +19,27 @@ test('delete by params deletes matching record', function (): void {
 
     expect($result)->toBeTrue()
         ->and(User::query()->where('email', 'delete@example.com')->first())->toBeNull();
+});
+
+test('delete deletes model instance', function (): void {
+    $manager = app(UserModelManager::class);
+    $user = User::factory()->create(['email' => 'delete@example.com']);
+
+    $result = $manager->delete($user);
+
+    expect($result)->toBeTrue()
+        ->and(User::query()->where('email', 'delete@example.com')->first())->toBeNull();
+});
+
+test('delete returns false when model delete returns null', function (): void {
+    $manager = app(UserModelManager::class);
+
+    $mockUser = Mockery::mock(Model::class);
+    $mockUser->shouldReceive('delete')->once()->andReturn(null);
+
+    $result = $manager->delete($mockUser);
+
+    expect($result)->toBeFalse();
 });
 
 test('create creates new record', function (): void {

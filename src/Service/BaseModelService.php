@@ -67,13 +67,7 @@ abstract readonly class BaseModelService
      */
     public function deleteModel(Model $model): bool
     {
-        $result = $model->delete();
-
-        if ($result === null) {
-            return false;
-        }
-
-        return $result;
+        return $this->getModelManager()->delete($model);
     }
 
     /**
