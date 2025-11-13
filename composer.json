@@ -42,7 +42,7 @@
     "phpstan/phpstan-deprecation-rules": "^2.0.3",
     "phpstan/phpstan-mockery": "^2.0",
     "phpstan/phpstan-phpunit": "^2.0.8",
-    "rector/rector": "^2.2.7",
+    "rector/rector": "^2.2.8",
     "roave/security-advisories": "dev-latest",
     "squizlabs/php_codesniffer": ">=4.0.1",
     "symfony/console": "^7.3.6"
