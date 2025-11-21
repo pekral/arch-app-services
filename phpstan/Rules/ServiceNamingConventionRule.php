@@ -29,7 +29,11 @@ final class ServiceNamingConventionRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
-        if (!$this->isValidClassNode($node)) {
+        if (!$node instanceof Node\Stmt\Class_) {
+            return [];
+        }
+
+        if ($node->extends === null) {
             return [];
         }
 
@@ -45,7 +49,7 @@ final class ServiceNamingConventionRule implements Rule
             return [];
         }
 
-        if ($node->extends === null || !$this->extendsBaseModelService($node->extends, $scope)) {
+        if (!$this->extendsBaseModelService($node->extends, $scope)) {
             return [];
         }
 
@@ -54,19 +58,6 @@ final class ServiceNamingConventionRule implements Rule
         }
 
         return [$this->createErrorMessage($className)];
-    }
-
-    private function isValidClassNode(Node $node): bool
-    {
-        if (!$node instanceof Node\Stmt\Class_) {
-            return false;
-        }
-
-        if ($node->name === null) {
-            return false;
-        }
-
-        return $node->extends !== null;
     }
 
     private function createErrorMessage(string $className): RuleError
@@ -82,9 +73,19 @@ final class ServiceNamingConventionRule implements Rule
 
     private function extendsBaseModelService(Node\Name $extends, Scope $scope): bool
     {
-        $className = $scope->resolveName($extends);
+        $resolvedName = $scope->resolveName($extends);
 
-        return $className === self::BASE_MODEL_SERVICE_CLASS;
+        if ($resolvedName === self::BASE_MODEL_SERVICE_CLASS) {
+            return true;
+        }
+
+        $type = $scope->resolveTypeByName($extends);
+
+        if ($type->getObjectClassNames() === []) {
+            return false;
+        }
+
+        return in_array(self::BASE_MODEL_SERVICE_CLASS, $type->getObjectClassNames(), true);
     }
 
     private function hasCorrectSuffix(string $className): bool
