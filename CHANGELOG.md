@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-21
+
+
+- 🔧 **Changed**: composer update dependencies
+- 📝 **Changed**: resolve #31 feat: new phpstan rule
+
 ## [Unreleased] - 2025-11-13 (PR #38)
 
 
