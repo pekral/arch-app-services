@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Pekral\Arch\Repository\Repository;
 
+use function assert;
 use function config;
 use function count;
 use function is_array;
@@ -37,7 +38,7 @@ abstract class BaseRepository implements Repository
      * @template TValue
      * @param array<TKey, TValue> $params
      * @param array<string> $withRelations
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @param array<string> $groupBy
      * @return \Illuminate\Pagination\LengthAwarePaginator<int, TModel>
      */
@@ -49,11 +50,9 @@ abstract class BaseRepository implements Repository
         array $groupBy = [],
     ): LengthAwarePaginator {
         $queryBuilder = $this->createQueryBuilder();
-
-        $itemsPerPage = $this->resolveItemsPerPage($itemsPerPage);
         $queryBuilder = $this->applyQueryConditions($queryBuilder, $params, $withRelations, $orderBy, $groupBy);
 
-        return $queryBuilder->paginate($itemsPerPage);
+        return $queryBuilder->paginate($this->resolveItemsPerPage($itemsPerPage));
     }
 
     /**
@@ -61,7 +60,7 @@ abstract class BaseRepository implements Repository
      * @template TValue
      * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
      * @param array<string> $with
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @return TModel
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
@@ -71,19 +70,18 @@ abstract class BaseRepository implements Repository
             ->with($with)
             ->where(is_array($params) ? $params : $params->toArray());
 
-        if (count($orderBy) > 0) {
-            foreach ($orderBy as $column => $direction) {
-                $queryBuilder = $queryBuilder->orderBy($column, $direction);
-            }
-        }
+        $queryBuilder = $this->applyOrderBy($queryBuilder, $orderBy);
 
-        return $queryBuilder->firstOrFail();
+        $result = $queryBuilder->firstOrFail();
+        assert($result instanceof Model);
+
+        return $result;
     }
 
     /**
      * @param \Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params
      * @param array<string> $with
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @return TModel|null
      */
     public function findOneByParams(Collection|array $params, array $with = [], array $orderBy = []): ?Model
@@ -92,11 +90,7 @@ abstract class BaseRepository implements Repository
             ->where(is_array($params) ? $params : $params->toArray())
             ->with($with);
 
-        if (count($orderBy) > 0) {
-            foreach ($orderBy as $column => $direction) {
-                $queryBuilder = $queryBuilder->orderBy($column, $direction);
-            }
-        }
+        $queryBuilder = $this->applyOrderBy($queryBuilder, $orderBy);
 
         return $queryBuilder->first();
     }
@@ -130,17 +124,14 @@ abstract class BaseRepository implements Repository
     public function createQueryBuilder(): Builder
     {
         $modelClassName = $this->getModelClassName();
-        $model = new $modelClassName();
 
         /** @var \Illuminate\Database\Eloquent\Builder<TModel> $query */
-        $query = $model->newQuery();
-        
+        $query = new $modelClassName()->newQuery();
+
         return $query;
     }
 
     /**
-     * Start a fluent query builder interface.
-     *
      * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
     public function query(): Builder
@@ -148,12 +139,6 @@ abstract class BaseRepository implements Repository
         return $this->createQueryBuilder();
     }
 
-    /**
-     * Resolve the number of items per page for pagination.
-     *
-     * @param int|null $itemsPerPage Custom items per page value
-     * @return int Resolved items per page value
-     */
     private function resolveItemsPerPage(?int $itemsPerPage): int
     {
         if ($itemsPerPage !== null) {
@@ -169,7 +154,7 @@ abstract class BaseRepository implements Repository
      * @param \Illuminate\Database\Eloquent\Builder<TModel> $queryBuilder
      * @param array<string, mixed> $params
      * @param array<string> $withRelations
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @param array<string> $groupBy
      * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
@@ -187,13 +172,27 @@ abstract class BaseRepository implements Repository
             $queryBuilder = $queryBuilder->groupBy($groupBy);
         }
 
-        if (count($orderBy) > 0) {
-            foreach ($orderBy as $column => $direction) {
-                $queryBuilder = $queryBuilder->orderBy($column, $direction);
-            }
+        return $this->applyOrderBy($queryBuilder, $orderBy);
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<TModel> $queryBuilder
+     * @param array<string, string> $orderBy
+     * @return \Illuminate\Database\Eloquent\Builder<TModel>
+     */
+    private function applyOrderBy(Builder $queryBuilder, array $orderBy): Builder
+    {
+        if (count($orderBy) === 0) {
+            return $queryBuilder;
         }
 
-        return $queryBuilder;
+        /** @var \Illuminate\Database\Eloquent\Builder<TModel> $result */
+        $result = Collection::make($orderBy)->reduce(
+            fn (Builder $builder, string $direction, string $column): Builder => $builder->orderBy($column, $direction),
+            $queryBuilder,
+        );
+
+        return $result;
     }
 
 }

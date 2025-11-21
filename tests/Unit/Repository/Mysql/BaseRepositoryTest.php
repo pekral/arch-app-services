@@ -43,6 +43,16 @@ test('count by params with group by', function (): void {
     expect($count)->toBeGreaterThanOrEqual(2);
 });
 
+test('count by params with filters', function (): void {
+    $userRepository = app(UserRepository::class);
+    User::factory()->count(5)->create(['name' => 'John']);
+    User::factory()->count(3)->create(['name' => 'Jane']);
+    
+    $count = $userRepository->countByParams(['name' => 'John']);
+    
+    expect($count)->toBe(5);
+});
+
 test('paginate by params returns paginated results', function (): void {
     $userRepository = app(UserRepository::class);
     User::factory()->count(20)->create();

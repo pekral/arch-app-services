@@ -75,7 +75,7 @@ abstract readonly class BaseModelService
      *
      * @param array<string, mixed> $parameters
      * @param array<string> $with
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @return TModel|null
      */
     public function findOneByParams(array $parameters, array $with = [], array $orderBy = []): ?Model
@@ -88,7 +88,7 @@ abstract readonly class BaseModelService
      *
      * @param array<string, mixed> $parameters
      * @param array<string> $with
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @return TModel
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
@@ -100,7 +100,7 @@ abstract readonly class BaseModelService
     /**
      * @param array<string, mixed> $parameters
      * @param array<string> $with
-     * @param array<string> $orderBy
+     * @param array<string, string> $orderBy
      * @param array<string> $groupBy
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel>
      * @phpstan-return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel>
