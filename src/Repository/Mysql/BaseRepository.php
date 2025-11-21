@@ -4,10 +4,11 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Repository\Mysql;
 
-use Illuminate\Contracts\Pagination\LengthAwarePaginator as ContractsLengthAwarePaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Pekral\Arch\Repository\Repository;
 
 use function config;
 use function count;
@@ -20,9 +21,10 @@ use function is_array;
  * model data with support for eager loading relationships.
  *
  * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @implements \Pekral\Arch\Repository\Repository<TModel>
  * @method \Pekral\Arch\Repository\CacheWrapper cache()
  */
-abstract class BaseRepository
+abstract class BaseRepository implements Repository
 {
 
     /**
@@ -45,7 +47,7 @@ abstract class BaseRepository
         ?int $itemsPerPage = null,
         array $orderBy = [],
         array $groupBy = [],
-    ): ContractsLengthAwarePaginator {
+    ): LengthAwarePaginator {
         $queryBuilder = $this->createQueryBuilder();
 
         $itemsPerPage = $this->resolveItemsPerPage($itemsPerPage);
