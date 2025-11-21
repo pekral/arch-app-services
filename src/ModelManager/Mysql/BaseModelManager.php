@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
 use Pekral\Arch\ModelManager\ModelManager;
 
-use function assert;
+use function class_uses_recursive;
+use function collect;
+use function count;
+use function in_array;
 
 /**
  * Base class for managing Eloquent model operations (CRUD).
@@ -34,28 +37,19 @@ abstract class BaseModelManager implements ModelManager
      */
     public function deleteByParams(array $parameters): bool
     {
-        $modelClassName = $this->getModelClassName();
-        $model = new $modelClassName();
-
-        return (bool) $model->newQuery()
+        return (bool) $this->newModelQuery()
             ->where($parameters)
             ->delete();
     }
 
     /**
-     * Batch delete records by parameters.
-     *
      * @template TKey of array-key
      * @template TValue
      * @param array<TKey, TValue> $parameters
      */
     public function bulkDeleteByParams(array $parameters): void
     {
-        $modelClassName = $this->getModelClassName();
-        $model = new $modelClassName();
-        assert($model instanceof Model);
-
-        $model->newQuery()
+        $this->newModelQuery()
             ->where($parameters)
             ->delete();
     }
@@ -83,8 +77,7 @@ abstract class BaseModelManager implements ModelManager
     public function create(array $data): Model
     {
         $model = $this->createNewModelInstance();
-        $model->fill($data)
-            ->save();
+        $model->fill($data)->save();
 
         return $model;
     }
@@ -94,15 +87,12 @@ abstract class BaseModelManager implements ModelManager
      */
     public function update(Model $model, array $data): bool
     {
-        return $model->fill($data)
-            ->save();
+        return $model->fill($data)->save();
     }
 
     /**
-     * Update existing record or create a new one if it doesn't exist.
-     *
-     * @param array<string, mixed> $attributes Attributes to search for
-     * @param array<string, mixed> $values Values to update/create with
+     * @param array<string, mixed> $attributes
+     * @param array<string, mixed> $values
      * @return TModel
      */
     public function updateOrCreate(array $attributes, array $values = []): Model
@@ -114,10 +104,8 @@ abstract class BaseModelManager implements ModelManager
     }
 
     /**
-     * Get existing record or create a new one if it doesn't exist.
-     *
-     * @param array<string, mixed> $attributes Attributes to search for
-     * @param array<string, mixed> $values Values to use when creating
+     * @param array<string, mixed> $attributes
+     * @param array<string, mixed> $values
      * @return TModel
      */
     public function getOrCreate(array $attributes, array $values = []): Model
@@ -132,7 +120,6 @@ abstract class BaseModelManager implements ModelManager
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $dataArray
-     * @return int Number of created records
      */
     public function bulkCreate(array $dataArray): int
     {
@@ -141,15 +128,12 @@ abstract class BaseModelManager implements ModelManager
         }
 
         $modelClassName = $this->getModelClassName();
-        
         $result = $modelClassName::insert($dataArray);
-        
+
         return $result ? count($dataArray) : 0;
     }
 
     /**
-     * Bulk insert records, ignoring duplicates based on unique constraints.
-     *
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $dataArray
@@ -161,7 +145,6 @@ abstract class BaseModelManager implements ModelManager
         }
 
         $modelClassName = $this->getModelClassName();
-        
         $modelClassName::insertOrIgnore($dataArray);
     }
 
@@ -169,8 +152,6 @@ abstract class BaseModelManager implements ModelManager
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>> $dataArray
-     * @param string $keyColumn Column to match records (usually 'id')
-     * @return int Number of updated records
      */
     public function bulkUpdate(array $dataArray, string $keyColumn = 'id'): int
     {
@@ -178,29 +159,21 @@ abstract class BaseModelManager implements ModelManager
             return 0;
         }
 
-        $modelClassName = $this->getModelClassName();
-        $model = new $modelClassName();
-        
-        $updatedCount = 0;
-        
-        foreach ($dataArray as $data) {
-            if (!isset($data[$keyColumn])) {
-                continue;
-            }
-            
-            $keyValue = $data[$keyColumn];
-            unset($data[$keyColumn]);
-            
-            if ($data === []) {
-                continue;
-            }
-            
-            $updatedCount += $model->newQuery()
-                ->where($keyColumn, $keyValue)
-                ->update($data);
-        }
-        
-        return $updatedCount;
+        return collect($dataArray)
+            ->filter(fn (array $data): bool => isset($data[$keyColumn]))
+            ->map(function (array $data) use ($keyColumn): array {
+                $keyValue = $data[$keyColumn];
+                unset($data[$keyColumn]);
+
+                return [
+                    'key' => $keyValue,
+                    'data' => $data,
+                ];
+            })
+            ->filter(fn (array $item): bool => $item['data'] !== [])
+            ->sum(fn (array $item): int => $this->newModelQuery()
+                ->where($keyColumn, $item['key'])
+                ->update($item['data']));
     }
 
     /**
@@ -209,9 +182,8 @@ abstract class BaseModelManager implements ModelManager
      *
      * @template TKey of array-key
      * @template TValue
-     * @param array<int, array<TKey, TValue>|\Illuminate\Database\Eloquent\Model> $values Array of records to update or Model instances
-     * @param array<int, string>|string|null $uniqueBy Column(s) to use as unique identifier (defaults to model's primary key)
-     * @return int Number of updated records
+     * @param array<int, array<TKey, TValue>|\Illuminate\Database\Eloquent\Model> $values
+     * @param array<int, string>|string|null $uniqueBy
      * @throws \Pekral\Arch\Exceptions\MassUpdateNotAvailable
      */
     public function rawMassUpdate(array $values, null|array|string $uniqueBy = null): int
@@ -226,10 +198,8 @@ abstract class BaseModelManager implements ModelManager
             throw MassUpdateNotAvailable::traitNotUsed($modelClassName);
         }
 
-        $model = new $modelClassName();
-
         /** @phpstan-ignore-next-line */
-        return $model->newQuery()->massUpdate($values, $uniqueBy);
+        return $this->newModelQuery()->massUpdate($values, $uniqueBy);
     }
 
     /**
@@ -240,6 +210,19 @@ abstract class BaseModelManager implements ModelManager
         $modelClassName = $this->getModelClassName();
 
         return new $modelClassName([]);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<TModel>
+     */
+    private function newModelQuery(): mixed
+    {
+        $modelClassName = $this->getModelClassName();
+
+        /** @var \Illuminate\Database\Eloquent\Builder<TModel> $query */
+        $query = new $modelClassName()->newQuery();
+
+        return $query;
     }
 
 }
