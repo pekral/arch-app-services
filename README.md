@@ -818,6 +818,19 @@ composer analyse
 
 For detailed documentation about the PHPStan rules, see [PHPStan Rules Documentation](docs/phpstan-rules.md).
 
+## Documentation
+
+For detailed documentation about specific features, see:
+
+- [PHPStan Rules](docs/phpstan-rules.md) - Custom architecture rules
+- [Repository Caching](docs/repository-caching.md) - Automatic caching layer
+- [Query Builder Methods](docs/query-builder-methods.md) - Custom query builder methods with PHPStorm support
+- [Data Builder](docs/data-builder.md) - Pipeline-based data transformation
+- [Data Validation](docs/validation.md) - Integrated validation
+- [Model Manager](docs/model-manager.md) - CRUD operations with batch processing
+- [Soft Delete](docs/soft-delete.md) - Soft delete support
+- [Coverage Analysis](docs/coverage-analysis.md) - Code coverage information
+
 ## Testing
 
 The package includes comprehensive tests with 100% code coverage:

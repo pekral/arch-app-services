@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property \Carbon\Carbon|null $deleted_at
+ * @method static \Illuminate\Database\Eloquent\Builder<\Pekral\Arch\Tests\Models\User> whereName(string $value)
+ * @method static \Illuminate\Database\Eloquent\Builder<\Pekral\Arch\Tests\Models\User> whereEmail(string $value)
  */
 final class User extends Model
 {
