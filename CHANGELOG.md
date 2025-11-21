@@ -2,6 +2,11 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-21 (PR #45)
+
+
+- 📝 **Changed**: fix - example models
+
 ## [Unreleased] - 2025-11-21 (PR #44)
 
 
