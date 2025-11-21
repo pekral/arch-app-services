@@ -351,6 +351,45 @@ final readonly class UserModelService extends BaseModelService
 
 **Note:** This rule only applies to classes that extend `BaseModelService`. The base class itself (`BaseModelService`) is excluded from this check.
 
+### 6. ActionExecuteMethodRule
+
+**Purpose:** Guarantees that every Action class exposes a single public entrypoint named `execute()`.
+
+**Rationale:** Actions should provide one orchestration method. Additional public methods make the orchestration unclear and encourage bypassing the intended flow.
+
+**Violations detected:**
+- Missing the public `execute()` method
+- Having any other public method (e.g., `handle()`, `process()`, helper methods)
+
+**Example violation:**
+
+```php
+final readonly class ProcessUser implements ArchAction
+{
+    public function execute(User $user): void
+    {
+        // ...
+    }
+
+    public function handle(User $user): void
+    {
+        // ❌ Extra public method
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final readonly class ProcessUser implements ArchAction
+{
+    public function execute(User $user): void
+    {
+        // ✅ Single public entrypoint
+    }
+}
+```
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -375,6 +414,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\ServiceNamingConventionRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ActionExecuteMethodRule
         tags:
             - phpstan.rules.rule
 ```
