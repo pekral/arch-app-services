@@ -2,6 +2,12 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-21 (PR #44)
+
+
+- 📝 **Changed**: refactor - interface for model managers
+- 📝 **Changed**: refactoring - create repository interface
+
 ## [Unreleased] - 2025-11-21 (PR #43)
 
 
