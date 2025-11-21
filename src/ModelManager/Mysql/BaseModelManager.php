@@ -6,6 +6,7 @@ namespace Pekral\Arch\ModelManager\Mysql;
 
 use Illuminate\Database\Eloquent\Model;
 use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
+use Pekral\Arch\ModelManager\ModelManager;
 
 use function assert;
 
@@ -16,8 +17,9 @@ use function assert;
  * with support for batch processing and advanced database features.
  *
  * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @implements \Pekral\Arch\ModelManager\ModelManager<TModel>
  */
-abstract class BaseModelManager
+abstract class BaseModelManager implements ModelManager
 {
 
     /**
