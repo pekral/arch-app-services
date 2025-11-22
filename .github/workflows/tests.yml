@@ -1,0 +1,142 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pcov, simplexml
+          coverage: pcov
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run unit tests
+        run: vendor/bin/pest tests/Unit
+
+  dynamodb-tests:
+    name: DynamoDB Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pcov, simplexml
+          coverage: pcov
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Start DynamoDB with Docker Compose
+        run: |
+          docker compose up -d dynamodb-local
+
+      - name: Wait for DynamoDB
+        run: |
+          timeout=60
+          counter=0
+          until curl -f http://localhost:8001 || [ $counter -eq $timeout ]; do
+            echo "Waiting for DynamoDB to be ready... ($counter/$timeout)"
+            sleep 2
+            counter=$((counter+2))
+          done
+          if [ $counter -eq $timeout ]; then
+            echo "DynamoDB failed to start within $timeout seconds"
+            exit 1
+          fi
+          echo "DynamoDB is ready!"
+
+      - name: Run DynamoDB tests
+        run: vendor/bin/pest tests/DynamoDb
+
+      - name: Stop DynamoDB
+        if: always()
+        run: docker compose down
+
+  coverage-tests:
+    name: Coverage Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pcov, simplexml
+          coverage: pcov
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Start DynamoDB with Docker Compose
+        run: |
+          docker compose up -d dynamodb-local
+
+      - name: Wait for DynamoDB
+        run: |
+          timeout=60
+          counter=0
+          until curl -f http://localhost:8001 || [ $counter -eq $timeout ]; do
+            echo "Waiting for DynamoDB to be ready... ($counter/$timeout)"
+            sleep 2
+            counter=$((counter+2))
+          done
+          if [ $counter -eq $timeout ]; then
+            echo "DynamoDB failed to start within $timeout seconds"
+            exit 1
+          fi
+          echo "DynamoDB is ready!"
+
+      - name: Run all tests with coverage
+        run: composer test:coverage
+
+      - name: Stop DynamoDB
+        if: always()
+        run: docker compose down
+

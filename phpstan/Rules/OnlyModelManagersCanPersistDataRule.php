@@ -132,6 +132,7 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
 
         $allowedClasses = [
             'Pekral\Arch\ModelManager\Mysql\BaseModelManager',
+            'Pekral\Arch\ModelManager\DynamoDb\BaseDynamoDbModelManager',
             'Pekral\Arch\Service\BaseModelService',
         ];
 

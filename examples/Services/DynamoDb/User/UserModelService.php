@@ -2,15 +2,15 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Examples\Services\User;
+namespace Pekral\Arch\Examples\Services\DynamoDb\User;
 
+use Pekral\Arch\Examples\Models\DynamoDb\User;
 use Pekral\Arch\ModelManager\ModelManager;
 use Pekral\Arch\Repository\Repository;
 use Pekral\Arch\Service\BaseModelService;
-use Pekral\Arch\Tests\Models\User;
 
 /**
- * @extends \Pekral\Arch\Service\BaseModelService<\Pekral\Arch\Tests\Models\User>
+ * @extends \Pekral\Arch\Service\BaseModelService<\Pekral\Arch\Examples\Models\DynamoDb\User>
  */
 final readonly class UserModelService extends BaseModelService
 {

@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Repository;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -16,6 +15,7 @@ use Illuminate\Support\Collection;
  * with support for filtering, pagination, and eager loading.
  *
  * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @method \Pekral\Arch\Repository\CacheWrapper cache(?string $driver = null) Get a cache wrapper for this repository (available when using CacheableRepository trait)
  */
 interface Repository
 {
@@ -72,16 +72,12 @@ interface Repository
 
     /**
      * Create a new query builder instance.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
-    public function createQueryBuilder(): Builder;
+    public function createQueryBuilder(): mixed;
 
     /**
      * Start a fluent query builder interface.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
-    public function query(): Builder;
+    public function query(): mixed;
 
 }
