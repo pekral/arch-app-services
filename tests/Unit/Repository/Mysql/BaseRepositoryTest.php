@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\Repository\Mysql;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\RelationNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Pekral\Arch\Examples\Services\User\UserRepository;
@@ -127,13 +126,3 @@ test('paginate by params with non existent relation throws exception', function 
     
     $userRepository->paginateByParams([], ['non_existent_relation']);
 })->throws(RelationNotFoundException::class, 'non_existent_relation');
-
-test('query returns builder instance', function (): void {
-    $userRepository = app(UserRepository::class);
-    User::factory()->count(3)->create();
-    
-    $query = $userRepository->query();
-    
-    expect($query)->toBeInstanceOf(Builder::class)
-        ->and($query->count())->toBe(3);
-});

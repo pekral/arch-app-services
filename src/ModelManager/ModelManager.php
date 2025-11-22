@@ -22,7 +22,8 @@ interface ModelManager
      *
      * @template TKey of array-key
      * @template TValue
-     * @param array<TKey, TValue> $parameters
+     * @param array<TKey, TValue> $parameters Search criteria as key-value pairs
+     * @return bool True if records were deleted, false otherwise
      */
     public function deleteByParams(array $parameters): bool;
 
@@ -55,7 +56,9 @@ interface ModelManager
     /**
      * Update an existing model record.
      *
-     * @param array<string, mixed> $data
+     * @param TModel $model Model instance to update
+     * @param array<string, mixed> $data Data to update
+     * @return bool True if update was successful, false otherwise
      */
     public function update(Model $model, array $data): bool;
 
@@ -92,7 +95,7 @@ interface ModelManager
      *
      * @template TKey of array-key
      * @template TValue
-     * @param array<int, array<TKey, TValue>> $dataArray
+     * @param array<int, array<TKey, TValue>> $dataArray Array of records to insert
      */
     public function insertOrIgnore(array $dataArray): void;
 

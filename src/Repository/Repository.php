@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Repository;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -25,10 +24,11 @@ interface Repository
      *
      * @template TKey of array-key
      * @template TValue
-     * @param array<TKey, TValue> $params
-     * @param array<string> $withRelations
-     * @param array<string> $orderBy
-     * @param array<string> $groupBy
+     * @param array<TKey, TValue> $params Search criteria as key-value pairs
+     * @param array<string> $withRelations Eager load relationships
+     * @param int|null $itemsPerPage Number of items per page (uses default from config if null)
+     * @param array<string> $orderBy Order by columns (e.g., ['name' => 'asc', 'created_at' => 'desc'])
+     * @param array<string> $groupBy Group by columns
      * @return \Illuminate\Pagination\LengthAwarePaginator<int, TModel>
      */
     public function paginateByParams(
@@ -65,23 +65,10 @@ interface Repository
     /**
      * Count models by given criteria.
      *
-     * @param \Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params
-     * @param array<string> $groupBy
+     * @param \Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params Search criteria
+     * @param array<string> $groupBy Group by columns
+     * @return int Number of matching records
      */
     public function countByParams(Collection|array $params, array $groupBy = []): int;
-
-    /**
-     * Create a new query builder instance.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<TModel>
-     */
-    public function createQueryBuilder(): Builder;
-
-    /**
-     * Start a fluent query builder interface.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<TModel>
-     */
-    public function query(): Builder;
 
 }

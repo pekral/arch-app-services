@@ -121,7 +121,7 @@ abstract class BaseRepository implements Repository
     /**
      * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
-    public function createQueryBuilder(): Builder
+    private function createQueryBuilder(): Builder
     {
         $modelClassName = $this->getModelClassName();
 
@@ -129,14 +129,6 @@ abstract class BaseRepository implements Repository
         $query = new $modelClassName()->newQuery();
 
         return $query;
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Builder<TModel>
-     */
-    public function query(): Builder
-    {
-        return $this->createQueryBuilder();
     }
 
     private function resolveItemsPerPage(?int $itemsPerPage): int

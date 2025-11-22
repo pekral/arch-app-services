@@ -28,6 +28,7 @@ trait CacheableRepository
      * All method calls on the returned object will be automatically cached.
      *
      * @param string|null $driver Optional cache driver name from Laravel's cache.php config
+     * @return \Pekral\Arch\Repository\CacheWrapper Cache wrapper instance
      */
     public function cache(?string $driver = null): CacheWrapper
     {
