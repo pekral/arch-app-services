@@ -8320,17 +8320,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/pekral/phpcs-rules.git",
-                "reference": "9198b7bc7ea82f36386912686e3a35cb27d1d2e0"
+                "reference": "42571f1a8163bc04aed7a747b1c8e5ceebd50401"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pekral/phpcs-rules/zipball/9198b7bc7ea82f36386912686e3a35cb27d1d2e0",
-                "reference": "9198b7bc7ea82f36386912686e3a35cb27d1d2e0",
+                "url": "https://api.github.com/repos/pekral/phpcs-rules/zipball/42571f1a8163bc04aed7a747b1c8e5ceebd50401",
+                "reference": "42571f1a8163bc04aed7a747b1c8e5ceebd50401",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.4|^8.5",
-                "slevomat/coding-standard": "^8.22.1"
+                "php": "^8.4",
+                "slevomat/coding-standard": "^8.25"
             },
             "require-dev": {
                 "illuminate/collections": "^12.39.0",
@@ -8338,7 +8338,6 @@
                 "pekral/cursor-rules": "^0.1.4",
                 "pekral/phpstan-rules": "^0.4.4.1",
                 "pekral/rector-rules": "^0.4.5",
-                "phpcompatibility/php-compatibility": "^9.3.5",
                 "phpunit/phpunit": "^12.4.4",
                 "roave/security-advisories": "dev-latest",
                 "symfony/console": "^7.3.6"
@@ -8394,7 +8393,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-11-22T09:00:58+00:00"
+            "time": "2025-11-22T16:49:21+00:00"
         },
         {
             "name": "pekral/rector-rules",
