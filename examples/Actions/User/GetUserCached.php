@@ -8,6 +8,8 @@ use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 use Pekral\Arch\Tests\Models\User;
 
+use function assert;
+
 final readonly class GetUserCached implements ArchAction
 {
 
@@ -20,8 +22,13 @@ final readonly class GetUserCached implements ArchAction
      */
     public function handle(array $filters): User
     {
-        // @phpstan-ignore-next-line
-        return $this->userModelService->getRepository()->cache()->getOneByParams($filters);
+        $repository = $this->userModelService->getRepository();
+        $cacheWrapper = $repository->cache();
+
+        $result = $cacheWrapper->getOneByParams($filters);
+        assert($result instanceof User);
+
+        return $result;
     }
 
 }

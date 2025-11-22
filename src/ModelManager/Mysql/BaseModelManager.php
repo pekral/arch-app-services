@@ -99,8 +99,10 @@ abstract class BaseModelManager implements ModelManager
     {
         $modelClassName = $this->getModelClassName();
 
-        /** @phpstan-ignore-next-line */
-        return $modelClassName::updateOrCreate($attributes, $values);
+        /** @var TModel $result */
+        $result = $modelClassName::updateOrCreate($attributes, $values);
+
+        return $result;
     }
 
     /**
@@ -112,8 +114,10 @@ abstract class BaseModelManager implements ModelManager
     {
         $modelClassName = $this->getModelClassName();
 
-        /** @phpstan-ignore-next-line */
-        return $modelClassName::firstOrCreate($attributes, $values);
+        /** @var TModel $result */
+        $result = $modelClassName::firstOrCreate($attributes, $values);
+
+        return $result;
     }
 
     /**
@@ -198,8 +202,15 @@ abstract class BaseModelManager implements ModelManager
             throw MassUpdateNotAvailable::traitNotUsed($modelClassName);
         }
 
-        /** @phpstan-ignore-next-line */
-        return $this->newModelQuery()->massUpdate($values, $uniqueBy);
+        $query = $this->newModelQuery();
+
+        $massUpdate = [$query, 'massUpdate'];
+
+        /** @phpstan-var callable(array, array|string|null): int $massUpdate */
+        /** @var int $result */
+        $result = call_user_func($massUpdate, $values, $uniqueBy);
+
+        return $result;
     }
 
     /**
