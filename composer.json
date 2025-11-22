@@ -34,7 +34,7 @@
     "laravel/pint": "^1.25.1",
     "orchestra/testbench": "^10.7",
     "pekral/cursor-rules": "dev-master",
-    "pekral/phpcs-rules": "^0.4.4",
+    "pekral/phpcs-rules": "dev-master",
     "pekral/rector-rules": "^0.4.5",
     "pestphp/pest": "^4.1.4",
     "pestphp/pest-plugin-type-coverage": "^4.0.3",

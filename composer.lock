@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bf9c6bcea4cb566497804b42b72bcbe0",
+    "content-hash": "97989e060f312b1a742d56c34fd6cd31",
     "packages": [
         {
             "name": "brick/math",
@@ -8268,12 +8268,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/pekral/cursor-rules.git",
-                "reference": "c80b142d2adceb59d3982b413f0573e337a93223"
+                "reference": "dd34931982de16830cf100ac96d04c35cb8c53e1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pekral/cursor-rules/zipball/c80b142d2adceb59d3982b413f0573e337a93223",
-                "reference": "c80b142d2adceb59d3982b413f0573e337a93223",
+                "url": "https://api.github.com/repos/pekral/cursor-rules/zipball/dd34931982de16830cf100ac96d04c35cb8c53e1",
+                "reference": "dd34931982de16830cf100ac96d04c35cb8c53e1",
                 "shasum": ""
             },
             "require": {
@@ -8312,20 +8312,20 @@
                 "issues": "https://github.com/pekral/cursor-rules/issues",
                 "source": "https://github.com/pekral/cursor-rules/tree/master"
             },
-            "time": "2025-11-19T12:04:09+00:00"
+            "time": "2025-11-21T16:27:47+00:00"
         },
         {
             "name": "pekral/phpcs-rules",
-            "version": "0.4.4",
+            "version": "dev-master",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pekral/phpcs-rules.git",
-                "reference": "f6361ca92e8f3eb11051b737bcfff999856956ab"
+                "reference": "9198b7bc7ea82f36386912686e3a35cb27d1d2e0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pekral/phpcs-rules/zipball/f6361ca92e8f3eb11051b737bcfff999856956ab",
-                "reference": "f6361ca92e8f3eb11051b737bcfff999856956ab",
+                "url": "https://api.github.com/repos/pekral/phpcs-rules/zipball/9198b7bc7ea82f36386912686e3a35cb27d1d2e0",
+                "reference": "9198b7bc7ea82f36386912686e3a35cb27d1d2e0",
                 "shasum": ""
             },
             "require": {
@@ -8333,16 +8333,17 @@
                 "slevomat/coding-standard": "^8.22.1"
             },
             "require-dev": {
-                "illuminate/collections": "^12.36.1",
+                "illuminate/collections": "^12.39.0",
                 "mockery/mockery": "^1.6.12",
                 "pekral/cursor-rules": "^0.1.4",
                 "pekral/phpstan-rules": "^0.4.4.1",
-                "pekral/rector-rules": "^0.4.4.1",
+                "pekral/rector-rules": "^0.4.5",
                 "phpcompatibility/php-compatibility": "^9.3.5",
-                "phpunit/phpunit": "^12.4.2",
+                "phpunit/phpunit": "^12.4.4",
                 "roave/security-advisories": "dev-latest",
-                "symfony/console": "^7.3.5"
+                "symfony/console": "^7.3.6"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -8393,7 +8394,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-11-05T17:15:24+00:00"
+            "time": "2025-11-22T09:00:58+00:00"
         },
         {
             "name": "pekral/rector-rules",
@@ -12477,6 +12478,7 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "pekral/cursor-rules": 20,
+        "pekral/phpcs-rules": 20,
         "roave/security-advisories": 20
     },
     "prefer-stable": true,

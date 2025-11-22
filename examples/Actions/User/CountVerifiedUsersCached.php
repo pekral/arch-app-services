@@ -7,6 +7,9 @@ namespace Pekral\Arch\Examples\Actions\User;
 use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 
+use function assert;
+use function is_int;
+
 final readonly class CountVerifiedUsersCached implements ArchAction
 {
 
@@ -20,9 +23,14 @@ final readonly class CountVerifiedUsersCached implements ArchAction
         $params = [
             ['email_verified_at', '!=', null],
         ];
-        
-        // @phpstan-ignore-next-line
-        return $this->userModelService->getRepository()->cache()->countByParams($params);
+
+        $repository = $this->userModelService->getRepository();
+        $cacheWrapper = $repository->cache();
+
+        $result = $cacheWrapper->countByParams($params);
+        assert(is_int($result));
+
+        return $result;
     }
 
 }

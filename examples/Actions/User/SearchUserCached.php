@@ -20,8 +20,13 @@ final readonly class SearchUserCached implements ArchAction
      */
     public function handle(array $filters): ?User
     {
-        // @phpstan-ignore-next-line
-        return $this->userModelService->getRepository()->cache()->findOneByParams($filters);
+        $repository = $this->userModelService->getRepository();
+        $cacheWrapper = $repository->cache();
+
+        /** @var ?\Pekral\Arch\Tests\Models\User $result */
+        $result = $cacheWrapper->findOneByParams($filters);
+
+        return $result;
     }
 
 }

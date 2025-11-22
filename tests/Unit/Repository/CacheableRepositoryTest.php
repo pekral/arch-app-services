@@ -159,8 +159,14 @@ test('cache wrapper throws exception for non existent method', function (): void
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
-    /** @phpstan-ignore-next-line */
-    $testCacheableUserRepository->cache()->nonExistentMethod();
+    $cacheWrapper = $testCacheableUserRepository->cache();
+
+    /** @var mixed $methodCall */
+    $methodCall = [$cacheWrapper, 'nonExistentMethod'];
+
+    /** @var callable(): mixed $nonExistentMethod */
+    $nonExistentMethod = $methodCall;
+    $nonExistentMethod();
 })->throws(BadMethodCallException::class, 'Method nonExistentMethod does not exist on ' . TestCacheableUserRepository::class);
 
 test('cache wrapper clear cache', function (): void {

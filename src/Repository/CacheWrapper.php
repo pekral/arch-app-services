@@ -23,9 +23,9 @@ use function serialize;
  * $result = $repository->cache('my_driver')->paginateByParams(['active' => true]);
  *
  * @method mixed paginateByParams(array<string, mixed> $params, array<string> $withRelations = [], ?int $itemsPerPage = null, array<string> $orderBy = [], array<string> $groupBy = [])
- * @method mixed getOneByParams(array<string, mixed> $params, array<string> $with = [], array<string> $orderBy = [])
- * @method mixed findOneByParams(array<string, mixed> $params, array<string> $with = [], array<string> $orderBy = [])
- * @method mixed countByParams(array<string, mixed> $params, array<string> $groupBy = [])
+ * @method mixed getOneByParams(\Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params, array<string> $with = [], array<string> $orderBy = [])
+ * @method mixed findOneByParams(\Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params, array<string> $with = [], array<string> $orderBy = [])
+ * @method mixed countByParams(\Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params, array<string> $groupBy = [])
  */
 final readonly class CacheWrapper
 {
