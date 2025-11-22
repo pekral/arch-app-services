@@ -157,6 +157,16 @@ jobs:
       matrix:
         php-version: ['8.4']
     
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8021:8000
+        env:
+          AWS_ACCESS_KEY_ID: "fakeMyKeyId"
+          AWS_SECRET_ACCESS_KEY: "fakeSecretAccessKey"
+          AWS_DEFAULT_REGION: "us-east-1"
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -180,6 +190,23 @@ jobs:
             
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+      
+      - name: Verify DynamoDB connection
+        run: |
+          echo "Waiting for DynamoDB to be ready..."
+          for i in {1..30}; do
+            if curl -s -X POST http://localhost:8021/ \
+              -H "Content-Type: application/x-amz-json-1.0" \
+              -H "X-Amz-Target: DynamoDB_20120810.ListTables" \
+              -d '{}' | grep -q "MissingAuthenticationToken\|TableNames"; then
+              echo "✅ DynamoDB is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30: DynamoDB not ready yet, waiting..."
+            sleep 2
+          done
+          echo "❌ DynamoDB failed to start after 60 seconds"
+          exit 1
         
       - name: Run coverage tests
         run: composer test:coverage
