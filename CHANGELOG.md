@@ -2,6 +2,14 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-23 (PR #57)
+
+
+- 🔧 **Changed**: prepare db dynamodb migrations
+- 📝 **Changed**: refactor - small app cleanup
+- 🔧 **Changed**: composer update dependencies
+- 🔧 **Changed**: composer update dependencies
+
 ## [Unreleased] - 2025-11-22
 
 
