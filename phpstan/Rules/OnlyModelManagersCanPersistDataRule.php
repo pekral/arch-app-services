@@ -65,6 +65,10 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
             return [];
         }
 
+        if ($this->isDynamoDbModel($callerType)) {
+            return [];
+        }
+
         return $this->createErrorMessage($methodName, $scope);
     }
 
@@ -153,8 +157,20 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
     private function isEloquentModel(Type $type): bool
     {
         $eloquentModelType = new ObjectType('Illuminate\Database\Eloquent\Model');
+        $dynamoDbModelType = new ObjectType('BaoPham\DynamoDb\DynamoDbModel');
+
+        if ($dynamoDbModelType->isSuperTypeOf($type)->yes()) {
+            return true;
+        }
 
         return $eloquentModelType->isSuperTypeOf($type)->yes();
+    }
+
+    private function isDynamoDbModel(Type $type): bool
+    {
+        $dynamoDbModelType = new ObjectType('BaoPham\DynamoDb\DynamoDbModel');
+
+        return $dynamoDbModelType->isSuperTypeOf($type)->yes();
     }
 
 }
