@@ -192,21 +192,10 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
       
       - name: Verify DynamoDB connection
-        run: |
-          echo "Waiting for DynamoDB to be ready..."
-          for i in {1..30}; do
-            if curl -s -X POST http://localhost:8021/ \
-              -H "Content-Type: application/x-amz-json-1.0" \
-              -H "X-Amz-Target: DynamoDB_20120810.ListTables" \
-              -d '{}' | grep -q "MissingAuthenticationToken\|TableNames"; then
-              echo "✅ DynamoDB is ready!"
-              exit 0
-            fi
-            echo "Attempt $i/30: DynamoDB not ready yet, waiting..."
-            sleep 2
-          done
-          echo "❌ DynamoDB failed to start after 60 seconds"
-          exit 1
+        run: bash ./scripts/check-dynamodb.sh
+        env:
+          DYNAMODB_HOST: localhost
+          DYNAMODB_PORT: 8021
         
       - name: Run coverage tests
         run: composer test:coverage
