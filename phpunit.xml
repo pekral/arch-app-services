@@ -7,8 +7,28 @@
          failOnWarning="true"
          beStrictAboutTestsThatDoNotTestAnything="false">
     <testsuites>
-        <testsuite name="Arch Test Suite">
-            <directory suffix="Test.php">./tests</directory>
+        <testsuite name="Core">
+            <file>./tests/Unit/ArchServiceProviderTest.php</file>
+            <directory suffix="Test.php">./tests/Unit/DataBuilder</directory>
+        </testsuite>
+        <testsuite name="Exceptions">
+            <directory suffix="Test.php">./tests/Unit/Exceptions</directory>
+        </testsuite>
+        <testsuite name="ModelManager">
+            <directory suffix="Test.php">./tests/Unit/ModelManager</directory>
+        </testsuite>
+        <testsuite name="Repository">
+            <directory suffix="Test.php">./tests/Unit/Repository</directory>
+        </testsuite>
+        <testsuite name="Service">
+            <directory suffix="Test.php">./tests/Unit/Service</directory>
+            <directory suffix="Test.php">./tests/Unit/Services</directory>
+        </testsuite>
+        <testsuite name="Actions">
+            <directory suffix="Test.php">./tests/Unit/Actions</directory>
+        </testsuite>
+        <testsuite name="Models">
+            <directory suffix="Test.php">./tests/Unit/Models</directory>
         </testsuite>
     </testsuites>
     <php>

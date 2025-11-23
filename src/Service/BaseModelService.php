@@ -23,14 +23,14 @@ abstract readonly class BaseModelService
     /**
      * Create a model manager instance.
      *
-     * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>
+     * @return \Pekral\Arch\ModelManager\ModelManager<TModel>
      */
     abstract public function getModelManager(): ModelManager;
 
     /**
      * Create a repository instance.
      *
-     * @return \Pekral\Arch\Repository\Mysql\BaseRepository<TModel>
+     * @return \Pekral\Arch\Repository\Repository<TModel>
      */
     abstract public function getRepository(): Repository;
 
