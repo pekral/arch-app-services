@@ -2,6 +2,14 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2025-11-23
+
+
+- 📝 **Changed**: WIP feat - apply dynamodb use cases
+- 📝 **Changed**: fix - docker restart
+- ✨ **Added**: DynamoDb example with UserDynamoModel::class
+- 📝 **Changed**: fix - dynamodb migrations
+
 ## [Unreleased] - 2025-11-23 (PR #58)
 
 
