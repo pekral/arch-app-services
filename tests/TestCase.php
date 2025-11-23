@@ -30,6 +30,13 @@ abstract class TestCase extends Orchestra
             'prefix' => '',
         ]);
         
+        $app['config']->set('services.dynamodb', [
+            'endpoint' => 'http://localhost:8021',
+            'key' => 'fakeMyKeyId',
+            'region' => 'us-east-1',
+            'secret' => 'fakeSecretAccessKey',
+        ]);
+        
         $app['config']->set('cache.default', 'array');
         $app['config']->set('session.driver', 'array');
         $app['config']->set('queue.default', 'sync');
@@ -44,6 +51,27 @@ abstract class TestCase extends Orchestra
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
         
         $this->artisan('migrate', ['--database' => 'testing']);
+        
+        $this->runDynamoDbMigrations();
+    }
+
+    /**
+     * Run DynamoDB migrations.
+     */
+    protected function runDynamoDbMigrations(): void
+    {
+        $migrationsPath = __DIR__ . '/database/migrations';
+        $migrationFiles = glob($migrationsPath . '/*_*_*_*_*.php');
+
+        foreach ($migrationFiles as $file) {
+            if (str_contains(basename($file), 'dynamodb')) {
+                $migration = require $file;
+                
+                if (method_exists($migration, 'up')) {
+                    $migration->up();
+                }
+            }
+        }
     }
 
     protected function setUp(): void
