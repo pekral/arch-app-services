@@ -50,14 +50,34 @@ return new class () extends Migration {
             ->values();
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     protected function createDynamoDbTable(array $config): void
     {
+        $client = $this->getDynamoDbClient();
+        
+        if ($this->tableExists($client, $config['TableName'])) {
+            $client->deleteTable(['TableName' => $config['TableName']]);
+            $client->waitUntil('TableNotExists', ['TableName' => $config['TableName']]);
+        }
+        
+        $client->createTable($config);
+        $client->waitUntil('TableExists', ['TableName' => $config['TableName']]);
+    }
+
+    protected function tableExists(DynamoDbClient $client, string $tableName): bool
+    {
         try {
-            $this->getDynamoDbClient()->createTable($config);
-        } catch (DynamoDbException $exception) {
-            if ($exception->getAwsErrorCode() !== 'ResourceInUseException') {
-                throw $exception;
+            $client->describeTable(['TableName' => $tableName]);
+
+            return true;
+        } catch (DynamoDbException $e) {
+            if ($e->getAwsErrorCode() === 'ResourceNotFoundException') {
+                return false;
             }
+
+            throw $e;
         }
     }
 

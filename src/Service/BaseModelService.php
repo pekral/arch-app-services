@@ -6,8 +6,8 @@ namespace Pekral\Arch\Service;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
-use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
-use Pekral\Arch\Repository\Mysql\BaseRepository;
+use Pekral\Arch\ModelManager\ModelManager;
+use Pekral\Arch\Repository\Repository;
 
 /**
  * Base service class providing CRUD operations for Eloquent models.
@@ -25,14 +25,14 @@ abstract readonly class BaseModelService
      *
      * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<TModel>
      */
-    abstract public function getModelManager(): BaseModelManager;
+    abstract public function getModelManager(): ModelManager;
 
     /**
      * Create a repository instance.
      *
      * @return \Pekral\Arch\Repository\Mysql\BaseRepository<TModel>
      */
-    abstract public function getRepository(): BaseRepository;
+    abstract public function getRepository(): Repository;
 
     /**
      * Get the model class this service manages.

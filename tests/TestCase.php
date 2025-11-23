@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests;
 
+use BaoPham\DynamoDb\DynamoDbServiceProvider;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Pekral\Arch\ArchServiceProvider;
@@ -35,6 +36,17 @@ abstract class TestCase extends Orchestra
             'key' => 'fakeMyKeyId',
             'region' => 'us-east-1',
             'secret' => 'fakeSecretAccessKey',
+        ]);
+        
+        $app['config']->set('dynamodb.default', 'test');
+        $app['config']->set('dynamodb.connections.test', [
+            'credentials' => [
+                'key' => 'fakeMyKeyId',
+                'secret' => 'fakeSecretAccessKey',
+            ],
+            'debug' => false,
+            'endpoint' => 'http://localhost:8021',
+            'region' => 'us-east-1',
         ]);
         
         $app['config']->set('cache.default', 'array');
@@ -86,6 +98,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             ArchServiceProvider::class,
+            DynamoDbServiceProvider::class,
         ];
     }
 
