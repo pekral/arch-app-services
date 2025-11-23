@@ -28,4 +28,9 @@ final class MassUpdateNotAvailable extends RuntimeException
         );
     }
 
+    public static function notSupportedForDynamoDb(): self
+    {
+        return new self('Mass update functionality is not supported for DynamoDB. DynamoDB does not support SQL-style CASE WHEN updates.');
+    }
+
 }

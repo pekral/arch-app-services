@@ -19,11 +19,17 @@ final readonly class UserModelService extends BaseModelService
     {
     }
 
+    /**
+     * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<\Pekral\Arch\Tests\Models\User>
+     */
     public function getModelManager(): BaseModelManager
     {
         return $this->userModelManager;
     }
 
+    /**
+     * @return \Pekral\Arch\Repository\Mysql\BaseRepository<\Pekral\Arch\Tests\Models\User>
+     */
     public function getRepository(): BaseRepository
     {
         return $this->userRepository;

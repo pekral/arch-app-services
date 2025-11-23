@@ -19,6 +19,15 @@ test('trait not used creates exception with correct message', function (): void 
 
     expect($exception)->toBeInstanceOf(MassUpdateNotAvailable::class)
         ->and($exception->getMessage())->toContain($modelClass)
-        ->toContain('MassUpdatable')
-        ->toContain('use Iksaku\Laravel\MassUpdate\MassUpdatable');
+        ->and($exception->getMessage())->toContain('MassUpdatable')
+        ->and($exception->getMessage())->toContain('use Iksaku\Laravel\MassUpdate\MassUpdatable');
+});
+
+test('not supported for dynamo db creates exception with correct message', function (): void {
+    $exception = MassUpdateNotAvailable::notSupportedForDynamoDb();
+
+    expect($exception)->toBeInstanceOf(MassUpdateNotAvailable::class)
+        ->and($exception->getMessage())->toContain('Mass update')
+        ->and($exception->getMessage())->toContain('not supported')
+        ->and($exception->getMessage())->toContain('DynamoDB');
 });
