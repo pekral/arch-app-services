@@ -216,16 +216,16 @@
         },
         {
             "name": "brick/math",
-            "version": "0.14.0",
+            "version": "0.14.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/brick/math.git",
-                "reference": "113a8ee2656b882d4c3164fa31aa6e12cbb7aaa2"
+                "reference": "f05858549e5f9d7bb45875a75583240a38a281d0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/brick/math/zipball/113a8ee2656b882d4c3164fa31aa6e12cbb7aaa2",
-                "reference": "113a8ee2656b882d4c3164fa31aa6e12cbb7aaa2",
+                "url": "https://api.github.com/repos/brick/math/zipball/f05858549e5f9d7bb45875a75583240a38a281d0",
+                "reference": "f05858549e5f9d7bb45875a75583240a38a281d0",
                 "shasum": ""
             },
             "require": {
@@ -264,7 +264,7 @@
             ],
             "support": {
                 "issues": "https://github.com/brick/math/issues",
-                "source": "https://github.com/brick/math/tree/0.14.0"
+                "source": "https://github.com/brick/math/tree/0.14.1"
             },
             "funding": [
                 {
@@ -272,7 +272,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-08-29T12:40:03+00:00"
+            "time": "2025-11-24T14:40:29+00:00"
         },
         {
             "name": "carbonphp/carbon-doctrine-types",
@@ -2499,16 +2499,16 @@
         },
         {
             "name": "nette/utils",
-            "version": "v4.0.8",
+            "version": "v4.0.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/utils.git",
-                "reference": "c930ca4e3cf4f17dcfb03037703679d2396d2ede"
+                "reference": "505a30ad386daa5211f08a318e47015b501cad30"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/utils/zipball/c930ca4e3cf4f17dcfb03037703679d2396d2ede",
-                "reference": "c930ca4e3cf4f17dcfb03037703679d2396d2ede",
+                "url": "https://api.github.com/repos/nette/utils/zipball/505a30ad386daa5211f08a318e47015b501cad30",
+                "reference": "505a30ad386daa5211f08a318e47015b501cad30",
                 "shasum": ""
             },
             "require": {
@@ -2582,9 +2582,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/utils/issues",
-                "source": "https://github.com/nette/utils/tree/v4.0.8"
+                "source": "https://github.com/nette/utils/tree/v4.0.9"
             },
-            "time": "2025-08-06T21:43:34+00:00"
+            "time": "2025-10-31T00:45:47+00:00"
         },
         {
             "name": "nunomaduro/termwind",
@@ -8542,12 +8542,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/pekral/cursor-rules.git",
-                "reference": "dd34931982de16830cf100ac96d04c35cb8c53e1"
+                "reference": "a2f5d3ada17728c27833b823b28d4ab7f2f9ead1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pekral/cursor-rules/zipball/dd34931982de16830cf100ac96d04c35cb8c53e1",
-                "reference": "dd34931982de16830cf100ac96d04c35cb8c53e1",
+                "url": "https://api.github.com/repos/pekral/cursor-rules/zipball/a2f5d3ada17728c27833b823b28d4ab7f2f9ead1",
+                "reference": "a2f5d3ada17728c27833b823b28d4ab7f2f9ead1",
                 "shasum": ""
             },
             "require": {
@@ -8558,7 +8558,7 @@
                 "pekral/phpcs-rules": "^0.4.4",
                 "pekral/phpstan-rules": "^0.4.4.1",
                 "pekral/rector-rules": "^0.4.5",
-                "pestphp/pest": "^3.8",
+                "pestphp/pest": "^3.8.4",
                 "pestphp/pest-plugin": "^3.0"
             },
             "default-branch": true,
@@ -8586,7 +8586,7 @@
                 "issues": "https://github.com/pekral/cursor-rules/issues",
                 "source": "https://github.com/pekral/cursor-rules/tree/master"
             },
-            "time": "2025-11-21T16:27:47+00:00"
+            "time": "2025-11-24T10:45:44+00:00"
         },
         {
             "name": "pekral/phpcs-rules",
