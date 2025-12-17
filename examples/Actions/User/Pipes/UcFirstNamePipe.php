@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Actions\User\Pipes;
 
+use Pekral\Arch\DataBuilder\BuilderPipe;
+
 use function str;
 
 final readonly class UcFirstNamePipe implements BuilderPipe

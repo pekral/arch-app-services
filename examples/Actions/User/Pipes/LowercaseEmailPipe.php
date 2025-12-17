@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Examples\Actions\User\Pipes;
 
+use Pekral\Arch\DataBuilder\BuilderPipe;
+
 final readonly class LowercaseEmailPipe implements BuilderPipe
 {
 

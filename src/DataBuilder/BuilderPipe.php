@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Examples\Actions\User\Pipes;
+namespace Pekral\Arch\DataBuilder;
 
 /**
  * Interface for user data transformation pipes.
