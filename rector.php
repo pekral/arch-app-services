@@ -16,6 +16,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/vendor',
         __DIR__ . '/build',
         __DIR__ . '/tests/Unit/ModelManager/DynamoDb/TestableDynamoDbModelManager.php',
+        __DIR__ . '/tests/Unit/Progress/TracksProgressTest.php',
     ]);
 
     $rectorConfig->import(__DIR__ . '/vendor/pekral/rector-rules/rector.php');
