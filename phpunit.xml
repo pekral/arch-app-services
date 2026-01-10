@@ -30,6 +30,9 @@
         <testsuite name="Models">
             <directory suffix="Test.php">./tests/Unit/Models</directory>
         </testsuite>
+        <testsuite name="Result">
+            <directory suffix="Test.php">./tests/Unit/Result</directory>
+        </testsuite>
     </testsuites>
     <php>
         <env name="DB_CONNECTION" value="sqlite"/>
