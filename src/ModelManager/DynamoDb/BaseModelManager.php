@@ -35,12 +35,10 @@ abstract class BaseModelManager implements ModelManager
      */
     public function deleteByParams(array $parameters): bool
     {
-        $query = $this->newModelQuery();
-        $query = $query->where($parameters);
+        $query = $this->newModelQuery()->where($parameters);
         assert($query instanceof DynamoDbQueryBuilder);
-        $result = $query->delete();
 
-        return (bool) $result;
+        return (bool) $query->delete();
     }
 
     /**
@@ -50,21 +48,15 @@ abstract class BaseModelManager implements ModelManager
      */
     public function bulkDeleteByParams(array $parameters): void
     {
-        $query = $this->newModelQuery();
-        $query = $query->where($parameters);
+        $query = $this->newModelQuery()->where($parameters);
         assert($query instanceof DynamoDbQueryBuilder);
+
         $query->delete();
     }
 
     public function delete(Model $model): bool
     {
-        $result = $model->delete();
-
-        if ($result === null) {
-            return false;
-        }
-
-        return $result;
+        return $model->delete() ?? false;
     }
 
     /**
@@ -128,9 +120,8 @@ abstract class BaseModelManager implements ModelManager
         }
 
         $modelClassName = $this->getModelClassName();
-        $result = $modelClassName::insert($dataArray);
 
-        return $result ? count($dataArray) : 0;
+        return $modelClassName::insert($dataArray) ? count($dataArray) : 0;
     }
 
     /**
@@ -159,35 +150,12 @@ abstract class BaseModelManager implements ModelManager
             return 0;
         }
 
-        $this->getModelClassName();
         $updated = 0;
 
         foreach ($dataArray as $data) {
-            if (!isset($data[$keyColumn])) {
-                continue;
+            if ($this->updateSingleRecord($data, $keyColumn)) {
+                $updated++;
             }
-
-            $keyValue = $data[$keyColumn];
-            $updateData = $data;
-            unset($updateData[$keyColumn]);
-
-            if ($updateData === []) {
-                continue;
-            }
-
-            $query = $this->newModelQuery();
-            $query = $query->where($keyColumn, $keyValue);
-            assert($query instanceof DynamoDbQueryBuilder);
-
-            /** @var TModel|null $model */
-            $model = $query->first();
-
-            if ($model === null) {
-                continue;
-            }
-
-            $model->fill($updateData)->save();
-            $updated++;
         }
 
         return $updated;
@@ -224,6 +192,39 @@ abstract class BaseModelManager implements ModelManager
         assert($query instanceof DynamoDbQueryBuilder);
 
         return $query;
+    }
+
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<TKey, TValue> $data
+     */
+    private function updateSingleRecord(array $data, string $keyColumn): bool
+    {
+        if (!isset($data[$keyColumn])) {
+            return false;
+        }
+
+        $keyValue = $data[$keyColumn];
+        unset($data[$keyColumn]);
+
+        if ($data === []) {
+            return false;
+        }
+
+        $query = $this->newModelQuery()->where($keyColumn, $keyValue);
+        assert($query instanceof DynamoDbQueryBuilder);
+
+        /** @var TModel|null $model */
+        $model = $query->first();
+
+        if ($model === null) {
+            return false;
+        }
+
+        $model->fill($data)->save();
+
+        return true;
     }
 
 }

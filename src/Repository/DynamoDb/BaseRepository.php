@@ -13,17 +13,10 @@ use Pekral\Arch\Exceptions\DynamoDbNotSupported;
 use Pekral\Arch\Repository\Repository;
 
 use function assert;
-use function config;
 use function count;
 use function is_array;
-use function request;
 
 /**
- * Base class for querying DynamoDb models with consistent interface.
- *
- * Provides standardized methods for finding, filtering, and paginating
- * model data with support for eager loading relationships.
- *
  * @template TModel of \BaoPham\DynamoDb\DynamoDbModel
  * @implements \Pekral\Arch\Repository\Repository<TModel>
  */
@@ -79,9 +72,7 @@ abstract class BaseRepository implements Repository
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
+     * @param \Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params
      * @param array<string> $with
      * @param array<string, string> $orderBy
      * @return TModel
@@ -97,8 +88,7 @@ abstract class BaseRepository implements Repository
             throw DynamoDbNotSupported::orderByNotSupported();
         }
 
-        $queryBuilder = $this->createQueryBuilder();
-        $queryBuilder = $queryBuilder->where(is_array($params) ? $params : $params->toArray());
+        $queryBuilder = $this->createQueryBuilder()->where($this->normalizeParams($params));
         assert($queryBuilder instanceof DynamoDbQueryBuilder);
 
         /** @var TModel $result */
@@ -124,9 +114,9 @@ abstract class BaseRepository implements Repository
             throw DynamoDbNotSupported::orderByNotSupported();
         }
 
-        $queryBuilder = $this->createQueryBuilder();
-        $queryBuilder = $queryBuilder->where(is_array($params) ? $params : $params->toArray());
+        $queryBuilder = $this->createQueryBuilder()->where($this->normalizeParams($params));
         assert($queryBuilder instanceof DynamoDbQueryBuilder);
+
         /** @var TModel|null $result */
         $result = $queryBuilder->first();
 
@@ -134,8 +124,6 @@ abstract class BaseRepository implements Repository
     }
 
     /**
-     * Count models by given criteria.
-     *
      * @param \Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params
      * @param array<string> $groupBy
      */
@@ -146,8 +134,7 @@ abstract class BaseRepository implements Repository
         }
 
         $queryBuilder = $this->createQueryBuilder();
-
-        $normalizedParams = is_array($params) ? $params : $params->toArray();
+        $normalizedParams = $this->normalizeParams($params);
 
         if (count($normalizedParams) > 0) {
             $queryBuilder = $queryBuilder->where($normalizedParams);
@@ -181,13 +168,12 @@ abstract class BaseRepository implements Repository
             return $items;
         }
 
-        $sorted = $items;
-
-        foreach ($orderBy as $column => $direction) {
-            $sorted = $sorted->sortBy($column, SORT_REGULAR, $direction === 'desc');
-        }
-
-        return $sorted->values();
+        return collect($orderBy)
+            ->reduce(
+                fn (Collection $sorted, string $direction, string $column): Collection => $sorted->sortBy($column, SORT_REGULAR, $direction === 'desc'),
+                $items,
+            )
+            ->values();
     }
 
     /**
@@ -248,6 +234,17 @@ abstract class BaseRepository implements Repository
         $page = request()->input('page', 1);
 
         return is_numeric($page) && $page > 0 ? (int) $page : 1;
+    }
+
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
+     * @return array<TKey, TValue>
+     */
+    private function normalizeParams(Collection|array $params): array
+    {
+        return is_array($params) ? $params : $params->toArray();
     }
 
 }

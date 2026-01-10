@@ -11,16 +11,10 @@ use Illuminate\Support\Collection;
 use Pekral\Arch\Repository\Repository;
 
 use function assert;
-use function config;
 use function count;
 use function is_array;
 
 /**
- * Base class for querying Eloquent models with consistent interface.
- *
- * Provides standardized methods for finding, filtering, and paginating
- * model data with support for eager loading relationships.
- *
  * @template TModel of \Illuminate\Database\Eloquent\Model
  * @implements \Pekral\Arch\Repository\Repository<TModel>
  * @method \Pekral\Arch\Repository\CacheWrapper cache()
@@ -34,9 +28,7 @@ abstract class BaseRepository implements Repository
     abstract protected function getModelClassName(): string;
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param array<TKey, TValue> $params
+     * @param array<string, mixed> $params
      * @param array<string> $withRelations
      * @param array<string, string> $orderBy
      * @param array<string> $groupBy
@@ -49,16 +41,19 @@ abstract class BaseRepository implements Repository
         array $orderBy = [],
         array $groupBy = [],
     ): LengthAwarePaginator {
-        $queryBuilder = $this->createQueryBuilder();
-        $queryBuilder = $this->applyQueryConditions($queryBuilder, $params, $withRelations, $orderBy, $groupBy);
+        $queryBuilder = $this->applyQueryConditions(
+            $this->createQueryBuilder(),
+            $params,
+            $withRelations,
+            $orderBy,
+            $groupBy,
+        );
 
         return $queryBuilder->paginate($this->resolveItemsPerPage($itemsPerPage));
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
+     * @param \Illuminate\Support\Collection<string, mixed>|array<string, mixed> $params
      * @param array<string> $with
      * @param array<string, string> $orderBy
      * @return TModel
@@ -66,11 +61,12 @@ abstract class BaseRepository implements Repository
      */
     public function getOneByParams(Collection|array $params, array $with = [], array $orderBy = []): Model
     {
-        $queryBuilder = $this->createQueryBuilder()
-            ->with($with)
-            ->where(is_array($params) ? $params : $params->toArray());
-
-        $queryBuilder = $this->applyOrderBy($queryBuilder, $orderBy);
+        $queryBuilder = $this->applyOrderBy(
+            $this->createQueryBuilder()
+                ->with($with)
+                ->where($this->normalizeParams($params)),
+            $orderBy,
+        );
 
         $result = $queryBuilder->firstOrFail();
         assert($result instanceof Model);
@@ -86,26 +82,22 @@ abstract class BaseRepository implements Repository
      */
     public function findOneByParams(Collection|array $params, array $with = [], array $orderBy = []): ?Model
     {
-        $queryBuilder = $this->createQueryBuilder()
-            ->where(is_array($params) ? $params : $params->toArray())
-            ->with($with);
-
-        $queryBuilder = $this->applyOrderBy($queryBuilder, $orderBy);
-
-        return $queryBuilder->first();
+        return $this->applyOrderBy(
+            $this->createQueryBuilder()
+                ->where($this->normalizeParams($params))
+                ->with($with),
+            $orderBy,
+        )->first();
     }
 
     /**
-     * Count models by given criteria.
-     *
      * @param \Illuminate\Support\Collection<int, mixed>|array<int, array<int, mixed>> $params
      * @param array<string> $groupBy
      */
     public function countByParams(Collection|array $params, array $groupBy = []): int
     {
         $queryBuilder = $this->createQueryBuilder();
-
-        $normalizedParams = is_array($params) ? $params : $params->toArray();
+        $normalizedParams = $this->normalizeParams($params);
 
         if (count($normalizedParams) > 0) {
             $queryBuilder = $queryBuilder->where($normalizedParams);
@@ -185,6 +177,17 @@ abstract class BaseRepository implements Repository
         );
 
         return $result;
+    }
+
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
+     * @return array<TKey, TValue>
+     */
+    private function normalizeParams(Collection|array $params): array
+    {
+        return is_array($params) ? $params : $params->toArray();
     }
 
 }

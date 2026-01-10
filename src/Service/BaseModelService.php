@@ -10,33 +10,22 @@ use Pekral\Arch\ModelManager\ModelManager;
 use Pekral\Arch\Repository\Repository;
 
 /**
- * Base service class providing CRUD operations for Eloquent models.
- *
- * Follows Domain-Driven Design principles and Laravel conventions.
- * Automatically creates ModelManager for write operations and Repository for read operations.
- *
  * @template TModel of \Illuminate\Database\Eloquent\Model
  */
 abstract readonly class BaseModelService
 {
 
     /**
-     * Create a model manager instance.
-     *
      * @return \Pekral\Arch\ModelManager\ModelManager<TModel>
      */
     abstract public function getModelManager(): ModelManager;
 
     /**
-     * Create a repository instance.
-     *
      * @return \Pekral\Arch\Repository\Repository<TModel>
      */
     abstract public function getRepository(): Repository;
 
     /**
-     * Get the model class this service manages.
-     *
      * @return class-string<TModel>
      */
     abstract protected function getModelClass(): string;
@@ -51,15 +40,12 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
      * @param TModel $model
-     * @param array<TKey, TValue> $data
+     * @param array<string, mixed> $data
      */
     public function updateModel(Model $model, array $data): bool
     {
-        return $this->getModelManager()
-            ->update($model, $data);
+        return $this->getModelManager()->update($model, $data);
     }
 
     /**
@@ -71,8 +57,6 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * Find a model by given criteria.
-     *
      * @param array<string, mixed> $parameters
      * @param array<string> $with
      * @param array<string, string> $orderBy
@@ -84,8 +68,6 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * Find a model by given criteria or fail.
-     *
      * @param array<string, mixed> $parameters
      * @param array<string> $with
      * @param array<string, string> $orderBy
@@ -103,7 +85,6 @@ abstract readonly class BaseModelService
      * @param array<string, string> $orderBy
      * @param array<string> $groupBy
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel>
-     * @phpstan-return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel>
      */
     public function paginateByParams(
         array $parameters = [],
@@ -112,15 +93,13 @@ abstract readonly class BaseModelService
         array $orderBy = [],
         array $groupBy = [],
     ): LengthAwarePaginator {
-        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, TModel> $paginator */
+        /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, TModel> $paginator */
         $paginator = $this->getRepository()->paginateByParams($parameters, $with, $perPage, $orderBy, $groupBy);
 
         return $paginator;
     }
 
     /**
-     * Count models by given criteria.
-     *
      * @param array<int, array<int, mixed>> $parameters
      * @param array<string> $groupBy
      */
@@ -138,8 +117,6 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * Batch delete records by parameters.
-     *
      * @param array<string, mixed> $parameters
      */
     public function bulkDeleteByParams(array $parameters): void
@@ -148,10 +125,7 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param array<int, array<TKey, TValue>> $data
-     * @return int Number of created records
+     * @param array<int, array<string, mixed>> $data
      */
     public function bulkCreate(array $data): int
     {
@@ -159,11 +133,7 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param array<int, array<TKey, TValue>> $data
-     * @param string $keyColumn Column to match records (usually 'id')
-     * @return int Number of updated records
+     * @param array<int, array<string, mixed>> $data
      */
     public function bulkUpdate(array $data, string $keyColumn = 'id'): int
     {
@@ -171,10 +141,8 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * Update existing record or create a new one if it doesn't exist.
-     *
-     * @param array<string, mixed> $attributes Attributes to search for
-     * @param array<string, mixed> $values Values to update/create with
+     * @param array<string, mixed> $attributes
+     * @param array<string, mixed> $values
      * @return TModel
      */
     public function updateOrCreate(array $attributes, array $values = []): Model
@@ -183,10 +151,8 @@ abstract readonly class BaseModelService
     }
 
     /**
-     * Get existing record or create a new one if it doesn't exist.
-     *
-     * @param array<string, mixed> $attributes Attributes to search for
-     * @param array<string, mixed> $values Values to use when creating
+     * @param array<string, mixed> $attributes
+     * @param array<string, mixed> $values
      * @return TModel
      */
     public function getOrCreate(array $attributes, array $values = []): Model

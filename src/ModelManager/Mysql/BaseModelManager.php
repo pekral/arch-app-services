@@ -4,20 +4,17 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\ModelManager\Mysql;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Pekral\Arch\Exceptions\MassUpdateNotAvailable;
 use Pekral\Arch\ModelManager\ModelManager;
 
 use function class_uses_recursive;
-use function collect;
 use function count;
 use function in_array;
 
 /**
  * Base class for managing Eloquent model operations (CRUD).
- *
- * Provides a consistent interface for create, update, delete operations
- * with support for batch processing and advanced database features.
  *
  * @template TModel of \Illuminate\Database\Eloquent\Model
  * @implements \Pekral\Arch\ModelManager\ModelManager<TModel>
@@ -59,13 +56,7 @@ abstract class BaseModelManager implements ModelManager
      */
     public function delete(Model $model): bool
     {
-        $result = $model->delete();
-
-        if ($result === null) {
-            return false;
-        }
-
-        return $result;
+        return $model->delete() ?? false;
     }
 
     /**
@@ -97,12 +88,10 @@ abstract class BaseModelManager implements ModelManager
      */
     public function updateOrCreate(array $attributes, array $values = []): Model
     {
-        $modelClassName = $this->getModelClassName();
+        /** @var TModel $model */
+        $model = $this->getModelClassName()::updateOrCreate($attributes, $values);
 
-        /** @var TModel $result */
-        $result = $modelClassName::updateOrCreate($attributes, $values);
-
-        return $result;
+        return $model;
     }
 
     /**
@@ -112,12 +101,10 @@ abstract class BaseModelManager implements ModelManager
      */
     public function getOrCreate(array $attributes, array $values = []): Model
     {
-        $modelClassName = $this->getModelClassName();
+        /** @var TModel $model */
+        $model = $this->getModelClassName()::firstOrCreate($attributes, $values);
 
-        /** @var TModel $result */
-        $result = $modelClassName::firstOrCreate($attributes, $values);
-
-        return $result;
+        return $model;
     }
 
     /**
@@ -131,10 +118,7 @@ abstract class BaseModelManager implements ModelManager
             return 0;
         }
 
-        $modelClassName = $this->getModelClassName();
-        $result = $modelClassName::insert($dataArray);
-
-        return $result ? count($dataArray) : 0;
+        return $this->getModelClassName()::insert($dataArray) ? count($dataArray) : 0;
     }
 
     /**
@@ -148,8 +132,7 @@ abstract class BaseModelManager implements ModelManager
             return;
         }
 
-        $modelClassName = $this->getModelClassName();
-        $modelClassName::insertOrIgnore($dataArray);
+        $this->getModelClassName()::insertOrIgnore($dataArray);
     }
 
     /**
@@ -165,15 +148,7 @@ abstract class BaseModelManager implements ModelManager
 
         return collect($dataArray)
             ->filter(fn (array $data): bool => isset($data[$keyColumn]))
-            ->map(function (array $data) use ($keyColumn): array {
-                $keyValue = $data[$keyColumn];
-                unset($data[$keyColumn]);
-
-                return [
-                    'key' => $keyValue,
-                    'data' => $data,
-                ];
-            })
+            ->map(fn (array $data): array => $this->extractKeyAndData($data, $keyColumn))
             ->filter(fn (array $item): bool => $item['data'] !== [])
             ->sum(fn (array $item): int => $this->newModelQuery()
                 ->where($keyColumn, $item['key'])
@@ -181,9 +156,6 @@ abstract class BaseModelManager implements ModelManager
     }
 
     /**
-     * Mass update records using CASE WHEN SQL statement.
-     * Requires model to use MassUpdatable trait from iksaku/laravel-mass-update package.
-     *
      * @template TKey of array-key
      * @template TValue
      * @param array<int, array<TKey, TValue>|\Illuminate\Database\Eloquent\Model> $values
@@ -196,19 +168,10 @@ abstract class BaseModelManager implements ModelManager
             return 0;
         }
 
-        $modelClassName = $this->getModelClassName();
+        $this->ensureMassUpdatableTraitUsed($this->getModelClassName());
 
-        if (!in_array('Iksaku\Laravel\MassUpdate\MassUpdatable', class_uses_recursive($modelClassName), true)) {
-            throw MassUpdateNotAvailable::traitNotUsed($modelClassName);
-        }
-
-        $query = $this->newModelQuery();
-
-        $massUpdate = [$query, 'massUpdate'];
-
-        /** @phpstan-var callable(array, array|string|null): int $massUpdate */
-        /** @var int $result */
-        $result = call_user_func($massUpdate, $values, $uniqueBy);
+        /** @var int $result @phpstan-ignore method.notFound (massUpdate provided by MassUpdatable trait) */
+        $result = $this->newModelQuery()->massUpdate($values, $uniqueBy);
 
         return $result;
     }
@@ -218,20 +181,47 @@ abstract class BaseModelManager implements ModelManager
      */
     public function createNewModelInstance(): Model
     {
-        $modelClassName = $this->getModelClassName();
+        return new ($this->getModelClassName())([]);
+    }
 
-        return new $modelClassName([]);
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     * @param array<TKey, TValue> $data
+     * @return array{
+     *     key: TValue,
+     *     data: array<TKey, TValue>
+     * }
+     */
+    private function extractKeyAndData(array $data, string $keyColumn): array
+    {
+        $keyValue = $data[$keyColumn];
+        unset($data[$keyColumn]);
+
+        return [
+            'data' => $data,
+            'key' => $keyValue,
+        ];
+    }
+
+    /**
+     * @param class-string<TModel> $modelClassName
+     * @throws \Pekral\Arch\Exceptions\MassUpdateNotAvailable
+     */
+    private function ensureMassUpdatableTraitUsed(string $modelClassName): void
+    {
+        if (!in_array('Iksaku\Laravel\MassUpdate\MassUpdatable', class_uses_recursive($modelClassName), true)) {
+            throw MassUpdateNotAvailable::traitNotUsed($modelClassName);
+        }
     }
 
     /**
      * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
-    private function newModelQuery(): mixed
+    private function newModelQuery(): Builder
     {
-        $modelClassName = $this->getModelClassName();
-
         /** @var \Illuminate\Database\Eloquent\Builder<TModel> $query */
-        $query = new $modelClassName()->newQuery();
+        $query = $this->createNewModelInstance()->newQuery();
 
         return $query;
     }
