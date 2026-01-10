@@ -26,7 +26,8 @@
     "illuminate/contracts": "^12.0",
     "illuminate/database": "^12.0",
     "illuminate/pagination": "^12.0",
-    "illuminate/support": "^12.0"
+    "illuminate/support": "^12.0",
+    "spatie/laravel-data": "^4.18"
   },
   "require-dev": {
     "aws/aws-sdk-php": "^3.369.10",
