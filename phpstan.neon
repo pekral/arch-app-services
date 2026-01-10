@@ -43,3 +43,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\ActionExecuteMethodRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ModelNamingSuffixRule
+        tags:
+            - phpstan.rules.rule
