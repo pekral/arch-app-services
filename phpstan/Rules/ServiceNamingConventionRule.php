@@ -17,6 +17,7 @@ final class ServiceNamingConventionRule implements Rule
 {
 
     private const string BASE_MODEL_SERVICE_CLASS = 'Pekral\Arch\Service\BaseModelService';
+
     private const string REQUIRED_SUFFIX = 'ModelService';
 
     public function getNodeType(): string

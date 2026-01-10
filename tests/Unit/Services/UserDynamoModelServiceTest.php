@@ -302,7 +302,7 @@ test('paginate by params uses default items per page from config', function (): 
         ]);
     }
 
-    $result = $userModelService->paginateByParams([], [], null);
+    $result = $userModelService->paginateByParams([], []);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(15)

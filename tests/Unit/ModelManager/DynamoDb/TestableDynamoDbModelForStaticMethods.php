@@ -11,6 +11,7 @@ final class TestableDynamoDbModelForStaticMethods extends DynamoDbModel
 {
 
     private static ?Model $mockUpdateOrCreateResult = null;
+
     private static ?Model $mockFirstOrCreateResult = null;
 
     public static function setMockUpdateOrCreateResult(?Model $model): void
