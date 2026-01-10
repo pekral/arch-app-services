@@ -197,6 +197,12 @@ public function execute(array $data): User
 
 DTOs provide type-safe data objects with attribute-based validation using Spatie Laravel Data.
 
+> **Tip:** You can quickly generate a new DTO class using the Artisan command:
+> ```bash
+> php artisan make:arch-dto User/CreateUserDTO
+> ```
+> See [Code Generation Documentation](code-generation.md#dto-class) for more details.
+
 ### Basic DTO Usage
 
 ```php
@@ -504,6 +510,12 @@ public function store(Request $request, CreateUserWithDTO $action)
 ## ValidationRules Interface
 
 The package provides a `ValidationRules` interface for creating centralized validation rule classes.
+
+> **Tip:** You can quickly generate a new ValidationRules class using the Artisan command:
+> ```bash
+> php artisan make:arch-validation-rules User/UserValidationRules
+> ```
+> See [Code Generation Documentation](code-generation.md#validationrules-class) for more details.
 
 ### Interface Definition
 

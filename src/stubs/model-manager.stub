@@ -1,0 +1,21 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace {{ namespace }};
+
+use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
+use {{ modelClass }};
+
+/**
+ * @extends \Pekral\Arch\ModelManager\Mysql\BaseModelManager<\{{ modelClass }}>
+ */
+final class {{ class }} extends BaseModelManager
+{
+
+    protected function getModelClassName(): string
+    {
+        return {{ modelBaseName }}::class;
+    }
+
+}

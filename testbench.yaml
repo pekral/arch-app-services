@@ -1,0 +1,2 @@
+providers:
+  - Pekral\Arch\ArchServiceProvider

@@ -41,6 +41,43 @@ Optionally, you can publish the configuration file:
 php artisan vendor:publish --tag="arch-config"
 ```
 
+You can also publish the stub files for customization:
+
+```bash
+php artisan vendor:publish --tag="arch-stubs"
+```
+
+## Code Generation
+
+The package provides Artisan commands for generating boilerplate code:
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `make:arch-action` | Create a new Action class |
+| `make:arch-service` | Create a complete service stack (Service, Repository, ModelManager) |
+| `make:arch-dto` | Create a new DTO class |
+| `make:arch-validation-rules` | Create a new ValidationRules class |
+
+### Examples
+
+```bash
+# Create an Action class
+php artisan make:arch-action User/CreateUserAction
+
+# Create a complete service stack for User model
+php artisan make:arch-service "App\Models\User"
+
+# Create a DTO class
+php artisan make:arch-dto User/CreateUserDTO
+
+# Create a ValidationRules class
+php artisan make:arch-validation-rules User/UserValidationRules
+```
+
+For detailed documentation about code generation, see [Code Generation Documentation](docs/code-generation.md).
+
 ## Architecture Overview
 
 This package provides a clean architecture with the following components:
@@ -930,6 +967,7 @@ For detailed documentation about the PHPStan rules, see [PHPStan Rules Documenta
 
 For detailed documentation about specific features, see:
 
+- [Code Generation](docs/code-generation.md) - Artisan commands for generating boilerplate code
 - [PHPStan Rules](docs/phpstan-rules.md) - Custom architecture rules
 - [Repository Caching](docs/repository-caching.md) - Automatic caching layer
 - [Query Builder Methods](docs/query-builder-methods.md) - Custom query builder methods with PHPStorm support
