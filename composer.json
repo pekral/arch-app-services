@@ -100,6 +100,10 @@
       "echo \"📊 Running code coverage analysis...\"",
       "@test:coverage"
     ],
+    "dynamodb:start": [
+      "echo \"🗄️ Ensuring DynamoDB is running...\"",
+      "bash scripts/check-dynamodb.sh"
+    ],
     "fix": [
       "echo \"🔧 Running all fixes...\"",
       "@normalize-fix",
@@ -146,7 +150,8 @@
     ],
     "test:coverage": [
       "echo \"📊 Running coverage tests with 100% minimum...\"",
-      "php -dpcov.enabled=1 -dpcov.directory=. -dxdebug.mode=off vendor/bin/pest --coverage --coverage-filter=src --coverage-filter=examples --min=100"
+      "@dynamodb:start",
+      "php -dpcov.enabled=1 -dpcov.directory=. -dxdebug.mode=off vendor/bin/pest --coverage --min=100 --coverage-filter=src --coverage-clover=build/coverage/clover.xml --coverage-html=build/coverage/html"
     ]
   }
 }

@@ -3,7 +3,9 @@
          xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
-         beStrictAboutTestsThatDoNotTestAnything="false">
+         beStrictAboutTestsThatDoNotTestAnything="false"
+         enforceTimeLimit="true"
+         defaultTimeLimit="3">
     <testsuites>
         <testsuite name="Core">
             <file>./tests/Unit/ArchServiceProviderTest.php</file>

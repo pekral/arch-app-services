@@ -24,7 +24,7 @@ final class UserFactory extends Factory
     {
         return [
             'deleted_at' => null,
-            'email' => $this->faker->unique()->safeEmail(),
+            'email' => fake()->unique()->email(),
             'email_verified_at' => null,
             'name' => $this->faker->name(),
             'password' => $this->faker->password(),
