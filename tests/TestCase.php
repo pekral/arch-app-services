@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Pekral\Arch\ArchServiceProvider;
 use RuntimeException;
+use Spatie\LaravelData\LaravelDataServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -99,6 +100,7 @@ abstract class TestCase extends Orchestra
         return [
             ArchServiceProvider::class,
             DynamoDbServiceProvider::class,
+            LaravelDataServiceProvider::class,
         ];
     }
 

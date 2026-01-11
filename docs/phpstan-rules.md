@@ -390,6 +390,82 @@ final readonly class ProcessUser implements ArchAction
 }
 ```
 
+### 7. ValidationRulesMethodNamingRule
+
+**Purpose:** Ensures that classes implementing `ValidationRules` interface follow strict conventions for method naming and structure.
+
+**Rationale:** ValidationRules classes should be stateless utility classes with only static methods. All methods must end with `Rules` suffix for consistency and clarity. No constructor is allowed as these classes should never be instantiated.
+
+**Violations detected:**
+- Having a constructor in ValidationRules class
+- Having non-static methods
+- Methods not ending with `Rules` suffix
+
+**Example violations:**
+
+```php
+final class UserValidationRules implements ValidationRules
+{
+    // ❌ Violation: Constructor not allowed
+    public function __construct() {}
+    
+    // ❌ Violation: Method must be static
+    public function email(): array {}
+    
+    // ❌ Violation: Method must end with "Rules" suffix
+    public static function getEmail(): array {}
+}
+```
+
+**Correct approach:**
+
+```php
+final class UserValidationRules implements ValidationRules
+{
+    public static function rules(): array
+    {
+        return [
+            'email' => ['required', 'email'],
+            'name' => ['required', 'max:255'],
+        ];
+    }
+    
+    public static function emailRules(): array
+    {
+        return ['required', 'email'];
+    }
+    
+    public static function nameRules(): array
+    {
+        return ['required', 'max:255'];
+    }
+}
+```
+
+### 8. ValidationRulesNoInstantiationRule
+
+**Purpose:** Prevents instantiation of classes implementing `ValidationRules` interface via `new` keyword.
+
+**Rationale:** ValidationRules classes should be used statically only. Creating instances would be meaningless as all methods are static.
+
+**Violations detected:**
+- Creating instance of ValidationRules class using `new` keyword
+
+**Example violation:**
+
+```php
+// ❌ Violation: ValidationRules class should not be instantiated
+$rules = new UserValidationRules();
+```
+
+**Correct approach:**
+
+```php
+// ✅ Correct: Use static methods directly
+$rules = UserValidationRules::rules();
+$emailRules = UserValidationRules::emailRules();
+```
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -418,6 +494,14 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\ActionExecuteMethodRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ValidationRulesMethodNamingRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ValidationRulesNoInstantiationRule
         tags:
             - phpstan.rules.rule
 ```

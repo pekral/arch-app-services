@@ -18,6 +18,7 @@
 - **Model Manager**: CRUD operations with batch processing and duplicate handling capabilities
 - **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
 - **Data Validation**: Integrated validation using Laravel's validation system
+- **Data Transfer Objects (DTO)**: Type-safe data objects with attribute-based validation
 - **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
 - **PHPStan Rules**: Custom architecture rules enforcing best practices
 - **Type Safety**: Full PHPDoc type annotations and generics support
@@ -51,7 +52,8 @@ This package provides a clean architecture with the following components:
 5. **Model Managers**: Handle write operations (create, update, delete)
 6. **Data Builder**: Transform data using pipeline pattern
 7. **Data Validator**: Integrated validation using Laravel's validation system
-8. **Pipes**: Reusable data transformation components
+8. **Data Transfer Objects (DTO)**: Type-safe data objects with attribute-based validation
+9. **Pipes**: Reusable data transformation components
 
 ## Usage Examples
 
@@ -361,6 +363,110 @@ final readonly class CreateUser
         $this->verifyUserAction->handle($user);
         
         return $user;
+    }
+}
+```
+
+### Using Data Transfer Objects (DTO)
+
+DTOs provide type-safe data objects with attribute-based validation using Spatie Laravel Data:
+
+```php
+<?php
+
+namespace App\DTO;
+
+use Pekral\Arch\DTO\DataTransferObject;
+use Spatie\LaravelData\Attributes\Validation\Email;
+use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Nullable;
+use Spatie\LaravelData\Attributes\Validation\Required;
+use Spatie\LaravelData\Attributes\Validation\Rule;
+
+final class CreateUserDTO extends DataTransferObject
+{
+    public function __construct(
+        #[Email, Required]
+        public string $email,
+        #[Max(255), Required]
+        public string $name,
+        #[Nullable, Rule(new CzechPhoneRule())]
+        public ?string $phone = null,
+    ) {
+    }
+}
+
+// Usage
+$dto = CreateUserDTO::from($request->all());
+$dto = CreateUserDTO::validateAndCreate($data); // With validation
+$array = $dto->toArray();
+```
+
+### Custom Validation Rules for DTO
+
+Create custom validation rules that can be used in DTOs:
+
+```php
+<?php
+
+namespace App\Rules;
+
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+
+final class CzechPhoneRule implements ValidationRule
+{
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (!preg_match('/^\+420\d{9}$/', $value)) {
+            $fail('The phone number must be in format +420XXXXXXXXX.');
+        }
+    }
+}
+```
+
+### Sharing Validation Rules Between Request and DTO
+
+Create centralized validation rules that can be used in both Laravel Requests and DTOs:
+
+```php
+<?php
+
+namespace App\Rules;
+
+final class UserValidationRules
+{
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public static function rules(): array
+    {
+        return [
+            'email' => ['required', 'email'],
+            'name' => ['required', 'max:255'],
+            'phone' => ['nullable', new CzechPhoneRule()],
+        ];
+    }
+}
+
+// In Laravel Request
+final class CreateUserRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return UserValidationRules::rules();
+    }
+}
+
+// In DTO
+final class CreateUserDTO extends DataTransferObject
+{
+    public function __construct(
+        #[Rule(UserValidationRules::emailRules())]
+        public string $email,
+        #[Rule(UserValidationRules::nameRules())]
+        public string $name,
+    ) {
     }
 }
 ```
@@ -776,6 +882,8 @@ The package includes custom PHPStan rules that enforce architectural best practi
 3. **OnlyModelManagersCanPersistDataRule** - Ensures data persistence operations are only performed in ModelManager or ModelService classes
 4. **NoLaravelHelpersForActionsRule** - Prevents using Laravel helper functions (`app()`, `resolve()`, `make()`) to resolve Action classes. Actions must be injected via constructor
 5. **ServiceNamingConventionRule** - Ensures that all Service classes extending `BaseModelService` end with `ModelService` suffix
+6. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
+7. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
 
 ### Why These Rules?
 
@@ -826,7 +934,7 @@ For detailed documentation about specific features, see:
 - [Repository Caching](docs/repository-caching.md) - Automatic caching layer
 - [Query Builder Methods](docs/query-builder-methods.md) - Custom query builder methods with PHPStorm support
 - [Data Builder](docs/data-builder.md) - Pipeline-based data transformation
-- [Data Validation](docs/validation.md) - Integrated validation
+- [Data Validation](docs/validation.md) - Integrated validation with DTO support
 - [Model Manager](docs/model-manager.md) - CRUD operations with batch processing
 - [Soft Delete](docs/soft-delete.md) - Soft delete support
 - [Coverage Analysis](docs/coverage-analysis.md) - Code coverage information

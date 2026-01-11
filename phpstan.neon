@@ -47,3 +47,11 @@ services:
         class: Pekral\Arch\PHPStan\Rules\ModelNamingSuffixRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ValidationRulesMethodNamingRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ValidationRulesNoInstantiationRule
+        tags:
+            - phpstan.rules.rule
