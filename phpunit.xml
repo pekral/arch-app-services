@@ -11,6 +11,9 @@
             <file>./tests/Unit/ArchServiceProviderTest.php</file>
             <directory suffix="Test.php">./tests/Unit/DataBuilder</directory>
         </testsuite>
+        <testsuite name="Console">
+            <directory suffix="Test.php">./tests/Unit/Console</directory>
+        </testsuite>
         <testsuite name="Exceptions">
             <directory suffix="Test.php">./tests/Unit/Exceptions</directory>
         </testsuite>

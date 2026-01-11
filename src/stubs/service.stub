@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace {{ namespace }};
+
+use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
+use Pekral\Arch\Repository\Mysql\BaseRepository;
+use Pekral\Arch\Service\BaseModelService;
+use {{ modelClass }};
+
+/**
+ * @extends \Pekral\Arch\Service\BaseModelService<\{{ modelClass }}>
+ */
+final readonly class {{ class }} extends BaseModelService
+{
+
+    public function __construct(
+        private {{ modelManagerClass }} ${{ modelManagerProperty }},
+        private {{ repositoryClass }} ${{ repositoryProperty }},
+    ) {
+    }
+
+    /**
+     * @return \Pekral\Arch\ModelManager\Mysql\BaseModelManager<\{{ modelClass }}>
+     */
+    public function getModelManager(): BaseModelManager
+    {
+        return $this->{{ modelManagerProperty }};
+    }
+
+    /**
+     * @return \Pekral\Arch\Repository\Mysql\BaseRepository<\{{ modelClass }}>
+     */
+    public function getRepository(): BaseRepository
+    {
+        return $this->{{ repositoryProperty }};
+    }
+
+    protected function getModelClass(): string
+    {
+        return {{ modelBaseName }}::class;
+    }
+
+}

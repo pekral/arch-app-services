@@ -1,0 +1,19 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace {{ namespace }};
+
+use Pekral\Arch\DTO\DataTransferObject;
+
+final class {{ class }} extends DataTransferObject
+{
+
+    public function __construct(
+        // TODO: Define DTO properties with validation attributes
+        // #[Required]
+        // public string $property,
+    ) {
+    }
+
+}

@@ -34,7 +34,7 @@ Before submitting a pull request:
 
 If the project maintainer has any additional requirements, you will find them listed here.
 
-- **[PSR-12 Coding Standard](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-12-coding-style-guide.md)** - The easiest way to apply the conventions is to install [PHP CS Fixer](https://github.com/FriendsOfPHP/PHP-CS-Fixer).
+- **[PSR-12 Coding Standard](https://www.php-fig.org/psr/psr-12/)** - The easiest way to apply the conventions is to install [PHP CS Fixer](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer).
 
 - **Add tests!** - Your patch won't be accepted if it doesn't have tests.
 

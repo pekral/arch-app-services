@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace {{ namespace }};
+
+use Pekral\Arch\Repository\CacheableRepository;
+use Pekral\Arch\Repository\Mysql\BaseRepository;
+use {{ modelClass }};
+
+/**
+ * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\{{ modelClass }}>
+ */
+final class {{ class }} extends BaseRepository
+{
+
+    use CacheableRepository;
+
+    protected function getModelClassName(): string
+    {
+        return {{ modelBaseName }}::class;
+    }
+
+}

@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace {{ namespace }};
+
+use Pekral\Arch\DataValidation\ValidationRules;
+
+final class {{ class }} implements ValidationRules
+{
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public static function rules(): array
+    {
+        return [
+            // TODO: Define validation rules
+            // 'field_name' => self::fieldNameRules(),
+        ];
+    }
+
+}

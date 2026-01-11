@@ -11,6 +11,7 @@
     "service",
     "model-manager"
   ],
+  "readme": "README.md",
   "authors": [
     {
       "name": "Petr Král",
@@ -19,6 +20,12 @@
       "role": "Maintainer"
     }
   ],
+  "homepage": "https://github.com/pekral/arch-app-services",
+  "support": {
+    "issues": "https://github.com/pekral/arch-app-services/issues",
+    "source": "https://github.com/pekral/arch-app-services",
+    "docs": "https://github.com/pekral/arch-app-services#readme"
+  },
   "require": {
     "php": "^8.4",
     "ext-simplexml": "*",
@@ -36,9 +43,9 @@
     "larastan/larastan": "^3.8.1",
     "laravel/pint": "^1.27.0",
     "orchestra/testbench": "^10.8",
-    "pekral/cursor-rules": "dev-master",
-    "pekral/phpcs-rules": "dev-master",
-    "pekral/rector-rules": "dev-master",
+    "pekral/cursor-rules": "dev-master@dev",
+    "pekral/phpcs-rules": "dev-master@dev",
+    "pekral/rector-rules": "dev-master@dev",
     "pestphp/pest": "^4.3.1",
     "pestphp/pest-plugin-type-coverage": "^4.0.3",
     "phpstan/extension-installer": "^1.4.3",
@@ -47,11 +54,11 @@
     "phpstan/phpstan-mockery": "^2.0",
     "phpstan/phpstan-phpunit": "^2.0.11",
     "rector/rector": "^2.3.0",
-    "roave/security-advisories": "dev-latest",
+    "roave/security-advisories": "dev-latest@dev",
     "squizlabs/php_codesniffer": ">=4.0.1",
     "symfony/console": "^7.4.3"
   },
-  "minimum-stability": "dev",
+  "minimum-stability": "stable",
   "prefer-stable": true,
   "autoload": {
     "psr-4": {
