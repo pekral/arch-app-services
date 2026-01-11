@@ -2,6 +2,20 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2026-01-11 (PR #61)
+
+
+- 📝 **Changed**: fixed #59 - new phpstan rule or model naming conventions
+- ♻️ **Refactored**: DataBuilder::class and ignore DynamoDB instance in git
+- 📝 **Changed**: tests: fix tests
+- 🔧 **Changed**: composer update dependencies
+- 🔧 **Changed**: composer update dependencies
+- 🔧 **Changed**: CLAUDE.md file added
+- 🔧 **Changed**: update cursor rules
+- 🐛 **Fixed**: fix coerrect namespace for BuilderPipe::class
+- 📝 **Changed**: chore - composer update dependencies
+- 📝 **Changed**: WIP feat - apply dynamodb use cases
+
 ## [Unreleased] - 2026-01-10
 
 
