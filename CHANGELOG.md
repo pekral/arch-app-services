@@ -2,6 +2,13 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased] - 2026-01-25
+
+
+- 🔧 **Changed**: update dependencies
+- 🔧 **Changed**: fix composer content
+- 📝 **Changed**: fixed #7 - artisan commands
+
 ## [Unreleased] - 2026-01-11 (PR #66)
 
 
