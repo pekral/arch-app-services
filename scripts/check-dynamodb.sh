@@ -39,14 +39,23 @@ if [ -z "${CI}" ] && [ -z "${GITHUB_ACTIONS}" ]; then
     fi
 
     CONTAINER_STATUS=$(docker ps -a --filter "name=dynamodb-local" --format "{{.Status}}" 2>/dev/null || echo "")
+    CONTAINER_ID=$(docker ps -a --filter "name=dynamodb-local" --format "{{.ID}}" 2>/dev/null || echo "")
 
     if [ -z "${CONTAINER_STATUS}" ]; then
         echo "🚀 Starting DynamoDB container..."
         ${COMPOSE_CMD} up -d dynamodb-local
     elif echo "${CONTAINER_STATUS}" | grep -q "^Up"; then
-        echo "✅ DynamoDB container is already running"
+        CONTAINER_PORTS=$(docker port dynamodb-local 2>/dev/null || echo "")
+        if echo "${CONTAINER_PORTS}" | grep -q "${DYNAMODB_PORT}"; then
+            echo "✅ DynamoDB container is already running on port ${DYNAMODB_PORT}"
+        else
+            echo "🔄 Recreating DynamoDB container (port ${DYNAMODB_PORT} not mapped)..."
+            docker rm -f "${CONTAINER_ID}" 2>/dev/null || true
+            ${COMPOSE_CMD} up -d dynamodb-local
+        fi
     else
-        echo "🔄 Starting stopped DynamoDB container..."
+        echo "🔄 Recreating DynamoDB container for correct port mapping..."
+        docker rm -f "${CONTAINER_ID}" 2>/dev/null || true
         ${COMPOSE_CMD} up -d dynamodb-local
     fi
 
