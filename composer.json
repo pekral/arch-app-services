@@ -34,26 +34,26 @@
     "illuminate/database": "^12.0",
     "illuminate/pagination": "^12.0",
     "illuminate/support": "^12.0",
-    "spatie/laravel-data": "^4.19"
+    "spatie/laravel-data": "^4.19.1"
   },
   "require-dev": {
-    "aws/aws-sdk-php": "^3.369.19",
-    "ergebnis/composer-normalize": "^2.48.2",
+    "aws/aws-sdk-php": "^3.369.34",
+    "ergebnis/composer-normalize": "^2.50.0",
     "iksaku/laravel-mass-update": "^1.0.8",
-    "larastan/larastan": "^3.9.1",
-    "laravel/pint": "^1.27.0",
+    "larastan/larastan": "^3.9.2",
+    "laravel/pint": "^1.27.1",
     "orchestra/testbench": "^10.9",
-    "pekral/cursor-rules": "^0.3",
-    "pekral/phpcs-rules": "^0.4.5",
-    "pekral/rector-rules": "^0.4.7",
-    "pestphp/pest": "^4.3.1",
+    "pekral/cursor-rules": "^0.4.1",
+    "pekral/phpcs-rules": "^0.4.7",
+    "pekral/rector-rules": "^0.4.8",
+    "pestphp/pest": "^4.3.2",
     "pestphp/pest-plugin-type-coverage": "^4.0.3",
     "phpstan/extension-installer": "^1.4.3",
-    "phpstan/phpstan": "^2.1.37",
-    "phpstan/phpstan-deprecation-rules": "^2.0.3",
+    "phpstan/phpstan": "^2.1.39",
+    "phpstan/phpstan-deprecation-rules": "^2.0.4",
     "phpstan/phpstan-mockery": "^2.0",
-    "phpstan/phpstan-phpunit": "^2.0.12",
-    "rector/rector": "^2.3.4",
+    "phpstan/phpstan-phpunit": "^2.0.16",
+    "rector/rector": "^2.3.6",
     "roave/security-advisories": "dev-latest@dev",
     "squizlabs/php_codesniffer": ">=4.0.1",
     "symfony/console": "^7.4.4"
@@ -76,6 +76,7 @@
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "ergebnis/composer-normalize": true,
+      "pekral/cursor-rules": true,
       "pestphp/pest-plugin": true,
       "phpstan/extension-installer": false
     },
@@ -94,6 +95,7 @@
       "echo \"🔍 Running PHPStan static analysis...\"",
       "vendor/bin/phpstan analyse --memory-limit=2G"
     ],
+    "build": "composer fix && composer check",
     "check": [
       "echo \"🚀 Running full quality check...\"",
       "@normalize-check",
