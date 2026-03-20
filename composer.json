@@ -29,7 +29,7 @@
   "require": {
     "php": "^8.4",
     "ext-simplexml": "*",
-    "baopham/dynamodb": "^6.6",
+    "baopham/dynamodb": "^7.0",
     "illuminate/contracts": "^12.0",
     "illuminate/database": "^12.0",
     "illuminate/pagination": "^12.0",
