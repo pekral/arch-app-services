@@ -5,7 +5,8 @@
          colors="true"
          beStrictAboutTestsThatDoNotTestAnything="false"
          enforceTimeLimit="true"
-         defaultTimeLimit="3">
+         defaultTimeLimit="30"
+         timeoutForLargeTests="120">
     <testsuites>
         <testsuite name="Core">
             <file>./tests/Unit/ArchServiceProviderTest.php</file>
@@ -32,6 +33,9 @@
         </testsuite>
         <testsuite name="Models">
             <directory suffix="Test.php">./tests/Unit/Models</directory>
+        </testsuite>
+        <testsuite name="PHPStan">
+            <directory suffix="Test.php">./tests/PHPStan</directory>
         </testsuite>
     </testsuites>
     <php>

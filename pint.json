@@ -1,7 +1,9 @@
 {
   "preset": "psr12",
   "rules": {
-    "single_quote": {"strings_containing_single_quote_chars" : true},
+    "single_quote": {
+      "strings_containing_single_quote_chars": true
+    },
     "php_unit_set_up_tear_down_visibility": true,
     "return_type_declaration": true,
     "no_unneeded_import_alias": true,
@@ -24,8 +26,12 @@
     "statement_indentation": false,
     "no_blank_lines_after_class_opening": false,
     "not_operator_with_successor_space": false,
-    "array_syntax" : {"syntax" : "short"},
-    "binary_operator_spaces" : {"default" : "single_space"},
+    "array_syntax": {
+      "syntax": "short"
+    },
+    "binary_operator_spaces": {
+      "default": "single_space"
+    },
     "cast_spaces": true,
     "clean_namespace": true,
     "compact_nullable_typehint": true,
@@ -38,7 +44,9 @@
     "ordered_attributes": true,
     "lowercase_cast": true,
     "trim_array_spaces": true,
-    "concat_space": {"spacing" : "one"},
+    "concat_space": {
+      "spacing": "one"
+    },
     "no_useless_concat_operator": true,
     "operator_linebreak": true,
     "no_useless_nullsafe_operator": true,
@@ -65,7 +73,11 @@
     "no_empty_comment": true,
     "no_empty_statement": true,
     "no_multiple_statements_per_line": true,
-    "phpdoc_line_span": {"const" : "single", "method" : "multi", "property" : "multi"},
+    "phpdoc_line_span": {
+      "const": "single",
+      "method": "multi",
+      "property": "multi"
+    },
     "combine_consecutive_unsets": true,
     "combine_consecutive_issets": true,
     "control_structure_continuation_position": true,
@@ -104,6 +116,11 @@
     "phpdoc_annotation_without_dot": true,
     "phpdoc_tag_casing": true,
     "php_unit_data_provider_static": true,
-    "phpdoc_align": {"align" : "left"}
-  }
+    "phpdoc_align": {
+      "align": "left"
+    }
+  },
+  "exclude": [
+    "tests/fixtures"
+  ]
 }

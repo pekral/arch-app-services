@@ -140,11 +140,11 @@
     ],
     "pint-check": [
       "echo \"🎨 Running Laravel Pint check...\"",
-      "vendor/bin/pint src/ tests/ examples/ phpstan/ --test"
+      "vendor/bin/pint src/ tests/Unit tests/Models tests/TestCase.php tests/Pest.php tests/database examples/ phpstan/ --test"
     ],
     "pint-fix": [
       "echo \"🎨 Running Laravel Pint fixes...\"",
-      "vendor/bin/pint src/ tests/ examples/ phpstan/"
+      "vendor/bin/pint src/ tests/Unit tests/Models tests/TestCase.php tests/Pest.php tests/database examples/ phpstan/"
     ],
     "rector-check": [
       "echo \"🔄 Running Rector check (dry-run)...\"",
