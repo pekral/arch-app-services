@@ -20,13 +20,24 @@ final readonly class BulkImportUsers implements ArchAction
 
     /**
      * @param array<int, array<string, mixed>> $userData
+     * @return array<int, array<string, mixed>>
+     */
+    private function prepareUserData(array $userData): array
+    {
+        $now = now();
+
+        return array_map(static fn (array $data): array => [...$data, 'created_at' => $now, 'updated_at' => $now], $userData);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $userData
      * @return array{
      *     total_processed: int,
      *     created: int,
      *     ignored: int
      * }
      */
-    public function execute(array $userData): array
+    public function __invoke(array $userData): array
     {
         if ($userData === []) {
             return [
@@ -55,17 +66,6 @@ final readonly class BulkImportUsers implements ArchAction
             'ignored' => $ignoredCount,
             'total_processed' => count($preparedData),
         ];
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $userData
-     * @return array<int, array<string, mixed>>
-     */
-    private function prepareUserData(array $userData): array
-    {
-        $now = now();
-
-        return array_map(static fn (array $data): array => [...$data, 'created_at' => $now, 'updated_at' => $now], $userData);
     }
 
 }

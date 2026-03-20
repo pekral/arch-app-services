@@ -14,7 +14,7 @@ final readonly class CountVerifiedUsers implements ArchAction
     {
     }
 
-    public function handle(): int
+    public function __invoke(): int
     {
         /** @var array<int, array<int, mixed>> $params */
         $params = [

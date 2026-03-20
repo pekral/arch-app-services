@@ -17,11 +17,11 @@ test('refresh users refreshes all users', function (): void {
 
     /** @var array<int, array<mixed>> $data */
     $data = $refreshedData->values()->toArray();
-    expect($refreshUsers->handle($data))->toBe($refreshedData->count());
+    expect(($refreshUsers)($data))->toBe($refreshedData->count());
 });
 
 test('import users without data returns zero', function (): void {
     $refreshUsers = app(RefreshUsers::class);
     
-    expect($refreshUsers->handle([]))->toBe(0);
+    expect(($refreshUsers)([]))->toBe(0);
 });

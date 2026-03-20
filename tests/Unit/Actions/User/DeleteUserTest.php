@@ -9,7 +9,7 @@ test('delete by model removes user', function (): void {
     $deleteUser = app(DeleteUser::class);
     $user = User::factory()->create();
     
-    $deleteUser->handle($user);
+    ($deleteUser)($user);
     
     expect(User::query()->find($user->id))->toBeNull();
 });
@@ -18,7 +18,7 @@ test('delete by params removes user', function (): void {
     $deleteUser = app(DeleteUser::class);
     $user = User::factory()->create();
     
-    $deleteUser->handle($user->id);
+    ($deleteUser)($user->id);
     
     expect(User::query()->find($user->id))->toBeNull();
 });

@@ -49,7 +49,7 @@ final readonly class CreateUserAction implements ArchAction
     {
     }
 
-    public function execute(): void
+    public function __invoke(): void
     {
         // TODO: Implement action logic
     }

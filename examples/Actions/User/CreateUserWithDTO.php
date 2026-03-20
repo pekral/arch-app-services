@@ -21,7 +21,7 @@ final readonly class CreateUserWithDTO implements ArchAction
     {
     }
 
-    public function execute(CreateUserDTO $dto): User
+    public function __invoke(CreateUserDTO $dto): User
     {
         $dataNormalized = $this->build(
             $dto->toArray(),
@@ -32,7 +32,7 @@ final readonly class CreateUserWithDTO implements ArchAction
         );
         $model = $this->userModelService->create($dataNormalized);
 
-        $this->verifyUserAction->handle($model);
+        ($this->verifyUserAction)($model);
 
         return $model;
     }

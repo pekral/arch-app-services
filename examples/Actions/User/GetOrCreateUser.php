@@ -27,7 +27,7 @@ final readonly class GetOrCreateUser implements ArchAction
      * @param array<string, mixed> $values Values to use when creating
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function execute(array $attributes, array $values = []): User
+    public function __invoke(array $attributes, array $values = []): User
     {
         $mergedData = [...$attributes, ...$values];
         

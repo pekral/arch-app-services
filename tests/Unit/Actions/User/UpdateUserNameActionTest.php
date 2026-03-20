@@ -10,7 +10,7 @@ test('update user name updates correctly', function (): void {
     $user = User::factory()->create(['name' => 'john']);
     $newName = 'John';
     
-    $updateUserName->handle($newName, $user);
+    ($updateUserName)($newName, $user);
     
     $user->fresh();
     expect($user->name)->toBe($newName);

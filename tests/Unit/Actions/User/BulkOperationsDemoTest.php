@@ -8,7 +8,7 @@ use Pekral\Arch\Tests\Models\User;
 test('execute performs bulk operations correctly', function (): void {
     $action = app(BulkOperationsDemo::class);
 
-    $result = $action->execute();
+    $result = ($action)();
 
     expect($result['bulk_create_result'])->toBe(3)
         ->and($result['insert_or_ignore_result'])->toBe(3)

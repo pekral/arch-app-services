@@ -9,7 +9,7 @@ test('delete by model manager removes user', function (): void {
     $deleteUser = app(DeleteUserByModelManager::class);
     $user = User::factory()->create();
 
-    $result = $deleteUser->handle($user);
+    $result = ($deleteUser)($user);
 
     expect($result)->toBeTrue()
         ->and(User::query()->find($user->id))->toBeNull();

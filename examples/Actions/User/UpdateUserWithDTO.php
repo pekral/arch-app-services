@@ -21,7 +21,7 @@ final readonly class UpdateUserWithDTO implements ArchAction
     {
     }
 
-    public function execute(User $model, UpdateUserDTO $dto): User
+    public function __invoke(User $model, UpdateUserDTO $dto): User
     {
         $dataNormalized = $this->build(
             $dto->toArray(),

@@ -19,7 +19,7 @@ final readonly class GetUsers implements ArchAction
      * @param array<string, mixed> $filters
      * @return \Illuminate\Pagination\LengthAwarePaginator<int, \Pekral\Arch\Tests\Models\User>
      */
-    public function handle(array $filters = []): LengthAwarePaginator
+    public function __invoke(array $filters = []): LengthAwarePaginator
     {
         /** @var \Illuminate\Pagination\LengthAwarePaginator<int, \Pekral\Arch\Tests\Models\User> $paginator */
         $paginator = $this->userModelService->paginateByParams($filters);

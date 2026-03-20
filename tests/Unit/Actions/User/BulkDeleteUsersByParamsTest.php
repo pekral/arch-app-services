@@ -10,7 +10,7 @@ test('bulk delete by params deletes matching records', function (): void {
     User::factory()->count(5)->create(['name' => 'John']);
     User::factory()->count(3)->create(['name' => 'Jane']);
 
-    $bulkDeleteAction->execute(['name' => 'John']);
+    ($bulkDeleteAction)(['name' => 'John']);
 
     expect(User::query()->where('name', 'John')->count())->toBe(0)
         ->and(User::query()->where('name', 'Jane')->count())->toBe(3);
@@ -23,7 +23,7 @@ test('bulk delete by params with multiple conditions', function (): void {
     User::factory()->create(['name' => 'John', 'email' => 'john3@example.com']);
     User::factory()->create(['name' => 'Jane', 'email' => 'jane@example.com']);
 
-    $bulkDeleteAction->execute(['name' => 'John', 'email' => 'john1@example.com']);
+    ($bulkDeleteAction)(['name' => 'John', 'email' => 'john1@example.com']);
 
     expect(User::query()->where('name', 'John')->where('email', 'john1@example.com')->count())->toBe(0)
         ->and(User::query()->where('name', 'John')->count())->toBe(2);
@@ -33,7 +33,7 @@ test('bulk delete by params with no matching records does nothing', function ():
     $bulkDeleteAction = app(BulkDeleteUsersByParams::class);
     User::factory()->count(3)->create(['name' => 'John']);
 
-    $bulkDeleteAction->execute(['name' => 'NonExistent']);
+    ($bulkDeleteAction)(['name' => 'NonExistent']);
 
     expect(User::query()->where('name', 'John')->count())->toBe(3);
 });
@@ -42,7 +42,7 @@ test('bulk delete by params deletes all records when no conditions', function ()
     $bulkDeleteAction = app(BulkDeleteUsersByParams::class);
     User::factory()->count(5)->create();
 
-    $bulkDeleteAction->execute([]);
+    ($bulkDeleteAction)([]);
 
     expect(User::count())->toBe(0);
 });
@@ -50,7 +50,7 @@ test('bulk delete by params deletes all records when no conditions', function ()
 test('bulk delete by params with empty table does nothing', function (): void {
     $bulkDeleteAction = app(BulkDeleteUsersByParams::class);
 
-    $bulkDeleteAction->execute(['name' => 'John']);
+    ($bulkDeleteAction)(['name' => 'John']);
 
     expect(User::count())->toBe(0);
 });

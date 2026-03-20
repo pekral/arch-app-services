@@ -26,7 +26,7 @@ final readonly class BulkOperationsDemo implements ArchAction
      *     final_user_count: int
      * }
      */
-    public function execute(): array
+    public function __invoke(): array
     {
         // Demo 1: Bulk create new users
         $newUsers = [

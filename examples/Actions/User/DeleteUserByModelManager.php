@@ -15,7 +15,7 @@ final readonly class DeleteUserByModelManager implements ArchAction
     {
     }
 
-    public function handle(User $user): bool
+    public function __invoke(User $user): bool
     {
         return $this->userModelManager->delete($user);
     }

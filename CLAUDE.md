@@ -100,7 +100,7 @@ The package includes custom PHPStan rules at max level:
 3. **OnlyModelManagersCanPersistDataRule** - Only ModelManager/ModelService can persist data
 4. **NoLaravelHelpersForActionsRule** - Actions must use constructor injection, not `app()`, `resolve()`, `make()`
 5. **ServiceNamingConventionRule** - Services extending `BaseModelService` must end with `ModelService`
-6. **ActionExecuteMethodRule** - Actions must have proper execute/handle methods
+6. **ActionInvokeMethodRule** - Actions must expose only `__invoke()` as a public method (besides constructor)
 
 These rules maintain clean architecture boundaries.
 
@@ -201,7 +201,7 @@ final readonly class CreateUser implements ArchAction
         private UserModelService $userModelService,
     ) {}
 
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         $this->validate($data, [...]);
         $transformed = $this->build($data, [

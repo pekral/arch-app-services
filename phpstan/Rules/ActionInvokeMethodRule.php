@@ -15,12 +15,12 @@ use PHPStan\Rules\RuleErrorBuilder;
 /**
  * @implements \PHPStan\Rules\Rule<\PhpParser\Node\Stmt\Class_>
  */
-final class ActionExecuteMethodRule implements Rule
+final class ActionInvokeMethodRule implements Rule
 {
 
     private const string ARCH_ACTION_INTERFACE = 'Pekral\Arch\Action\ArchAction';
 
-    private const string EXECUTE_METHOD = 'execute';
+    private const string INVOKE_METHOD = '__invoke';
 
     public function getNodeType(): string
     {
@@ -96,14 +96,14 @@ final class ActionExecuteMethodRule implements Rule
         $publicMethodNames = $this->getPublicMethodNames($classNode);
 
         if ($publicMethodNames === []) {
-            return [$this->missingExecuteError($className)];
+            return [$this->missingInvokeError($className)];
         }
 
         if (count($publicMethodNames) !== 1) {
             return [$this->multiplePublicMethodsError($className, $publicMethodNames)];
         }
 
-        if ($publicMethodNames[0] !== self::EXECUTE_METHOD) {
+        if ($publicMethodNames[0] !== self::INVOKE_METHOD) {
             return [$this->invalidMethodNameError($className, $publicMethodNames[0])];
         }
 
@@ -115,10 +115,14 @@ final class ActionExecuteMethodRule implements Rule
         return RuleErrorBuilder::message($message)->build();
     }
 
-    private function missingExecuteError(string $className): RuleError
+    private function missingInvokeError(string $className): RuleError
     {
         return $this->createError(
-            sprintf('Action class "%s" must declare a public "%s()" method.', $className, self::EXECUTE_METHOD),
+            sprintf(
+                'Action class "%s" must declare a public "%s()" method and no other public methods.',
+                $className,
+                self::INVOKE_METHOD,
+            ),
         );
     }
 
@@ -129,9 +133,9 @@ final class ActionExecuteMethodRule implements Rule
     {
         return $this->createError(
             sprintf(
-                'Action class "%s" must expose only the public "%s()" method, but found: %s.',
+                'Action class "%s" must not declare public methods other than "%s()", but found: %s.',
                 $className,
-                self::EXECUTE_METHOD,
+                self::INVOKE_METHOD,
                 implode(', ', $publicMethodNames),
             ),
         );
@@ -141,9 +145,9 @@ final class ActionExecuteMethodRule implements Rule
     {
         return $this->createError(
             sprintf(
-                'Action class "%s" must name its only public method "%s()", "%s()" given.',
+                'Action class "%s" must use only public "%s()" as its entry point, "%s()" given.',
                 $className,
-                self::EXECUTE_METHOD,
+                self::INVOKE_METHOD,
                 $methodName,
             ),
         );

@@ -15,7 +15,7 @@ final readonly class DeleteUser implements ArchAction
     {
     }
 
-    public function handle(int|User $user): void
+    public function __invoke(int|User $user): void
     {
         if ($user instanceof User) {
             $this->userModelService->deleteModel($user);

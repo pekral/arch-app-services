@@ -68,7 +68,7 @@ This ensures:
 ```php
 final readonly class CreateUser implements ArchAction
 {
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         // ❌ Violation: Direct save() call in Action
         $user = new User($data);
@@ -88,7 +88,7 @@ final readonly class CreateUser implements ArchAction
         private UserModelService $userModelService
     ) {}
     
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         // ✅ Correct: Data persistence through ModelManager
         // Service delegates to ModelManager internally
@@ -147,7 +147,7 @@ User::verified()->first();
 ```php
 final readonly class GetAllUsers implements ArchAction
 {
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         // ✅ Simple get() without conditions is allowed
         return User::get();
@@ -158,7 +158,7 @@ final readonly class GetAllUsers implements ArchAction
 ```php
 final readonly class CountAllUsers implements ArchAction
 {
-    public function execute(): int
+    public function __invoke(): int
     {
         // ✅ Simple count() without conditions is allowed
         return User::count();
@@ -169,7 +169,7 @@ final readonly class CountAllUsers implements ArchAction
 ```php
 final readonly class GetUserById implements ArchAction
 {
-    public function execute(int $id): ?User
+    public function __invoke(int $id): ?User
     {
         // ✅ Simple find() is allowed
         return User::find($id);
@@ -186,7 +186,7 @@ final readonly class GetActiveUsers implements ArchAction
         private UserModelService $userModelService
     ) {}
     
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         // ✅ Correct: Data retrieval with conditions through Repository
         // Service delegates to Repository internally
@@ -202,7 +202,7 @@ final readonly class CountVerifiedUsers implements ArchAction
         private UserModelService $userModelService
     ) {}
     
-    public function execute(): int
+    public function __invoke(): int
     {
         // ✅ Correct: Aggregates with conditions through Repository
         // Service delegates to Repository internally
@@ -283,7 +283,7 @@ final readonly class UserModelService extends BaseModelService
 ```php
 final readonly class ProcessUser implements ArchAction
 {
-    public function execute(User $user): void
+    public function __invoke(User $user): void
     {
         // ❌ Violation: Using app() helper with class constant
         $action = app(GetUser::class);
@@ -310,10 +310,10 @@ final readonly class ProcessUser implements ArchAction
         private GetUser $getUserAction
     ) {}
     
-    public function execute(User $user): void
+    public function __invoke(User $user): void
     {
         // ✅ Correct: Action injected via constructor
-        $user = $this->getUserAction->handle(['id' => $user->id]);
+        $user = ($this->getUserAction)(['id' => $user->id]);
     }
 }
 ```
@@ -351,27 +351,27 @@ final readonly class UserModelService extends BaseModelService
 
 **Note:** This rule only applies to classes that extend `BaseModelService`. The base class itself (`BaseModelService`) is excluded from this check.
 
-### 6. ActionExecuteMethodRule
+### 6. ActionInvokeMethodRule
 
-**Purpose:** Guarantees that every Action class exposes a single public entrypoint named `execute()`.
+**Purpose:** Guarantees that every Action class is invokable: it exposes exactly one public instance method, `__invoke()`, and no other public methods (the constructor is ignored).
 
-**Rationale:** Actions should provide one orchestration method. Additional public methods make the orchestration unclear and encourage bypassing the intended flow.
+**Rationale:** Actions should provide a single callable entry point. Extra public methods make orchestration unclear and encourage bypassing the intended flow.
 
 **Violations detected:**
-- Missing the public `execute()` method
-- Having any other public method (e.g., `handle()`, `process()`, helper methods)
+- Missing the public `__invoke()` method
+- Having any other public method (e.g., `execute()`, `handle()`, `process()`, helper methods)
 
 **Example violation:**
 
 ```php
 final readonly class ProcessUser implements ArchAction
 {
-    public function execute(User $user): void
+    public function __invoke(User $user): void
     {
         // ...
     }
 
-    public function handle(User $user): void
+    public function notify(User $user): void
     {
         // ❌ Extra public method
     }
@@ -383,9 +383,9 @@ final readonly class ProcessUser implements ArchAction
 ```php
 final readonly class ProcessUser implements ArchAction
 {
-    public function execute(User $user): void
+    public function __invoke(User $user): void
     {
-        // ✅ Single public entrypoint
+        // ✅ Single public entrypoint (invokable action)
     }
 }
 ```
@@ -493,7 +493,7 @@ services:
         tags:
             - phpstan.rules.rule
     -
-        class: Pekral\Arch\PHPStan\Rules\ActionExecuteMethodRule
+        class: Pekral\Arch\PHPStan\Rules\ActionInvokeMethodRule
         tags:
             - phpstan.rules.rule
     -
