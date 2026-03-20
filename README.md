@@ -196,7 +196,7 @@ final readonly class GetUserCached
     /**
      * @param array<string, mixed> $filters
      */
-    public function handle(array $filters): User
+    public function __invoke(array $filters): User
     {
         // Automatically cached for configured TTL
         return $this->userRepository->cache()->getOneByParams($filters);
@@ -919,8 +919,9 @@ The package includes custom PHPStan rules that enforce architectural best practi
 3. **OnlyModelManagersCanPersistDataRule** - Ensures data persistence operations are only performed in ModelManager or ModelService classes
 4. **NoLaravelHelpersForActionsRule** - Prevents using Laravel helper functions (`app()`, `resolve()`, `make()`) to resolve Action classes. Actions must be injected via constructor
 5. **ServiceNamingConventionRule** - Ensures that all Service classes extending `BaseModelService` end with `ModelService` suffix
-6. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
-7. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
+6. **ActionInvokeMethodRule** - Ensures Action classes expose only one public entry point: `__invoke()` (constructor excluded)
+7. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
+8. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
 
 ### Why These Rules?
 
