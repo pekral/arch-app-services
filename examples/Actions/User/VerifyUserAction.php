@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Notification;
 use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Tests\Models\User;
 
-final class VerifyUserAction implements ArchAction
+final readonly class VerifyUserAction implements ArchAction
 {
 
     public function __invoke(User $user): void

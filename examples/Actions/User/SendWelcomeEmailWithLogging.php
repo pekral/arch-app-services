@@ -7,7 +7,7 @@ namespace Pekral\Arch\Examples\Actions\User;
 use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Tests\Models\User;
 
-final class SendWelcomeEmailWithLogging implements ArchAction
+final readonly class SendWelcomeEmailWithLogging implements ArchAction
 {
 
     private function sendEmail(): void

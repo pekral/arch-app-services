@@ -9,5 +9,7 @@
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>build/*</exclude-pattern>
     <exclude-pattern>coverage.xml</exclude-pattern>
+    <!-- Exclude PHPStan rule test fixtures — intentionally invalid code -->
+    <exclude-pattern>tests/fixtures/*</exclude-pattern>
 
 </ruleset>
