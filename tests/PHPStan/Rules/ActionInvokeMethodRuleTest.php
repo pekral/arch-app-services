@@ -15,49 +15,97 @@ function runActionInvokeRuleFixtures(): array
 {
     $binary = __DIR__ . '/../../../vendor/bin/phpstan';
     $config = __DIR__ . '/../../../phpstan.test.neon';
-    $dir = realpath(__DIR__ . '/../../../tests/fixtures/PHPStan/ActionInvokeMethodRule');
+    $dir = resolveActionInvokeFixtureDir();
 
-    if ($dir === false) {
+    if ($dir === null) {
         return [];
     }
 
-    $fixtures = array_map(
-        static fn (string $fixture): string => $dir . '/' . $fixture,
-        array_values(array_filter(
-        scandir($dir),
-        static fn (string $f): bool => str_ends_with($f, '.php'),
-    )),
-    );
+    $fixtures = getActionInvokeFixturePaths($dir);
+    $rawOutput = runPhpstanForActionInvokeFixtures($binary, $config, $fixtures);
+    $decodedOutput = decodePhpstanOutput($rawOutput);
 
+    return extractFixtureErrors($decodedOutput);
+}
+
+function resolveActionInvokeFixtureDir(): ?string
+{
+    $dir = realpath(__DIR__ . '/../../../tests/fixtures/PHPStan/ActionInvokeMethodRule');
+
+    if ($dir === false) {
+        return null;
+    }
+
+    return $dir;
+}
+
+/**
+ * @return array<int, string>
+ */
+function getActionInvokeFixturePaths(string $dir): array
+{
+    $fixtureFiles = array_values(array_filter(
+        scandir($dir),
+        static fn (string $fixture): bool => str_ends_with($fixture, '.php'),
+    ));
+
+    return array_map(
+        static fn (string $fixture): string => $dir . '/' . $fixture,
+        $fixtureFiles,
+    );
+}
+
+/**
+ * @param array<int, string> $fixtures
+ */
+function runPhpstanForActionInvokeFixtures(string $binary, string $config, array $fixtures): string
+{
     $process = new Process(
         [$binary, 'analyse', '--configuration=' . $config, '--error-format=json', '--memory-limit=512M', ...$fixtures],
         timeout: 90,
     );
     $process->run();
 
-    $rawOutput = $process->getOutput() ?: $process->getErrorOutput();
+    return $process->getOutput() ?: $process->getErrorOutput();
+}
+
+/**
+ * @return array{files?: array<string, array{messages?: array<int, array{message?: string}>}>}
+ */
+function decodePhpstanOutput(string $rawOutput): array
+{
     $jsonStartPosition = strpos($rawOutput, '{"totals"');
     $jsonPayload = $jsonStartPosition === false
         ? $rawOutput
         : substr($rawOutput, $jsonStartPosition);
 
-    /** @var array{files?: array<string, array{messages?: array<int, array{message?: string}>}>}|null $json */
-    $json = json_decode($jsonPayload, true);
-    $result = [];
-
-    if (!is_array($json)) {
+    try {
+        /** @var array{files?: array<string, array{messages?: array<int, array{message?: string}>}>} $decoded */
+        $decoded = json_decode($jsonPayload, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException) {
         return [];
     }
 
-    foreach (($json['files'] ?? []) as $path => $fileData) {
-        $name = basename($path);
+    return $decoded;
+}
+
+/**
+ * @param array{files?: array<string, array{messages?: array<int, array{message?: string}>}>} $decodedOutput
+ * @return array<string, array<string>>
+ */
+function extractFixtureErrors(array $decodedOutput): array
+{
+    $result = [];
+
+    foreach (($decodedOutput['files'] ?? []) as $path => $fileData) {
+        $fixtureName = basename($path);
 
         foreach (($fileData['messages'] ?? []) as $message) {
             if (!isset($message['message']) || !is_string($message['message'])) {
                 continue;
             }
 
-            $result[$name][] = $message['message'];
+            $result[$fixtureName][] = $message['message'];
         }
     }
 
@@ -82,21 +130,25 @@ test('ActionInvokeMethodRule enforces final, readonly, invoke-only, and explicit
 
     // Missing return type on __invoke()
     expect($errors['MissingReturnTypeAction.php'] ?? [])->toContain(
-        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\MissingReturnTypeAction" must declare an explicit return type on "__invoke()".',
+        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\MissingReturnTypeAction" '
+        . 'must declare an explicit return type on "__invoke()".',
     );
 
     // No public methods at all
     expect($errors['NoPublicMethodAction.php'] ?? [])->toContain(
-        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\NoPublicMethodAction" must declare a public "__invoke()" method and no other public methods.',
+        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\NoPublicMethodAction" '
+        . 'must declare a public "__invoke()" method and no other public methods.',
     );
 
     // Public method named other than __invoke
     expect($errors['WrongMethodNameAction.php'] ?? [])->toContain(
-        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\WrongMethodNameAction" must use only public "__invoke()" as its entry point, "handle()" given.',
+        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\WrongMethodNameAction" '
+        . 'must use only public "__invoke()" as its entry point, "handle()" given.',
     );
 
     // More than one public method
     expect($errors['MultiplePublicMethodsAction.php'] ?? [])->toContain(
-        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\MultiplePublicMethodsAction" must not declare public methods other than "__invoke()", but found: __invoke, extra.',
+        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\MultiplePublicMethodsAction" '
+        . 'must not declare public methods other than "__invoke()", but found: __invoke, extra.',
     );
 });
