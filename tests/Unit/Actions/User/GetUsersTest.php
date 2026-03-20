@@ -10,7 +10,7 @@ test('get users returns paginated users', function (): void {
     $users = User::factory()->count(30)->create();
     $usersIds = $users->pluck('id')->toArray();
 
-    $foundUsers = $getUsers->handle();
+    $foundUsers = ($getUsers)();
 
     expect($foundUsers)->toHaveCount(config()->integer('arch.default_items_per_page'));
     
@@ -24,7 +24,7 @@ test('get users with filters returns filtered users', function (): void {
     User::factory()->count(5)->create(['name' => 'John']);
     User::factory()->count(5)->create(['name' => 'Jane']);
     
-    $foundUsers = $getUsers->handle(['name' => 'John']);
+    $foundUsers = ($getUsers)(['name' => 'John']);
     
     expect($foundUsers)->toHaveCount(5);
     

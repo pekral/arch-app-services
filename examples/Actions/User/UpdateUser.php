@@ -26,7 +26,7 @@ final readonly class UpdateUser implements ArchAction
      * @param array<string, mixed> $data
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function execute(User $model, array $data): User
+    public function __invoke(User $model, array $data): User
     {
         $this->validate($data, [
             'email' => 'required|email',

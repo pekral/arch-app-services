@@ -19,7 +19,7 @@ final readonly class UpdateUserName implements ArchAction
     {
     }
 
-    public function handle(string $name, User $user): void
+    public function __invoke(string $name, User $user): void
     {
         $data = $this->build(['name' => $name], [UcFirstNamePipe::class]);
         $this->userModelService->updateModel($user, $data);

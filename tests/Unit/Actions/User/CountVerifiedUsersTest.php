@@ -10,5 +10,5 @@ test('count verified users returns correct count', function (): void {
     User::factory()->count(10)->create(['email_verified_at' => null]);
     $verifiedUsers = User::factory()->count(10)->create(['email_verified_at' => now()]);
     
-    expect($countVerifiedUsers->handle())->toBe($verifiedUsers->count());
+    expect(($countVerifiedUsers)())->toBe($verifiedUsers->count());
 });

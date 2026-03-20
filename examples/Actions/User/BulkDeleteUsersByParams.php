@@ -17,7 +17,7 @@ final readonly class BulkDeleteUsersByParams implements ArchAction
     /**
      * @param array<string, mixed> $parameters
      */
-    public function execute(array $parameters): void
+    public function __invoke(array $parameters): void
     {
         $this->userModelService->bulkDeleteByParams($parameters);
     }

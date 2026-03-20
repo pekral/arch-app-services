@@ -12,7 +12,7 @@ test('verification sends notification', function (): void {
     $verifyUserAction = app(VerifyUserAction::class);
     $user = User::factory()->create();
 
-    $verifyUserAction->handle($user);
+    ($verifyUserAction)($user);
 
     Notification::assertSentTo($user, VerifyEmail::class);
 });
@@ -22,7 +22,7 @@ test('verification has been sent skips notification', function (): void {
     $verifyUserAction = app(VerifyUserAction::class);
     $user = User::factory()->create(['email_verified_at' => now()]);
     
-    $verifyUserAction->handle($user);
+    ($verifyUserAction)($user);
     
     Notification::assertNothingSent();
 });

@@ -31,7 +31,7 @@ test('get user uses cache', function (): void {
         )
         ->andReturn($user);
 
-    $result = $getUserCached->handle($filters);
+    $result = ($getUserCached)($filters);
 
     expect($result->id)->toBe($user->id);
 });
@@ -51,7 +51,7 @@ test('get user skips cache when disabled', function (): void {
 
     $cacheMock->shouldNotReceive('remember');
 
-    $result = $getUserCached->handle($filters);
+    $result = ($getUserCached)($filters);
 
     expect($result->id)->toBe($user->id)
         ->and($result->name)->toBe($user->name)
@@ -70,7 +70,7 @@ test('get user with real database', function (): void {
     
     $user = User::factory()->create();
     
-    $foundUser = $getUserCached->handle(['name' => $user->name, 'email' => $user->email]);
+    $foundUser = ($getUserCached)(['name' => $user->name, 'email' => $user->email]);
     
     expect($foundUser->id)->toBe($user->id)
         ->and($foundUser->name)->toBe($user->name)
@@ -89,5 +89,5 @@ test('get non existing user throws exception', function (): void {
     
     User::factory()->create();
     
-    $getUserCached->handle(['name' => fake()->name(), 'email' => fake()->email()]);
+    ($getUserCached)(['name' => fake()->name(), 'email' => fake()->email()]);
 })->throws(ModelNotFoundException::class);

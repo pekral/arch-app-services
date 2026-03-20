@@ -9,7 +9,7 @@ test('execute with empty data returns zero results', function (): void {
     $action = app(BulkImportUsers::class);
     $userData = [];
 
-    $result = $action->execute($userData);
+    $result = ($action)($userData);
 
     expect($result)->toBe([
         'created' => 0,
@@ -25,7 +25,7 @@ test('execute with new users creates all users', function (): void {
         ['name' => 'Jane Smith', 'email' => 'jane@example.com', 'password' => 'password456'],
     ];
 
-    $result = $action->execute($userData);
+    $result = ($action)($userData);
 
     expect($result['total_processed'])->toBe(2)
         ->and($result['created'])->toBe(2)
@@ -42,7 +42,7 @@ test('execute with mixed data handles existing and new users', function (): void
         ['name' => 'New User', 'email' => 'new@example.com', 'password' => 'password456'],
     ];
 
-    $result = $action->execute($userData);
+    $result = ($action)($userData);
 
     expect($result['total_processed'])->toBe(2)
         ->and($result['created'])->toBe(1)

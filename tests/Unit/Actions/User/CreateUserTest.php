@@ -14,7 +14,7 @@ test('create user with invalid data throws validation exception', function (): v
         'name' => 123,
     ];
 
-    $createUserAction->execute($data);
+    ($createUserAction)($data);
 })->throws(ValidationException::class);
 
 test('create user successfully creates user', function (): void {
@@ -26,7 +26,7 @@ test('create user successfully creates user', function (): void {
         'password' => fake()->password(),
     ];
 
-    $createUserAction->execute($data);
+    ($createUserAction)($data);
 
     $model = User::query()->where(['email' => $data['email']])->firstOrFail();
     expect($model->name)->toBe('Petr');

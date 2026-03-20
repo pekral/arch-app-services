@@ -27,7 +27,7 @@ final readonly class UpdateOrCreateUser implements ArchAction
      * @param array<string, mixed> $values Values to update/create with
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function execute(array $attributes, array $values = []): User
+    public function __invoke(array $attributes, array $values = []): User
     {
         $mergedData = [...$attributes, ...$values];
         

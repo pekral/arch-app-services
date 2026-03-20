@@ -12,7 +12,7 @@ test('execute sends email successfully', function (): void {
     assert($user instanceof User);
     $action = new SendWelcomeEmailWithLogging();
 
-    $action->execute($user, ['source' => 'registration']);
+    ($action)($user, ['source' => 'registration']);
 
     expect(true)->toBeTrue();
 });
@@ -24,7 +24,7 @@ test('execute sends email with empty context', function (): void {
     assert($user instanceof User);
     $action = new SendWelcomeEmailWithLogging();
 
-    $action->execute($user);
+    ($action)($user);
 
     expect(true)->toBeTrue();
 });
@@ -40,7 +40,7 @@ test('execute with custom context', function (): void {
     ];
     $action = new SendWelcomeEmailWithLogging();
 
-    $action->execute($user, $context);
+    ($action)($user, $context);
 
     expect(true)->toBeTrue();
 });

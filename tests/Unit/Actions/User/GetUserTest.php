@@ -10,14 +10,14 @@ test('get non existing user throws exception', function (): void {
     $getUser = app(GetUser::class);
     User::factory()->create();
     
-    $getUser->handle(['name' => fake()->name(), 'email' => fake()->email()]);
+    ($getUser)(['name' => fake()->name(), 'email' => fake()->email()]);
 })->throws(ModelNotFoundException::class);
 
 test('get user returns correct user', function (): void {
     $getUser = app(GetUser::class);
     $user = User::factory()->create();
     
-    $foundUser = $getUser->handle(['name' => $user->name, 'email' => $user->email]);
+    $foundUser = ($getUser)(['name' => $user->name, 'email' => $user->email]);
     
     expect($foundUser->id)->toBe($user->id)
         ->and($foundUser->name)->toBe($user->name)

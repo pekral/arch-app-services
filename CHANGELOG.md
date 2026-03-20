@@ -5,6 +5,7 @@ All notable changes to `arch-app-services` will be documented in this file.
 ## [Unreleased] - 2026-02-14 (PR #67)
 
 
+- ⚠️ **Breaking**: `ArchAction` implementations use `__invoke()` only (no `execute()`); PHPStan `ActionInvokeMethodRule` replaces `ActionExecuteMethodRule`
 - 🔧 **Changed**: update
 - 🔧 **Changed**: update dependencies
 

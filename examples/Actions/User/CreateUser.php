@@ -26,7 +26,7 @@ final readonly class CreateUser implements ArchAction
      * @param array<string, mixed> $data
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         $this->validate($data, [
             'email' => 'required|email',
@@ -41,7 +41,7 @@ final readonly class CreateUser implements ArchAction
         );
         $model = $this->userModelService->create($dataNormalized);
 
-        $this->verifyUserAction->handle($model);
+        ($this->verifyUserAction)($model);
 
         return $model;
     }

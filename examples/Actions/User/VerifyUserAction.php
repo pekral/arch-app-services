@@ -12,7 +12,7 @@ use Pekral\Arch\Tests\Models\User;
 final class VerifyUserAction implements ArchAction
 {
 
-    public function handle(User $user): void
+    public function __invoke(User $user): void
     {
         if ($user->email_verified_at === null) {
             Notification::send($user, new VerifyEmail());

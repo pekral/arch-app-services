@@ -29,7 +29,7 @@ final class MakeArchActionCommandTest extends TestCase
         $this->assertStringContainsString('namespace App\Actions;', $content);
         $this->assertStringContainsString('final readonly class TestAction implements ArchAction', $content);
         $this->assertStringContainsString('use Pekral\Arch\Action\ArchAction;', $content);
-        $this->assertStringContainsString('public function execute(): void', $content);
+        $this->assertStringContainsString('public function __invoke(): void', $content);
     }
 
     public function testCreatesActionInSubdirectory(): void

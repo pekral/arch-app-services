@@ -40,7 +40,7 @@ services:
         tags:
             - phpstan.rules.rule
     -
-        class: Pekral\Arch\PHPStan\Rules\ActionExecuteMethodRule
+        class: Pekral\Arch\PHPStan\Rules\ActionInvokeMethodRule
         tags:
             - phpstan.rules.rule
     -

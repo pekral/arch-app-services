@@ -18,7 +18,7 @@ final readonly class SearchUserCached implements ArchAction
     /**
      * @param array<string, mixed> $filters
      */
-    public function handle(array $filters): ?User
+    public function __invoke(array $filters): ?User
     {
         $repository = $this->userModelService->getRepository();
         $cacheWrapper = $repository->cache();

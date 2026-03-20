@@ -30,7 +30,7 @@ test('count verified users uses cache', function (): void {
         )
         ->andReturn(3);
 
-    $result = $countVerifiedUsersCached->handle();
+    $result = ($countVerifiedUsersCached)();
 
     expect($result)->toBe(3);
 });
@@ -50,7 +50,7 @@ test('count verified users skips cache when disabled', function (): void {
 
     $cacheMock->shouldNotReceive('remember');
 
-    $result = $countVerifiedUsersCached->handle();
+    $result = ($countVerifiedUsersCached)();
 
     expect($result)->toBe(3);
 });
@@ -68,7 +68,7 @@ test('count verified users with real database', function (): void {
     User::factory()->count(10)->create(['email_verified_at' => null]);
     $verifiedUsers = User::factory()->count(7)->create(['email_verified_at' => now()]);
     
-    $result = $countVerifiedUsersCached->handle();
+    $result = ($countVerifiedUsersCached)();
 
     expect($result)->toBe($verifiedUsers->count());
 });

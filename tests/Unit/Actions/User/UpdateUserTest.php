@@ -17,7 +17,7 @@ test('update user with valid data', function (): void {
         'name' => 'new name',
     ];
 
-    $result = $updateUserAction->execute($user, $data);
+    $result = ($updateUserAction)($user, $data);
 
     expect($result)->toBe($user);
     
@@ -34,7 +34,7 @@ test('update user with invalid email throws exception', function (): void {
         'name' => 'Test Name',
     ];
 
-    $updateUserAction->execute($user, $data);
+    ($updateUserAction)($user, $data);
 })->throws(ValidationException::class);
 
 test('update user with missing email throws exception', function (): void {
@@ -44,7 +44,7 @@ test('update user with missing email throws exception', function (): void {
         'name' => 'Test Name',
     ];
 
-    $updateUserAction->execute($user, $data);
+    ($updateUserAction)($user, $data);
 })->throws(ValidationException::class);
 
 test('update user with missing name throws exception', function (): void {
@@ -54,7 +54,7 @@ test('update user with missing name throws exception', function (): void {
         'email' => fake()->email(),
     ];
 
-    $updateUserAction->execute($user, $data);
+    ($updateUserAction)($user, $data);
 })->throws(ValidationException::class);
 
 test('update user transforms email to lowercase', function (): void {
@@ -65,7 +65,7 @@ test('update user transforms email to lowercase', function (): void {
         'name' => 'Test',
     ];
 
-    $updateUserAction->execute($user, $data);
+    ($updateUserAction)($user, $data);
 
     $user->refresh();
     expect($user->email)->toBe('uppercase@example.com');
@@ -79,7 +79,7 @@ test('update user transforms name to ucfirst', function (): void {
         'name' => 'lowercase name',
     ];
 
-    $updateUserAction->execute($user, $data);
+    ($updateUserAction)($user, $data);
 
     $user->refresh();
     expect($user->name)->toBe('Lowercase name');
@@ -90,5 +90,5 @@ test('update user with empty data throws exception', function (): void {
     $updateUserAction = app(UpdateUser::class);
     $data = [];
 
-    $updateUserAction->execute($user, $data);
+    ($updateUserAction)($user, $data);
 })->throws(ValidationException::class);

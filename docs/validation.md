@@ -47,7 +47,7 @@ final readonly class CreateUser
 {
     use DataValidator;
     
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         $this->validate($data, [
             'email' => 'required|email|unique:users',
@@ -116,7 +116,7 @@ final readonly class CreateUser
      * @param array<string, mixed> $data
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         // Validate input data
         $this->validate($data, [
@@ -139,7 +139,7 @@ final readonly class CreateUser
 
 ```php
 // In action class
-public function execute(array $data): User
+public function __invoke(array $data): User
 {
     $this->validate($data, [
         'email' => ['required', 'email', 'unique:users'],
@@ -158,7 +158,7 @@ public function execute(array $data): User
 ### Conditional Validation
 
 ```php
-public function execute(array $data): User
+public function __invoke(array $data): User
 {
     $rules = [
         'email' => 'sometimes|email|unique:users',
@@ -176,7 +176,7 @@ public function execute(array $data): User
 ### Validation Messages in Different Languages
 
 ```php
-public function execute(array $data): User
+public function __invoke(array $data): User
 {
     $messages = [
         'email.required' => __('validation.required', ['attribute' => 'email']),
@@ -491,7 +491,7 @@ final readonly class CreateUserWithDTO
     ) {
     }
 
-    public function execute(CreateUserDTO $dto): User
+    public function __invoke(CreateUserDTO $dto): User
     {
         return $this->userModelService->create($dto->toArray());
     }
@@ -501,7 +501,7 @@ final readonly class CreateUserWithDTO
 public function store(Request $request, CreateUserWithDTO $action)
 {
     $dto = CreateUserDTO::validateAndCreate($request->all());
-    $user = $action->execute($dto);
+    $user = ($action)($dto);
     
     return response()->json($user, 201);
 }

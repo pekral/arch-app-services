@@ -30,7 +30,7 @@ test('search user uses cache', function (): void {
         )
         ->andReturn($user);
 
-    $result = $searchUserCached->handle($filters);
+    $result = ($searchUserCached)($filters);
 
     expect($result)->not->toBeNull();
     
@@ -53,7 +53,7 @@ test('search user skips cache when disabled', function (): void {
 
     $cacheMock->shouldNotReceive('remember');
 
-    $result = $searchUserCached->handle($filters);
+    $result = ($searchUserCached)($filters);
 
     expect($result)->not->toBeNull();
     
@@ -75,7 +75,7 @@ test('search user with real database', function (): void {
     
     $user = User::factory()->create();
     
-    $foundUser = $searchUserCached->handle(['name' => $user->name, 'email' => $user->email]);
+    $foundUser = ($searchUserCached)(['name' => $user->name, 'email' => $user->email]);
     
     expect($foundUser)->not->toBeNull();
     
@@ -97,7 +97,7 @@ test('search non existing user returns null', function (): void {
     
     User::factory()->create();
     
-    $foundUser = $searchUserCached->handle(['name' => fake()->name(), 'email' => fake()->email()]);
+    $foundUser = ($searchUserCached)(['name' => fake()->name(), 'email' => fake()->email()]);
     
     expect($foundUser)->toBeNull();
 });
@@ -124,7 +124,7 @@ test('search non existing user caches null', function (): void {
         )
         ->andReturn(null);
 
-    $result = $searchUserCached->handle($filters);
+    $result = ($searchUserCached)($filters);
     
     expect($result)->toBeNull();
 });

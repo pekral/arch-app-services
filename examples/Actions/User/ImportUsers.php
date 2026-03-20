@@ -19,7 +19,7 @@ final readonly class ImportUsers implements ArchAction
      * @template TValue
      * @param array<int, array<TKey, TValue>> $data
      */
-    public function handle(array $data): int
+    public function __invoke(array $data): int
     {
         return $this->userModelService->bulkCreate($data);
     }

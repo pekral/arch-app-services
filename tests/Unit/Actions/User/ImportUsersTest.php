@@ -19,11 +19,11 @@ test('import users imports all users', function (): void {
         ],
     ];
     
-    expect($importUsers->handle($data))->toBe(count($data));
+    expect(($importUsers)($data))->toBe(count($data));
 });
 
 test('import users without data returns zero', function (): void {
     $importUsers = app(ImportUsers::class);
     
-    expect($importUsers->handle([]))->toBe(0);
+    expect(($importUsers)([]))->toBe(0);
 });

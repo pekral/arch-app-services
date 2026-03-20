@@ -299,7 +299,7 @@ final readonly class BulkImportUsers
      *     ignored: int
      * }
      */
-    public function execute(array $userData): array
+    public function __invoke(array $userData): array
     {
         if ($userData === []) {
             return [
@@ -379,7 +379,7 @@ final readonly class CreateUser
      * @param array<string, mixed> $data
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         // Validate input data
         $this->validate($data, [
@@ -397,7 +397,7 @@ final readonly class CreateUser
         $user = $this->userModelService->create($normalizedData);
         
         // Send verification email
-        $this->verifyUserAction->handle($user);
+        ($this->verifyUserAction)($user);
         
         return $user;
     }
@@ -568,14 +568,14 @@ final class UserController extends Controller
 {
     public function store(Request $request, CreateUser $createUser)
     {
-        $user = $createUser->execute($request->validated());
+        $user = ($createUser)($request->validated());
         
         return response()->json($user, 201);
     }
     
     public function show(Request $request, GetUser $getUser)
     {
-        $user = $getUser->handle($request->only(['email', 'name']));
+        $user = ($getUser)($request->only(['email', 'name']));
         
         return response()->json($user);
     }
@@ -583,7 +583,7 @@ final class UserController extends Controller
     public function updateName(Request $request, UpdateUserName $updateUserName)
     {
         $user = User::findOrFail($request->user_id);
-        $updateUserName->handle($request->name, $user);
+        ($updateUserName)($request->name, $user);
         
         return response()->json(['message' => 'Name updated successfully']);
     }
@@ -687,7 +687,7 @@ final readonly class CreateUser
 {
     use DataBuilder;
     
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         $dataNormalized = $this->build($data, [
             'email' => LowercaseEmailPipe::class,
@@ -734,7 +734,7 @@ final readonly class CreateUser
 {
     use DataValidator;
     
-    public function execute(array $data): User
+    public function __invoke(array $data): User
     {
         $this->validate($data, [
             'email' => 'required|email|unique:users',
@@ -770,7 +770,7 @@ final readonly class ProcessOrderAction
 {
     use ActionLogger;
     
-    public function execute(array $orderData): Order
+    public function __invoke(array $orderData): Order
     {
         $startTime = microtime(true);
         
@@ -935,7 +935,7 @@ These rules enforce clean architecture by ensuring:
 // ❌ Violation: Direct query in Action
 final readonly class GetUsers implements ArchAction
 {
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         return User::where('active', true)->get(); // PHPStan error!
     }
@@ -946,7 +946,7 @@ final readonly class GetUsers implements ArchAction
 {
     public function __construct(private UserModelService $service) {}
     
-    public function execute(): Collection
+    public function __invoke(): Collection
     {
         return $this->service->findByParams(['active' => true]);
     }

@@ -37,7 +37,7 @@ test('get users uses cache', function (): void {
         )
         ->andReturn($expectedResult);
 
-    $result = $getUsersCached->handle();
+    $result = ($getUsersCached)();
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->total())->toBe($expectedResult->total());
@@ -57,7 +57,7 @@ test('get users skips cache when disabled', function (): void {
 
     $cacheMock->shouldNotReceive('remember');
 
-    $result = $getUsersCached->handle();
+    $result = ($getUsersCached)();
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result)->toHaveCount(config()->integer('arch.default_items_per_page'));
@@ -76,7 +76,7 @@ test('get users with real database', function (): void {
     $users = User::factory()->count(30)->create();
     $usersIds = $users->pluck('id')->toArray();
 
-    $foundUsers = $getUsersCached->handle();
+    $foundUsers = ($getUsersCached)();
 
     expect($foundUsers)->toHaveCount(config()->integer('arch.default_items_per_page'));
     
@@ -115,7 +115,7 @@ test('get users with filters uses cache', function (): void {
         )
         ->andReturn($expectedResult);
 
-    $result = $getUsersCached->handle($filters);
+    $result = ($getUsersCached)($filters);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->total())->toBe($expectedResult->total());
@@ -134,7 +134,7 @@ test('get users with filters real database', function (): void {
     User::factory()->count(5)->create(['name' => 'John']);
     User::factory()->count(5)->create(['name' => 'Jane']);
 
-    $foundUsers = $getUsersCached->handle(['name' => 'John']);
+    $foundUsers = ($getUsersCached)(['name' => 'John']);
 
     expect($foundUsers)->toHaveCount(5);
     
