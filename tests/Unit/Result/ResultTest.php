@@ -37,18 +37,6 @@ test('unwrap throws with enum message on failure with backed enum', function ():
     $result->unwrap();
 })->throws(UnwrapFailure::class, 'Cannot unwrap a failure Result. Error: validation_failed');
 
-test('unwrapOr returns the value on success', function (): void {
-    $result = Result::success('real');
-
-    expect($result->unwrapOr('default'))->toBe('real');
-});
-
-test('unwrapOr returns the default on failure', function (): void {
-    $result = Result::failure('error');
-
-    expect($result->unwrapOr('default'))->toBe('default');
-});
-
 test('error returns the error on failure', function (): void {
     $result = Result::failure('my error');
 

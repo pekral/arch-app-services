@@ -34,11 +34,6 @@ final readonly class Failure extends Result
         throw UnwrapFailure::fromResult($this->error);
     }
 
-    public function unwrapOr(mixed $default): mixed
-    {
-        return $default;
-    }
-
     /**
      * @return TError
      */

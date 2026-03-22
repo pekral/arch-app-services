@@ -30,12 +30,6 @@ test('success unwrap returns the value', function (): void {
     expect($success->unwrap())->toBe('hello');
 });
 
-test('success unwrapOr returns the value ignoring default', function (): void {
-    $success = new Success('hello');
-
-    expect($success->unwrapOr('default'))->toBe('hello');
-});
-
 test('success error throws', function (): void {
     $success = new Success('value');
 

@@ -28,15 +28,6 @@ abstract readonly class Result
     abstract public function unwrap(): mixed;
 
     /**
-     * Return the success value or the provided default.
-     *
-     * @template TDefault
-     * @param TDefault $default
-     * @return TSuccess|TDefault
-     */
-    abstract public function unwrapOr(mixed $default): mixed;
-
-    /**
      * Return the error value or throw if this is a success.
      *
      * @return TError
