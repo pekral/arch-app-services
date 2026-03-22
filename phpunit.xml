@@ -18,6 +18,9 @@
         <testsuite name="Exceptions">
             <directory suffix="Test.php">./tests/Unit/Exceptions</directory>
         </testsuite>
+        <testsuite name="Result">
+            <directory suffix="Test.php">./tests/Unit/Result</directory>
+        </testsuite>
         <testsuite name="ModelManager">
             <directory suffix="Test.php">./tests/Unit/ModelManager</directory>
         </testsuite>
