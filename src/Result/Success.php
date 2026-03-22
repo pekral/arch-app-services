@@ -34,15 +34,6 @@ final readonly class Success extends Result
     }
 
     /**
-     * @phpcsSuppress SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
-     * @return TSuccess
-     */
-    public function unwrapOr(mixed $default): mixed
-    {
-        return $this->value;
-    }
-
-    /**
      * @throws \Pekral\Arch\Result\UnwrapFailure
      * @return never
      */

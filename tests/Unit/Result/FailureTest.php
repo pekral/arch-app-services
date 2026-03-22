@@ -30,12 +30,6 @@ test('failure unwrap throws', function (): void {
     $failure->unwrap();
 })->throws(UnwrapFailure::class, 'Cannot unwrap a failure Result.');
 
-test('failure unwrapOr returns the default', function (): void {
-    $failure = new Failure('error');
-
-    expect($failure->unwrapOr('fallback'))->toBe('fallback');
-});
-
 test('failure error returns the error', function (): void {
     $failure = new Failure('my error');
 
