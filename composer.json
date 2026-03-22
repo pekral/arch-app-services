@@ -37,7 +37,7 @@
     "spatie/laravel-data": "^4.20.1"
   },
   "require-dev": {
-    "aws/aws-sdk-php": "^3.373.6",
+    "aws/aws-sdk-php": "^3.373.7",
     "ergebnis/composer-normalize": "^2.50.0",
     "iksaku/laravel-mass-update": "^1.0.8",
     "larastan/larastan": "^3.9.3",
@@ -46,7 +46,7 @@
     "pekral/cursor-rules": "dev-master",
     "pekral/phpcs-rules": "^0.4.8",
     "pekral/rector-rules": "^0.4.8",
-    "pestphp/pest": "^4.4.2",
+    "pestphp/pest": "^4.4.3",
     "pestphp/pest-plugin-type-coverage": "^4.0.3",
     "phpstan/extension-installer": "^1.4.3",
     "phpstan/phpstan": "^2.1.42",
