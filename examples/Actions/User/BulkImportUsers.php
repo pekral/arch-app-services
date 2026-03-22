@@ -6,7 +6,7 @@ namespace Pekral\Arch\Examples\Actions\User;
 
 use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Examples\Services\User\UserModelManager;
-use Pekral\Arch\Tests\Models\User;
+use Pekral\Arch\Examples\Services\User\UserModelService;
 
 /**
  * Action for bulk importing users with duplicate handling.
@@ -14,8 +14,7 @@ use Pekral\Arch\Tests\Models\User;
 final readonly class BulkImportUsers implements ArchAction
 {
 
-    public function __construct(private readonly UserModelManager $userModelManager)
-    {
+    public function __construct(private UserModelService $userModelService, private UserModelManager $userModelManager,) {
     }
 
     /**
@@ -50,14 +49,11 @@ final readonly class BulkImportUsers implements ArchAction
         // Prepare data with timestamps
         $preparedData = $this->prepareUserData($userData);
 
-        // Count existing users before import
-        $existingCount = User::count();
+        $existingCount = $this->userModelService->countByParams([]);
 
-        // Use insertOrIgnore to handle duplicates
         $this->userModelManager->insertOrIgnore($preparedData);
 
-        // Count users after import
-        $newCount = User::count();
+        $newCount = $this->userModelService->countByParams([]);
         $createdCount = $newCount - $existingCount;
         $ignoredCount = count($preparedData) - $createdCount;
 
