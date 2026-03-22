@@ -29,7 +29,6 @@
   "require": {
     "php": "^8.4",
     "ext-simplexml": "*",
-    "baopham/dynamodb": "^7.0",
     "illuminate/contracts": "^12.0 || ^13.0",
     "illuminate/database": "^12.0 || ^13.0",
     "illuminate/pagination": "^12.0 || ^13.0",
@@ -37,6 +36,7 @@
     "spatie/laravel-data": "^4.20.1"
   },
   "require-dev": {
+    "baopham/dynamodb": "^7.0",
     "aws/aws-sdk-php": "^3.373.7",
     "ergebnis/composer-normalize": "^2.50.0",
     "iksaku/laravel-mass-update": "^1.0.8",
@@ -89,6 +89,9 @@
         "Pekral\\Arch\\ArchServiceProvider"
       ]
     }
+  },
+  "suggest": {
+    "baopham/dynamodb": "Required for Pekral\\Arch\\Repository\\DynamoDb and Pekral\\Arch\\ModelManager\\DynamoDb (illuminate/support ^12 only until baopham/dynamodb supports Laravel 13)"
   },
   "scripts": {
     "analyse": [
