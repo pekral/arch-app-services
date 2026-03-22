@@ -14,7 +14,8 @@ use Pekral\Arch\Examples\Services\User\UserModelService;
 final readonly class BulkImportUsers implements ArchAction
 {
 
-    public function __construct(private UserModelService $userModelService, private UserModelManager $userModelManager,) {
+    public function __construct(private UserModelService $userModelService, private UserModelManager $userModelManager)
+    {
     }
 
     /**
