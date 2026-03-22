@@ -17,3 +17,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\ActionInvokeMethodRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\OnlyRepositoriesCanQueryDataRule
+        tags:
+            - phpstan.rules.rule

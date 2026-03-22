@@ -55,3 +55,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\ValidationRulesNoInstantiationRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\OnlyRepositoriesCanQueryDataRule
+        tags:
+            - phpstan.rules.rule

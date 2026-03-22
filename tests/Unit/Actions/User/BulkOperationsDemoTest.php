@@ -7,12 +7,17 @@ use Pekral\Arch\Tests\Models\User;
 
 test('execute performs bulk operations correctly', function (): void {
     $action = app(BulkOperationsDemo::class);
+    $updateData = [
+        ['id' => 1, 'name' => 'Alice Johnson (Updated)'],
+        ['id' => 2, 'name' => 'Bob Smith (Updated)'],
+        ['id' => 3, 'name' => 'Charlie Brown (Updated)'],
+    ];
 
-    $result = ($action)();
+    $result = ($action)($updateData);
 
     expect($result['bulk_create_result'])->toBe(3)
         ->and($result['insert_or_ignore_result'])->toBe(3)
-        ->and($result['bulk_update_result'])->toBe(5)
+        ->and($result['bulk_update_result'])->toBe(3)
         ->and($result['final_user_count'])->toBe(5)
         ->and(User::query()->where('name', 'Alice Johnson (Updated)')->exists())->toBeTrue()
         ->and(User::query()->where('name', 'Bob Smith (Updated)')->exists())->toBeTrue()
