@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Examples\Actions\User;
 
 use Pekral\Arch\Action\ArchAction;
+use Pekral\Arch\Examples\Services\User\UserModelManager;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 
 /**
@@ -13,8 +14,7 @@ use Pekral\Arch\Examples\Services\User\UserModelService;
 final readonly class BulkImportUsers implements ArchAction
 {
 
-    public function __construct(private readonly UserModelService $userModelService)
-    {
+    public function __construct(private UserModelService $userModelService, private UserModelManager $userModelManager,) {
     }
 
     /**
@@ -51,7 +51,7 @@ final readonly class BulkImportUsers implements ArchAction
 
         $existingCount = $this->userModelService->countByParams([]);
 
-        $this->userModelService->getModelManager()->insertOrIgnore($preparedData);
+        $this->userModelManager->insertOrIgnore($preparedData);
 
         $newCount = $this->userModelService->countByParams([]);
         $createdCount = $newCount - $existingCount;
