@@ -114,11 +114,7 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
-        if (!$this->isValidMethodOrStaticCall($node)) {
-            return [];
-        }
-
-        if (!$this->isInActionClass($scope)) {
+        if (!$this->isApplicableContext($node, $scope)) {
             return [];
         }
 
@@ -218,10 +214,6 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
             return ['method' => $methodName, 'type' => 'conditional'];
         }
 
-        if ($this->isSafeBuilderMethod($methodName)) {
-            return null;
-        }
-
         if ($this->isPotentialScope($node, $scope)) {
             return ['method' => $methodName, 'type' => 'scope'];
         }
@@ -237,21 +229,20 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
 
         $methodName = $node->name->toString();
 
-        if ($this->isAllowedRetrievalMethod($methodName)
-            || $this->isAlwaysForbiddenMethod($methodName)
-            || $this->isSafeBuilderMethod($methodName)
-        ) {
-            return false;
-        }
-
-        $callerType = $scope->getType($node->var);
-
-        return $this->isEloquentModelOrBuilder($callerType);
+        return !$this->isAllowedRetrievalMethod($methodName)
+            && !$this->isAlwaysForbiddenMethod($methodName)
+            && !$this->isSafeBuilderMethod($methodName)
+            && $this->isEloquentModelOrBuilder($scope->getType($node->var));
     }
 
-    private function isValidMethodOrStaticCall(Node $node): bool
+    /**
+     * Returns true when the node is a method or static call made inside an Action class.
+     * Both conditions must hold to make the rule applicable.
+     */
+    private function isApplicableContext(Node $node, Scope $scope): bool
     {
-        return $node instanceof MethodCall || $node instanceof StaticCall;
+        return ($node instanceof MethodCall || $node instanceof StaticCall)
+            && $this->isInActionClass($scope);
     }
 
     private function getMethodName(Node $node): ?string

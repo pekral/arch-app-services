@@ -43,3 +43,25 @@ test('NoDirectDatabaseQueriesInActionsRule allows scope calls on model instances
 
     expect($scopeErrors)->toBeEmpty();
 });
+
+test('NoDirectDatabaseQueriesInActionsRule allows boolean helper methods on model instances in Actions', function (): void {
+    $errors = PhpstanFixtureRunner::run(
+        __DIR__ . '/../../../tests/fixtures/PHPStan/NoDirectDatabaseQueriesInActionsRule',
+    );
+
+    expect($errors)->not->toHaveKey('ActionWithBooleanHelperMethod.php');
+});
+
+test('NoDirectDatabaseQueriesInActionsRule allows bare retrieval methods without conditions in Actions', function (): void {
+    $errors = PhpstanFixtureRunner::run(
+        __DIR__ . '/../../../tests/fixtures/PHPStan/NoDirectDatabaseQueriesInActionsRule',
+    );
+
+    // Filter only errors originating from this rule — other rules may flag the same fixture.
+    $ruleErrors = array_filter(
+        $errors['ActionWithAllowedRetrievalOnly.php'] ?? [],
+        static fn (string $msg): bool => str_contains($msg, 'cannot be called in Action classes'),
+    );
+
+    expect($ruleErrors)->toBeEmpty();
+});
