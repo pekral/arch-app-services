@@ -15,10 +15,10 @@ test('execute performs bulk operations correctly', function (): void {
 
     $result = ($action)($updateData);
 
-    expect($result['bulk_create_result'])->toBe(3)
-        ->and($result['insert_or_ignore_result'])->toBe(3)
-        ->and($result['bulk_update_result'])->toBe(3)
-        ->and($result['final_user_count'])->toBe(5)
+    expect($result->bulkCreateResult)->toBe(3)
+        ->and($result->insertOrIgnoreResult)->toBe(3)
+        ->and($result->bulkUpdateResult)->toBe(3)
+        ->and($result->finalUserCount)->toBe(5)
         ->and(User::query()->where('name', 'Alice Johnson (Updated)')->exists())->toBeTrue()
         ->and(User::query()->where('name', 'Bob Smith (Updated)')->exists())->toBeTrue()
         ->and(User::query()->where('name', 'Charlie Brown (Updated)')->exists())->toBeTrue();

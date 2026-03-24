@@ -13,7 +13,8 @@ use Pekral\Arch\DTO\DataTransferObject;
 final class BulkImportResultDTO extends DataTransferObject
 {
 
-    public function __construct(public int $totalProcessed, public int $created, public int $ignored,) {
+    public function __construct(public int $totalProcessed, public int $created, public int $ignored)
+    {
     }
 
 }

@@ -11,11 +11,9 @@ test('execute with empty data returns zero results', function (): void {
 
     $result = ($action)($userData);
 
-    expect($result)->toBe([
-        'created' => 0,
-        'ignored' => 0,
-        'total_processed' => 0,
-    ]);
+    expect($result->totalProcessed)->toBe(0)
+        ->and($result->created)->toBe(0)
+        ->and($result->ignored)->toBe(0);
 });
 
 test('execute with new users creates all users', function (): void {
@@ -27,9 +25,9 @@ test('execute with new users creates all users', function (): void {
 
     $result = ($action)($userData);
 
-    expect($result['total_processed'])->toBe(2)
-        ->and($result['created'])->toBe(2)
-        ->and($result['ignored'])->toBe(0)
+    expect($result->totalProcessed)->toBe(2)
+        ->and($result->created)->toBe(2)
+        ->and($result->ignored)->toBe(0)
         ->and(User::query()->where('email', 'john@example.com')->exists())->toBeTrue()
         ->and(User::query()->where('email', 'jane@example.com')->exists())->toBeTrue();
 });
@@ -44,8 +42,8 @@ test('execute with mixed data handles existing and new users', function (): void
 
     $result = ($action)($userData);
 
-    expect($result['total_processed'])->toBe(2)
-        ->and($result['created'])->toBe(1)
-        ->and($result['ignored'])->toBe(1)
+    expect($result->totalProcessed)->toBe(2)
+        ->and($result->created)->toBe(1)
+        ->and($result->ignored)->toBe(1)
         ->and(User::query()->where('email', 'new@example.com')->exists())->toBeTrue();
 });

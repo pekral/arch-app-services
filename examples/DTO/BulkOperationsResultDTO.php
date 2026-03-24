@@ -14,7 +14,8 @@ use Pekral\Arch\DTO\DataTransferObject;
 final class BulkOperationsResultDTO extends DataTransferObject
 {
 
-    public function __construct(public int $bulkCreateResult, public int $insertOrIgnoreResult, public int $bulkUpdateResult, public int $finalUserCount,) {
+    public function __construct(public int $bulkCreateResult, public int $insertOrIgnoreResult, public int $bulkUpdateResult, public int $finalUserCount)
+    {
     }
 
 }
