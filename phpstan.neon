@@ -11,10 +11,10 @@ parameters:
         - phpstan
     tmpDir: build/phpstan
     treatPhpDocTypesAsCertain: false
-    
+
     bootstrapFiles:
         - vendor/autoload.php
-    
+
     scanDirectories:
         - phpstan
 
@@ -57,5 +57,9 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\OnlyRepositoriesCanQueryDataRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ActionInvokeArgumentsRule
         tags:
             - phpstan.rules.rule
