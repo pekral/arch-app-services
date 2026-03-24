@@ -61,6 +61,15 @@ final class User extends Model
         return $query->whereNotNull('email_verified_at');
     }
 
+    /**
+     * Returns true when the user has a verified email address.
+     * This is a pure model helper that reads already-loaded state — no query is issued.
+     */
+    public function isActive(): bool
+    {
+        return $this->email_verified_at !== null;
+    }
+
     protected static function newFactory(): UserFactory
     {
         return UserFactory::new();
