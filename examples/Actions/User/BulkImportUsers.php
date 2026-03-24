@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Examples\Actions\User;
 
 use Pekral\Arch\Action\ArchAction;
+use Pekral\Arch\Examples\DTO\BulkImportResultDTO;
 use Pekral\Arch\Examples\Services\User\UserModelManager;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 
@@ -31,20 +32,11 @@ final readonly class BulkImportUsers implements ArchAction
 
     /**
      * @param array<int, array<string, mixed>> $userData
-     * @return array{
-     *     total_processed: int,
-     *     created: int,
-     *     ignored: int
-     * }
      */
-    public function __invoke(array $userData): array
+    public function __invoke(array $userData): BulkImportResultDTO
     {
         if ($userData === []) {
-            return [
-                'created' => 0,
-                'ignored' => 0,
-                'total_processed' => 0,
-            ];
+            return new BulkImportResultDTO(totalProcessed: 0, created: 0, ignored: 0);
         }
 
         // Prepare data with timestamps
@@ -58,11 +50,11 @@ final readonly class BulkImportUsers implements ArchAction
         $createdCount = $newCount - $existingCount;
         $ignoredCount = count($preparedData) - $createdCount;
 
-        return [
-            'created' => $createdCount,
-            'ignored' => $ignoredCount,
-            'total_processed' => count($preparedData),
-        ];
+        return new BulkImportResultDTO(
+            totalProcessed: count($preparedData),
+            created: $createdCount,
+            ignored: $ignoredCount,
+        );
     }
 
 }

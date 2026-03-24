@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Examples\Actions\User;
 
 use Pekral\Arch\Action\ArchAction;
+use Pekral\Arch\Examples\DTO\BulkOperationsResultDTO;
 use Pekral\Arch\Examples\Services\User\UserModelManager;
 use Pekral\Arch\Examples\Services\User\UserModelService;
 
@@ -20,14 +21,8 @@ final readonly class BulkOperationsDemo implements ArchAction
 
     /**
      * @param array<int, array<string, mixed>> $updateData
-     * @return array{
-     *     bulk_create_result: int,
-     *     insert_or_ignore_result: int,
-     *     bulk_update_result: int,
-     *     final_user_count: int
-     * }
      */
-    public function __invoke(array $updateData = []): array
+    public function __invoke(array $updateData = []): BulkOperationsResultDTO
     {
         $newUsers = [
             ['name' => 'Alice Johnson', 'email' => 'alice@example.com', 'password' => 'password123'],
@@ -47,12 +42,12 @@ final readonly class BulkOperationsDemo implements ArchAction
 
         $bulkUpdateResult = $this->userModelService->bulkUpdate($updateData);
 
-        return [
-            'bulk_create_result' => $bulkCreateResult,
-            'bulk_update_result' => $bulkUpdateResult,
-            'final_user_count' => $this->userModelService->countByParams([]),
-            'insert_or_ignore_result' => count($mixedUsers),
-        ];
+        return new BulkOperationsResultDTO(
+            bulkCreateResult: $bulkCreateResult,
+            insertOrIgnoreResult: count($mixedUsers),
+            bulkUpdateResult: $bulkUpdateResult,
+            finalUserCount: $this->userModelService->countByParams([]),
+        );
     }
 
 }
