@@ -63,3 +63,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\ActionInvokeArgumentsRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ActionReturnDtoRule
+        tags:
+            - phpstan.rules.rule
