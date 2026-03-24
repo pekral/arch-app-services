@@ -14,7 +14,7 @@ use PHPStan\Type\ObjectType;
 use PHPStan\Type\Type;
 
 /**
- * Ensures Eloquent query builder methods are only used in Repository, ModelManager, or ModelService classes.
+ * Ensures Eloquent query builder methods are not used in Action classes.
  *
  * @implements \PHPStan\Rules\Rule<\PhpParser\Node\Expr>
  */
@@ -103,13 +103,6 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
         'toBase',
     ];
 
-    private const array ALLOWED_CLASSES = [
-        'Pekral\Arch\Repository\Mysql\BaseRepository',
-        'Pekral\Arch\Repository\DynamoDb\BaseRepository',
-        'Pekral\Arch\ModelManager\Mysql\BaseModelManager',
-        'Pekral\Arch\Service\BaseModelService',
-    ];
-
     public function getNodeType(): string
     {
         return Node\Expr::class;
@@ -125,7 +118,7 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
             return [];
         }
 
-        if ($this->isInAllowedClass($scope)) {
+        if (!$this->isInActionClass($scope)) {
             return [];
         }
 
@@ -199,7 +192,7 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
         return [
             RuleErrorBuilder::message(
                 sprintf(
-                    'Eloquent query method "%s()" can only be called in Repository, ModelManager, or ModelService classes. Found in: %s',
+                    'Eloquent query method "%s()" cannot be called in Action classes. Found in: %s',
                     $methodName,
                     $currentClass,
                 ),
@@ -207,7 +200,7 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
         ];
     }
 
-    private function isInAllowedClass(Scope $scope): bool
+    private function isInActionClass(Scope $scope): bool
     {
         $classReflection = $scope->getClassReflection();
 
@@ -215,19 +208,7 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
             return false;
         }
 
-        $currentClassName = $classReflection->getName();
-
-        if (in_array($currentClassName, self::ALLOWED_CLASSES, true)) {
-            return true;
-        }
-
-        foreach ($classReflection->getAncestors() as $ancestor) {
-            if (in_array($ancestor->getName(), self::ALLOWED_CLASSES, true)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $classReflection->implementsInterface('Pekral\Arch\Action\ArchAction');
     }
 
     private function isEloquentModelOrBuilder(Type $type): bool
