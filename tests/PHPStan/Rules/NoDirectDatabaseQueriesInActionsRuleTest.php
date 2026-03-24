@@ -60,7 +60,8 @@ test('NoDirectDatabaseQueriesInActionsRule allows bare retrieval methods without
     // Filter only errors originating from this rule — other rules may flag the same fixture.
     $ruleErrors = array_filter(
         $errors['ActionWithAllowedRetrievalOnly.php'] ?? [],
-        static fn (string $msg): bool => str_contains($msg, 'cannot be called in Action classes'),
+        static fn (string $msg): bool => str_contains($msg, 'Query builder method')
+            || str_contains($msg, 'Eloquent scope "'),
     );
 
     expect($ruleErrors)->toBeEmpty();
