@@ -146,6 +146,12 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
             return [];
         }
 
+        // Scope calls on model instances read model state and do not initiate a database query on their own.
+        // Only restrict scope calls when invoked on a query builder.
+        if (!$this->isEloquentBuilder($callerType)) {
+            return [];
+        }
+
         return $this->createScopeErrorMessage($methodName);
     }
 
@@ -336,6 +342,13 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
         $queryBuilderType = new ObjectType('Illuminate\Database\Eloquent\Builder');
 
         return $eloquentModelType->isSuperTypeOf($type)->yes() || $queryBuilderType->isSuperTypeOf($type)->yes();
+    }
+
+    private function isEloquentBuilder(Type $type): bool
+    {
+        $queryBuilderType = new ObjectType('Illuminate\Database\Eloquent\Builder');
+
+        return $queryBuilderType->isSuperTypeOf($type)->yes();
     }
 
 }

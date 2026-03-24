@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Tests\Models;
 
 use Iksaku\Laravel\MassUpdate\MassUpdatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon|null $deleted_at
  * @method static \Illuminate\Database\Eloquent\Builder<\Pekral\Arch\Tests\Models\User> whereName(string $value)
  * @method static \Illuminate\Database\Eloquent\Builder<\Pekral\Arch\Tests\Models\User> whereEmail(string $value)
+ * @method static \Illuminate\Database\Eloquent\Builder<\Pekral\Arch\Tests\Models\User> active()
  */
 final class User extends Model
 {
@@ -47,6 +49,17 @@ final class User extends Model
         'deleted_at' => 'datetime',
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Scope to filter only active (email-verified) users.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder<self> $query
+     * @return \Illuminate\Database\Eloquent\Builder<self>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNotNull('email_verified_at');
+    }
 
     protected static function newFactory(): UserFactory
     {

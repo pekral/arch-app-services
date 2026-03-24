@@ -25,3 +25,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\ActionInvokeArgumentsRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoDirectDatabaseQueriesInActionsRule
+        tags:
+            - phpstan.rules.rule
