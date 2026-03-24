@@ -6,10 +6,13 @@ namespace Pekral\Arch\Examples\Actions\User;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
-use Pekral\Arch\Action\ArchAction;
 use Pekral\Arch\Tests\Models\User;
 
-final readonly class VerifyUserAction implements ArchAction
+/**
+ * Sends an email verification notification to a user who has not yet verified their address.
+ * This is an internal helper invoked by entry-point actions — not an ArchAction entry point itself.
+ */
+final readonly class VerifyUserAction
 {
 
     public function __invoke(User $user): void
