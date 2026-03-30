@@ -123,3 +123,20 @@ test('transaction with null attempts falls back to config value', function (): v
 
     expect($action->run())->toBe('config-attempts');
 });
+
+test('transaction falls back to default when config value is not an integer', function (): void {
+    Config::set('arch.transactions.default_attempts', 'invalid');
+
+    $action = new class () {
+
+        use Transactional;
+
+        public function run(): string
+        {
+            return $this->transaction(fn (): string => 'non-int-config');
+        }
+
+    };
+
+    expect($action->run())->toBe('non-int-config');
+});

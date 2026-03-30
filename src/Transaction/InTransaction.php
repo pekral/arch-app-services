@@ -9,7 +9,7 @@ use Attribute;
 /**
  * Marks an action's __invoke method to automatically run within a database transaction.
  *
- * When applied, the TransactionMiddleware wraps the method execution
+ * When applied, the TransactionAwareAction trait wraps the method execution
  * in a database transaction with configurable retry attempts and connection.
  */
 #[Attribute(Attribute::TARGET_METHOD)]

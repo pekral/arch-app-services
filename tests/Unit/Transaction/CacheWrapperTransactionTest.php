@@ -106,6 +106,44 @@ test('clear all cache flushes immediately when outside transaction', function ()
     expect(true)->toBeTrue();
 });
 
+test('clear cache does not execute when transaction is rolled back', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
+    $cacheMock->shouldNotReceive('forget');
+
+    $repository = new CacheWrapperTransactionRepository();
+    DB::beginTransaction();
+
+    $repository->cache()->clearCache('testMethod', []);
+
+    DB::rollBack();
+
+    expect(true)->toBeTrue();
+});
+
+test('clear all cache does not execute when transaction is rolled back', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
+    Cache::shouldNotReceive('flush');
+
+    $repository = new CacheWrapperTransactionRepository();
+    DB::beginTransaction();
+
+    $repository->cache()->clearAllCache();
+
+    DB::rollBack();
+
+    expect(true)->toBeTrue();
+});
+
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\Pekral\Arch\Tests\Models\User>
  */

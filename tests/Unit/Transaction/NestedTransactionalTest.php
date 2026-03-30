@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\Tests\Unit\Transaction;
 
+use InvalidArgumentException;
 use Pekral\Arch\Tests\Models\User;
 use Pekral\Arch\Transaction\NestedTransactional;
 use Pekral\Arch\Transaction\Transactional;
@@ -106,4 +107,52 @@ test('savepoint with explicit connection executes callback', function (): void {
 
     expect($user)->toBeInstanceOf(User::class)
         ->and($user->name)->toBe('Connection Savepoint');
+});
+
+test('savepoint rejects invalid name with special characters', function (): void {
+    $action = new class () {
+
+        use NestedTransactional;
+        use Transactional;
+
+        public function run(): void
+        {
+            $this->transaction(fn (): mixed => $this->savepoint('invalid; DROP TABLE users', fn (): string => 'should not reach'));
+        }
+
+    };
+
+    expect(fn () => $action->run())->toThrow(InvalidArgumentException::class, 'contains invalid characters');
+});
+
+test('savepoint rejects name starting with number', function (): void {
+    $action = new class () {
+
+        use NestedTransactional;
+        use Transactional;
+
+        public function run(): void
+        {
+            $this->transaction(fn (): mixed => $this->savepoint('1invalid', fn (): string => 'should not reach'));
+        }
+
+    };
+
+    expect(fn () => $action->run())->toThrow(InvalidArgumentException::class, 'contains invalid characters');
+});
+
+test('savepoint rejects empty name', function (): void {
+    $action = new class () {
+
+        use NestedTransactional;
+        use Transactional;
+
+        public function run(): void
+        {
+            $this->transaction(fn (): mixed => $this->savepoint('', fn (): string => 'should not reach'));
+        }
+
+    };
+
+    expect(fn () => $action->run())->toThrow(InvalidArgumentException::class, 'contains invalid characters');
 });
