@@ -9,6 +9,7 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use Pekral\Arch\Repository\CacheableRepository;
 use Pekral\Arch\Repository\CacheWrapper;
@@ -264,6 +265,25 @@ test('cache wrapper uses custom driver', function (): void {
 
     expect($result)->toBeInstanceOf(User::class)
         ->and($result->id)->toBe($expectedUser->id);
+});
+
+test('cache passes connection to wrapper for transaction awareness', function (): void {
+    $cacheMock = Mockery::mock(CacheRepository::class);
+    Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
+    $testCacheableUserRepository = new TestCacheableUserRepository();
+    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.ttl', 3_600);
+    Config::set('arch.repository_cache.prefix', 'arch_repo');
+
+    $cacheMock->shouldReceive('forget')->once()->andReturn(true);
+
+    DB::connection('testing')->beginTransaction();
+
+    $testCacheableUserRepository->cache(null, 'testing')->clearCache('testMethod', []);
+
+    DB::connection('testing')->commit();
+
+    expect(true)->toBeTrue();
 });
 
 test('cache wrapper clear cache with custom driver', function (): void {
