@@ -7,9 +7,9 @@ namespace Pekral\Arch\Repository;
 trait CacheableRepository
 {
 
-    public function cache(?string $driver = null): CacheWrapper
+    public function cache(?string $driver = null, ?string $connection = null): CacheWrapper
     {
-        return new CacheWrapper($this, $driver);
+        return new CacheWrapper($this, $driver, $connection);
     }
 
 }

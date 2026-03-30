@@ -21,7 +21,11 @@ use function method_exists;
 final readonly class CacheWrapper
 {
 
-    public function __construct(private object $repository, private ?string $driver = null)
+    public function __construct(
+        private object $repository,
+        private ?string $driver = null,
+        private ?string $connection = null,
+    )
     {
     }
 
@@ -35,7 +39,7 @@ final readonly class CacheWrapper
         );
 
         if ($this->isInsideTransaction()) {
-            DB::afterCommit($forget);
+            $this->getDatabaseConnection()->afterCommit($forget);
 
             return true;
         }
@@ -56,7 +60,7 @@ final readonly class CacheWrapper
         };
 
         if ($this->isInsideTransaction()) {
-            DB::afterCommit($flush);
+            $this->getDatabaseConnection()->afterCommit($flush);
 
             return;
         }
@@ -104,7 +108,12 @@ final readonly class CacheWrapper
 
     private function isInsideTransaction(): bool
     {
-        return DB::transactionLevel() > 0;
+        return $this->getDatabaseConnection()->transactionLevel() > 0;
+    }
+
+    private function getDatabaseConnection(): \Illuminate\Database\Connection
+    {
+        return DB::connection($this->connection);
     }
 
     /**
