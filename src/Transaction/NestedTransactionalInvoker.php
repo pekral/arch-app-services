@@ -11,6 +11,7 @@ use Closure;
  */
 final class NestedTransactionalInvoker
 {
+
     use NestedTransactional;
 
     /**
@@ -22,5 +23,5 @@ final class NestedTransactionalInvoker
     {
         return $this->savepoint($name, $callback, $connection);
     }
-}
 
+}

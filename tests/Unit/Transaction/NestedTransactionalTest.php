@@ -116,20 +116,20 @@ test('savepoint with explicit connection executes callback', function (): void {
 test('savepoint rejects invalid name with special characters', function (): void {
     $invoker = new NestedTransactionalInvoker();
 
-    expect(fn () => $invoker->runSavepoint('invalid; DROP TABLE users', fn (): string => 'should not reach'))
+    expect(fn (): mixed => $invoker->runSavepoint('invalid; DROP TABLE users', fn (): string => 'should not reach'))
         ->toThrow(InvalidArgumentException::class, 'contains invalid characters');
 });
 
 test('savepoint rejects name starting with number', function (): void {
     $invoker = new NestedTransactionalInvoker();
 
-    expect(fn () => $invoker->runSavepoint('1invalid', fn (): string => 'should not reach'))
+    expect(fn (): mixed => $invoker->runSavepoint('1invalid', fn (): string => 'should not reach'))
         ->toThrow(InvalidArgumentException::class, 'contains invalid characters');
 });
 
 test('savepoint rejects empty name', function (): void {
     $invoker = new NestedTransactionalInvoker();
 
-    expect(fn () => $invoker->runSavepoint('', fn (): string => 'should not reach'))
+    expect(fn (): mixed => $invoker->runSavepoint('', fn (): string => 'should not reach'))
         ->toThrow(InvalidArgumentException::class, 'contains invalid characters');
 });

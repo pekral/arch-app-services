@@ -11,11 +11,17 @@ use Closure;
  */
 final class TransactionAwareActionWithoutAttributeInvoker
 {
+
     use TransactionAwareAction;
 
+    /**
+     * @template TResult
+     * @param \Closure(): TResult $callback
+     * @return TResult
+     */
     public function __invoke(Closure $callback): mixed
     {
         return $this->executeWithTransactionAttribute($callback);
     }
-}
 
+}

@@ -6,6 +6,7 @@ namespace Pekral\Arch\Repository;
 
 use BadMethodCallException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -21,11 +22,7 @@ use function method_exists;
 final readonly class CacheWrapper
 {
 
-    public function __construct(
-        private object $repository,
-        private ?string $driver = null,
-        private ?string $connection = null,
-    )
+    public function __construct(private object $repository, private ?string $driver = null, private ?string $connection = null)
     {
     }
 
@@ -111,7 +108,7 @@ final readonly class CacheWrapper
         return $this->getDatabaseConnection()->transactionLevel() > 0;
     }
 
-    private function getDatabaseConnection(): \Illuminate\Database\Connection
+    private function getDatabaseConnection(): Connection
     {
         return DB::connection($this->connection);
     }

@@ -5,10 +5,10 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Tests\Unit\Transaction;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Connection;
 use Mockery;
 use Pekral\Arch\Repository\CacheableRepository;
 use Pekral\Arch\Repository\CacheWrapper;
