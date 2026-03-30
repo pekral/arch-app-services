@@ -7,6 +7,7 @@ namespace Pekral\Arch\Repository;
 use BadMethodCallException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 use function class_basename;
 use function method_exists;
@@ -29,20 +30,38 @@ final readonly class CacheWrapper
      */
     public function clearCache(string $methodName, array $arguments = []): bool
     {
-        return $this->getCacheRepository()->forget(
+        $forget = fn (): bool => $this->getCacheRepository()->forget(
             $this->generateCacheKey($methodName, $arguments),
         );
+
+        if ($this->isInsideTransaction()) {
+            DB::afterCommit($forget);
+
+            return true;
+        }
+
+        return $forget();
     }
 
     public function clearAllCache(): void
     {
-        if ($this->driver !== null) {
-            Cache::store($this->driver)->getStore()->flush();
+        $flush = function (): void {
+            if ($this->driver !== null) {
+                Cache::store($this->driver)->getStore()->flush();
+
+                return;
+            }
+
+            Cache::flush();
+        };
+
+        if ($this->isInsideTransaction()) {
+            DB::afterCommit($flush);
 
             return;
         }
 
-        Cache::flush();
+        $flush();
     }
 
     /**
@@ -81,6 +100,11 @@ final readonly class CacheWrapper
     private function isCachingEnabled(): bool
     {
         return (bool) config('arch.repository_cache.enabled', true);
+    }
+
+    private function isInsideTransaction(): bool
+    {
+        return DB::transactionLevel() > 0;
     }
 
     /**

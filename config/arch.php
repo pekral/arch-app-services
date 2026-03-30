@@ -62,4 +62,19 @@ return [
         'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600), // 1 hour default
         'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Management
+    |--------------------------------------------------------------------------
+    |
+    | Configure database transaction behavior for Actions. The default_attempts
+    | value determines how many times a transaction will be retried on deadlock
+    | or transient failure before giving up.
+    |
+    */
+
+    'transactions' => [
+        'default_attempts' => env('ARCH_TRANSACTION_ATTEMPTS', 1),
+    ],
 ];
