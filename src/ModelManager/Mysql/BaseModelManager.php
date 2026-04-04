@@ -147,9 +147,9 @@ abstract class BaseModelManager implements ModelManager
         }
 
         return collect($dataArray)
-            ->filter(fn (array $data): bool => isset($data[$keyColumn]))
+            ->filter(static fn (array $data): bool => isset($data[$keyColumn]))
             ->map(fn (array $data): array => $this->extractKeyAndData($data, $keyColumn))
-            ->filter(fn (array $item): bool => $item['data'] !== [])
+            ->filter(static fn (array $item): bool => $item['data'] !== [])
             ->sum(fn (array $item): int => $this->newModelQuery()
                 ->where($keyColumn, $item['key'])
                 ->update($item['data']));

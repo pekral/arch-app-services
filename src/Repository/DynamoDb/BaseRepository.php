@@ -170,7 +170,11 @@ abstract class BaseRepository implements Repository
 
         return collect($orderBy)
             ->reduce(
-                fn (Collection $sorted, string $direction, string $column): Collection => $sorted->sortBy($column, SORT_REGULAR, $direction === 'desc'),
+                static fn (Collection $sorted, string $direction, string $column): Collection => $sorted->sortBy(
+                    $column,
+                    SORT_REGULAR,
+                    $direction === 'desc',
+                ),
                 $items,
             )
             ->values();

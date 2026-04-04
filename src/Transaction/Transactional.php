@@ -29,7 +29,7 @@ trait Transactional
 
         return DB::connection($connection)->transaction(
             // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter
-            fn (Connection $_db) => $callback(),
+            static fn (Connection $_db) => $callback(),
             $resolvedAttempts,
         );
     }

@@ -37,7 +37,7 @@ trait TransactionAwareAction
 
         return DB::connection($attribute->connection)->transaction(
             // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter
-            fn (Connection $_db) => $callback(),
+            static fn (Connection $_db) => $callback(),
             $attempts,
         );
     }

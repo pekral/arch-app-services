@@ -1,0 +1,41 @@
+---
+description: Context for pekral/arch-app-services — purpose, layout, testing
+alwaysApply: true
+globs: ["*"]
+---
+
+## What this project is
+
+- **pekral/arch-app-services** is a Composer package (`type: library`) for Laravel: clean architectural abstractions for scalable apps.
+- Production namespace: `Pekral\Arch\` (autoload `src/`).
+- The package is **under active development** — public API may change. Targets **Laravel 12+** and **PHP 8.4+**.
+
+## Main building blocks (package logic)
+
+- **Actions** — single-purpose, invokable operations (`__invoke()`); `ArchAction` contract, `DataBuilder` and `DataValidator` traits; **must not** call Eloquent persistence/queries or `app()` directly — enforced by PHPStan. Action logging is configured in `config/arch.php` (`action_logging`); README describes usage patterns.
+- **Repository** — read-only; `Mysql\BaseRepository`, fluent `query()`, pagination; `CacheableRepository` trait + TTL cache wrapper.
+- **ModelManager** — writes only (create, update, delete, bulk, `insertOrIgnore`, …); `Mysql\BaseModelManager` and experimental DynamoDB variant.
+- **BaseModelService** — combines repository + model manager for full CRUD; services must end with `ModelService`.
+- **DataBuilder / BuilderPipe** — data transformation via Laravel Pipeline.
+- **DataValidator** — validation through Laravel’s validator.
+- **DTO** — `DataTransferObject` on top of Spatie Laravel Data (validation attributes).
+- **Configuration** — `config/arch.php` (pagination, exceptions, action logging, repository cache); publish tag `arch-config`, stub tag `arch-stubs`.
+- **Scaffolding** — Artisan: `make:arch-action`, `make:arch-service`, `make:arch-dto`, `make:arch-validation-rules` (see `docs/code-generation.md`).
+
+## Repository layout
+
+- `src/` — package runtime, `ArchServiceProvider`, console commands.
+- `examples/` — reference code (`Pekral\Arch\Examples\`) for docs and tests.
+- `tests/` — Pest + Orchestra Testbench (`Pekral\Arch\Tests\`).
+- `phpstan/` — custom architecture rules (Actions, persistence, service naming, ValidationRules, …).
+- `docs/` — deeper docs (PHPStan, caching, query builder, soft delete, …).
+
+## Working on this codebase
+
+- Preserve layer boundaries; add tests for new behaviour (the project emphasises coverage of changes).
+- Keep repository/service queries efficient (eager loading, indexes) — follow the workspace SQL optimisation rule where queries are touched.
+
+## Tests
+
+- Typical commands: `composer test`, `composer test:coverage`, `vendor/bin/pest`, `composer analyse` — see `composer.json` and `CLAUDE.md`.
+- This is a **library**, not a host app with its own public API or admin — tests run against Testbench as unit/feature tests for the package, not manual exploratory REST testing against this repo as a deployed product.

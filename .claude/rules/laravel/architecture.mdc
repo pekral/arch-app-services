@@ -1,0 +1,190 @@
+---
+description: Laravel architecture and conventions
+alwaysApply: true
+globs: ["*"]
+---
+
+## Layer Responsibilities
+- **All business logic is allowed only in classes that follow the action pattern!**
+- **Controllers**: Slim, delegate to Services, accept FormRequest only, Do not contain business logic.
+- **Services**: All business logic, return DTOs or models, use Single Responsibility, Keep services stateless. Dont read and write operations in one service method.
+- **BaseModelService pattern (only when `vendor/pekral/arch-app-services` exists):** All services that primarily work with a specific Eloquent Model must extend `BaseModelService` and implement `getModelManager()`, `getRepository()`, and `getModelClass()`. Services that do not primarily serve a single model must be refactored into Action pattern classes.
+- **Repositories**: Read-only, no writes, no business rules
+- **ModelManagers**: Write-only, store data to DB
+- **Data Builders**: Transform/prepare DTOs, never query DB
+- **Jobs**: Slim, delegate to Services
+- **Events**: Slim, delegate to Services
+- **Commands**: Slim, delegate to Services
+
+## Validation Rules
+- Store reusable validation rules as traits in the `App\Concerns` namespace (e.g. `PasswordValidationRules`).
+- Each trait should provide focused, well-typed methods that return validation rule arrays with proper PHPDoc generics.
+- Use these traits in FormRequest classes and anywhere validation rules are needed to ensure DRY and consistent validation across the application.
+
+## DTOs (Spatie Laravel Data)
+- Use Spatie Laravel Data DTOs (`Spatie\LaravelData\Data`) for all typed data exchange between layers; never pass raw `array<mixed>`.
+- **Use PHP attributes for property mapping** — never override `from()` or use manual array mapping to rename keys. Prefer attribute-based configuration for a clean, declarative syntax:
+  - `#[MapInputName(SnakeCaseMapper::class)]` — map all incoming snake_case keys to camelCase properties globally (class-level).
+  - `#[MapName(SnakeCaseMapper::class)]` — map both input and output; use when the DTO is also serialized back (e.g. API responses).
+  - `#[MapInputName('some_key')]` — map a single specific input key to a differently named property.
+  - `#[WithoutValidation]` — skip validation for a specific property.
+  - `#[Computed]` — mark a property as computed (not filled from input).
+- DTO classes are `final readonly` with public constructor properties; no setters.
+- Place DTOs under `app/Dto/{Domain}/` with a `Data` suffix (e.g. `UserData`, `OrderItemData`).
+- Example:
+```php
+use Spatie\LaravelData\Attributes\MapInputName;
+use Spatie\LaravelData\Mappers\SnakeCaseMapper;
+
+#[MapInputName(SnakeCaseMapper::class)]
+final class CreateUserData extends Data
+{
+    public function __construct(
+        public readonly string $firstName,
+        public readonly string $lastName,
+        public readonly string $emailAddress,
+    ) {}
+}
+```
+
+## Data Validators (when `vendor/pekral/arch-app-services` exists)
+- Validation logic that throws exceptions (e.g. `ValidationException::withMessages()`) or calls `Validator::make()` must not be placed directly in Action classes.
+- Extract such validation into dedicated Data Validator classes under `app/DataValidators/{Domain}/`.
+- Data Validators are `final readonly`, have constructor DI, and expose a single `validate()` method.
+- Actions call the Data Validator before proceeding with orchestration.
+- Reusable validation rule traits from `App\Concerns` can be used inside Data Validators.
+
+## Controllers
+- Inject services by method injection
+- Never call `validate()` inside controller
+- Implement proper request validation using Form Requests
+- Aim for "slim" Controllers and put larger logic pieces in Service classes
+- Ensure that every route checks permissions (e.g., auth/can middleware). Every CRUD action validates input.
+- Call actions or service using direct invocation syntax: `$action($params)` (never `$action->__invoke($params)`)
+- NO Database Queries in Controller!
+- For validation rule `['required', 'string']` verify that an empty string does not pass.
+
+### Resource (CRUD) Controllers
+- Use for standard CRUD operations only: `index`, `create`, `store`, `show`, `edit`, `update`, `destroy`
+- Plural names (e.g. `ContactsController`, `OrdersController`)
+- No additional non-CRUD methods — extract any non-CRUD action into its own single-action controller
+
+### Single-Action (Invokeable) Controllers
+- **All non-CRUD controller actions must be implemented as single-action invokeable controllers** with only one public method `__invoke()`
+- Named after the specific action they perform (e.g. `ApproveOrderController`, `PublishPostController`, `SendInvoiceController`)
+- Placed in the same `app/Http/Controllers/` namespace hierarchy, optionally in domain subfolders (e.g. `app/Http/Controllers/Orders/ApproveOrderController.php`)
+- Registered with a single route pointing directly to the class: `Route::post('/orders/{order}/approve', ApproveOrderController::class)`
+- Must be slim entry points — delegate all orchestration to an Action class following the Action pattern
+
+## Database / Schema
+- Primary keys on every table; prefer INT over BIGINT unless > ~2B rows
+- Smallest fitting data types: INT for integers, DECIMAL for money, VARCHAR(n) for short strings, TIMESTAMP over DATETIME where possible
+- Use InnoDB (row-level locking, foreign keys, transactions)
+- Naming: lower_case_snake_case for tables and columns
+- Normalize first; denormalize only when metrics show a read bottleneck
+- Partition large tables by range (e.g. date) when query patterns benefit
+- Prefer to use Eloquent over using Query Builder and raw SQL queries. Prefer collections over arrays
+- Do not execute queries in Blade templates and use eager loading (N + 1 problem)
+- Define relationships, scopes, casts, and accessors in the model.
+- Use enums with `HasLabel`, `HasColor`, `HasIcon` where applicable.
+- No business logic in models.
+- Use Eloquent models and relationships first; avoid raw queries and DB:: unless truly necessary.
+- Use Query Scopes everytime!
+- Use withCount for Counts!
+- Use Casts for Type Safety
+- Chunking for Large Datasets
+- Don't Query in Loops
+- **Schema defaults:** If a column has a default in the database schema (migration `->default(...)` or SQL `DEFAULT`), that is the single source of truth at insert time. Do not duplicate the same default in PHP (`$attributes` on the model, redundant fields in factories/seeders, form `default()`, DTOs) unless you intentionally override it for a specific flow or test.
+
+## Migrations
+- Only `up()` methods, no `down()`
+- When adding columns in a migration, update the model's `$fillable` array to include those new attributes
+- Prefer defining column defaults in the migration so the database applies them; then avoid mirroring that default again in application layers when it adds no value.
+- Never chain multiple migration-creating commands (e.g., `make:model -m`, `make:migration`) with `&&` or `;` — they may get identical timestamps; run each command separately and wait for completion before running the next
+
+## Blade / Views
+- Analyze existing UI style before creating new
+- Keep consistent layout, colors, typography
+- Human-friendly, simply understandable
+- Blade: 4-space indent, no space after control structures
+
+## Testing
+- Laravel: prefer Http::fake() over Mockery
+- **Queue/Bus/Event assertions** — Do not pass a callback (closure) as the second argument to `Queue::assertPushed()`, `Queue::assertNotPushed()`, `Bus::assertDispatched()`, `Bus::assertNotDispatched()`, or `Event::assertDispatched()`. Assert only that the job/event class was pushed or dispatched (and optionally the count). Use `Queue::assertPushed(JobClass::class)` or `Queue::assertPushed(JobClass::class, $count)`; never use a callback to inspect job payload or filter matches.
+- Always call console commands using Artisan::call(MyCommand::class)
+- Mocking services is only allowed for classes that use external service calls or if it is necessary to simulate an exception throw.
+- **Eloquent rows in tests:** Persisted database rows that map to Eloquent models must be created only via model factories (`Model::factory()->create()`, `make()`, `count()`, `state()`, `for()`, `has()`, `afterCreating()`, etc.). Do not persist such data using `Model::create()`, `new Model([...])->save()`, `DB::table(...)->insert()`, `DB::insert()`, or raw SQL. If a model has no factory yet, add a factory before writing tests that need persisted rows for that model.
+- Factory: multiple records with the same attributes — When creating multiple instances of a model with the same attributes in your tests, use Model::factory()->count(n)->create([...]) instead of repeatedly calling Model::factory()->create([...]). Do not pass attributes that are not verified by the test (e.g., name); a single call is clearer and consistent with Laravel style. Omit factory attributes that are already covered by a database `DEFAULT` unless the test needs a non-default value.
+- If the PEST test requires calling a method that is in an abstract class, use the notation `test()->methodName()`.
+- **Dispatching jobs in tests:** Push jobs using the job class static `dispatch()` method (`Dispatchable` trait) — e.g. `ExportActivityRecurring::dispatch($payload)`. Do not use `dispatch(new ExportActivityRecurring(...))`, `Bus::dispatch(new ExportActivityRecurring(...))`, or `new ExportActivityRecurring(...)` without dispatching when the test should queue the job. Never combine `new` with `::dispatch()` (invalid PHP); call `JobClass::dispatch(...)` only.
+- Mocking the necessary classes only via app()->instance(Mock::class), e.g. 
+```
+$intercomServiceMock = Mockery::mock(IntercomService::class);
+    $intercomServiceMock->shouldNotReceive('updateOrCreateCompanyData');
+    $intercomServiceMock->shouldNotReceive('updateOrCreateUser');
+
+    app()->instance(IntercomService::class, $intercomServiceMock);
+```
+
+
+## Helpers
+- Use Laravel helpers instead of `use` section classes. Examples: use `auth()->id()` instead of `Auth::id()` and adding `Auth` in the `use` section. Other examples: use `redirect()->route()` instead of `Redirect::route()`, or `str()->slug()` instead of `Str::slug()`.
+- Replace all foreach with collect() helper.
+
+## Best practices
+- Follow Laravel best practices and conventions
+- Use object-oriented programming with a focus on SOLID principles
+- Prefer iteration and modularization over duplication
+- Favor dependency injection and service containers
+- Use Eloquent ORM instead of raw SQL queries when possible
+- Implement Repository pattern for data access layer
+- Use Laravel's built-in authentication and authorization features
+- Utilize Laravel's caching mechanisms for improved performance
+- Implement job queues for long-running tasks
+- Use Laravel's built-in testing tools (Pest) for unit and feature tests
+- Implement proper database indexing for improved query performance
+- Use Laravel's built-in pagination features
+- Implement proper error logging and monitoring
+- Use Laravel's routing system for defining application endpoints
+- Use the Laravel 11/12 structure: configure middleware, exceptions, and routes in bootstrap/app.php; service providers in bootstrap/providers.php; console configuration in routes/console.php.
+- Prefer named routes and route() for URL generation.
+
+## Dependencies
+- Composer for dependency management
+
+## Livewire
+- **Never use single-file (Volt) components.** Every Livewire component must be split into a PHP class (`app/Livewire/`) and a Blade view (`resources/views/livewire/`).
+- Livewire components are **entry points** (like controllers, jobs, commands, listeners): they must delegate all business logic to Action classes following the Action pattern.
+- Mandatory flow: `Livewire Component -> Action -> ModelService -> Repository (read) / ModelManager (write)`.
+- No direct Eloquent queries or `DB::` calls in Livewire components.
+- Keep component methods slim — validate input and delegate to Actions/Services.
+- See `.cursor/rules/laravel/livewire.mdc` for full Livewire conventions.
+
+## Queue System and Jobs
+- Queue long-running or external-dependent tasks.
+- Implement `ShouldQueue` and `ShouldBeUnique` where applicable.
+- Set `$tries`, `$backoff`, and `$timeout` on every job.
+- Handle failed jobs with `failed()` method.
+- Use job batching for related operations.
+- Jobs are idempotent — safe to retry.
+- No heavy logic in constructors (serialization issues).
+- Queue connections and workers are configured for the workload.
+- If you are doing code review for asynchronous jobs in the application, first check how the timeout, tries, etc. are set in the config. These values may not always be set directly in the Jobs.
+- If using in queue job any sql query from repository or direct from model, avoid of offset and limit and prefer last id row
+
+## Concurrency and Race Conditions
+- Never use read-modify-write patterns in PHP without an atomicity guard (DB transaction + `lockForUpdate()`, or atomic DB operation like `increment()`/`decrement()`).
+- Use `DB::transaction()` with `lockForUpdate()` for any operation that reads and then writes the same record under concurrent load.
+- Prefer atomic DB operations: `increment()`, `decrement()`, `updateOrInsert()` with a unique index.
+- Every `firstOrCreate()` / `updateOrCreate()` call must be backed by a unique DB index — without it, concurrent requests can insert duplicate rows.
+- Jobs that mutate shared records must be idempotent and implement `ShouldBeUnique` or use an idempotency key to prevent duplicate processing on retry.
+- Use `Cache::lock($key)->get(fn() => ...)` to prevent cache stampede on expensive computations.
+- Never rely on application-level uniqueness checks (e.g. `if (!exists) create`) — they are not atomic. Use unique DB constraints instead.
+
+## Middleware
+- Use middleware for cross-cutting concerns (auth, rate limiting, headers, logging).
+- Register middleware in the appropriate group or route.
+- Keep middleware focused — one concern per middleware.
+- Middleware does not contain business logic.
+- Order of middleware is intentional and correct.
+- Terminate middleware is used for post-response tasks.
