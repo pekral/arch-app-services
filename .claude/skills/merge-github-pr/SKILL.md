@@ -7,13 +7,9 @@ metadata:
 ---
 
 **Constraint:**
-- For all GitHub operations, prefer GitHub CLI (`gh`) as the primary tool.
-- If `gh` is not available or cannot be used, use an available GitHub MCP server as fallback.
-- If neither `gh` nor a GitHub MCP server is available, stop and return a failed result explaining that required GitHub tools are missing.
-- Read project.mdc file
-- First, load all rules for the cursor editor (.cursor/rules/.*mdc).
-- I want the texts to be in the language in which the assignment was written.
-- Never send PRs that have conflicts
+- Apply @rules/base-constraints.mdc
+- Apply @rules/github-operations.mdc
+- Never merge PRs that have conflicts
 
 **Steps:**
 - For each candidate PR, load all review comments and requested changes from code review (including unresolved/outdated discussion threads) and create a checklist of required fixes.
@@ -21,6 +17,7 @@ metadata:
 - If at least one code review item is not resolved, DO NOT merge the PR. Instead, report unresolved items and stop processing that PR.
 - Only when all code review checklist items are resolved and CI is green, continue with merge preparation.
 - Go through all PRs that have successfully completed the attached CI actions and systematically merge the changes into the main branch.
+- If the CI fails on GitHub (GitHub Actions), check to see if the GitHub Actions quota has been exceeded; if so, ignore the CI actions and merge the PR
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

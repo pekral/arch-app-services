@@ -7,9 +7,7 @@ metadata:
 ---
 
 **Constraint:**
-- Read project.mdc file
-- First, load all the rules for the cursor editor (.cursor/rules/.*mdc).
-- I want the texts to be in the language in which the assignment was written.
+- Apply @rules/base-constraints.mdc
 - All messages formatted as markdown for output.
 - Adapt to the project’s framework and structure; locate where robots, sitemap, and head meta are implemented in the codebase.
 
@@ -41,7 +39,7 @@ metadata:
 - New public route/page: use the public layout and ensure title and meta description are defined for that page.
 
 **After SEO changes**
-- All new or modified production code must follow @.cursor/skills/class-refactoring/SKILL.md.
+- All new or modified production code must follow @skills/class-refactoring/SKILL.md.
 - If new database migrations were created during the changes, run them (`php artisan migrate`) before running tests or creating a PR.
 - Run existing tests that hit robots, sitemap, or assert head meta. Fix any failing assertions.
 
@@ -58,7 +56,7 @@ metadata:
 - Area not included in sitemap.
 
 **Related**
-- For GEO (generative engines), AI-search citation strategy, keyword research, and JSON-LD/content patterns beyond robots/sitemap wiring, use @.cursor/skills/seo-geo/SKILL.md.
+- For GEO (generative engines), AI-search citation strategy, keyword research, and JSON-LD/content patterns beyond robots/sitemap wiring, use @skills/seo-geo/SKILL.md.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

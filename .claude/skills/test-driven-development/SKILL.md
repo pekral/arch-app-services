@@ -7,12 +7,9 @@ metadata:
 ---
 
 **Constraint:**
-- Read project.mdc file
-- First, load all the rules for the cursor editor (.cursor/rules/.*mdc).
-- The generated code must comply with all rules defined for writing tests in @.cursor/rules/php/standards.mdc. If the project is written in Laravel, it must also comply with @.cursor/rules/laravel/architecture.mdc.
-- All tests must follow the conventions defined in @.cursor/skills/create-test/SKILL.md.
-- **Never use the `describe()` function** in tests. Write tests at the top level using `it()` / `test()` only.
-- If new database migrations exist in the current branch, run them (`php artisan migrate`) before running tests.
+- Apply @rules/base-constraints.mdc
+- Apply @rules/testing-conventions.mdc
+- All tests must follow the conventions defined in @skills/create-test/SKILL.md.
 
 **Core principle:** If you did not watch the test fail, you do not know if it tests the right thing.
 
@@ -31,13 +28,9 @@ Write one minimal test showing expected behavior.
 
 - One behavior per test.
 - Clear, descriptive name that describes the behavior.
-- Real code paths — mock only external services (HTTP clients) or to simulate exceptions. Do not use constructor mocking!
+- Real code paths — mock only external services (HTTP clients) or to simulate exceptions. Do not use constructor mocking! **Prefer partial mocks** (`Mockery::mock(Service::class)->makePartial()`) so real methods run and only needed methods are overridden.
 - Arrange-act-assert pattern, error cases first.
-- Test classes must be `final`; use only local variables inside tests.
 - In tests, avoid reflection; use mocks instead (even partial ones, if they are effective and easy to read).
-- If the test requires persisted Laravel Eloquent rows, create them only via `Model::factory()` (see `@.cursor/rules/laravel/architecture.mdc` Testing). For other test data, follow `@.cursor/rules/php/standards.mdc`. Never mock it or circumvent this in any other way!
-- In Laravel factories, do not set attributes whose values are already defined by a database column default unless the test explicitly needs a different value (see `@.cursor/rules/laravel/architecture.mdc` Schema defaults and Testing).
-- In Laravel tests, dispatch queue jobs only via `JobClass::dispatch(...)` (see `@.cursor/rules/laravel/architecture.mdc` Testing — Dispatching jobs in tests).
 - In Livewire component tests, prefer `set()` for form state updates instead of `fill()` to avoid one round-trip per field and keep the suite fast.
 - Tests must not contain conditions (e.g., `if`, `switch`); split conditional logic into separate test cases instead.
 - Use data providers when they simplify writing and readability.
@@ -150,7 +143,8 @@ Never fix bugs without a failing test first.
 - [ ] Remove generated coverage files after verification.
 
 **After completing the tasks**
-- If according to @.cursor/skills/test-like-human/SKILL.md the changes can be tested, do it!
+- Check that the tests are written according to the test-writing guidelines and ensure 100% coverage; fix dry; use data providers to simplify the tests
+- If according to @skills/test-like-human/SKILL.md the changes can be tested, do it!
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

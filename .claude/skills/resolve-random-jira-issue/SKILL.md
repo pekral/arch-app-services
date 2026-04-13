@@ -7,22 +7,27 @@ metadata:
 ---
 
 **Constraint:**
-- For all GitHub operations, prefer GitHub CLI (`gh`) as the primary tool.
-- If `gh` is not available or cannot be used, use an available GitHub MCP server as fallback.
-- If neither `gh` nor a GitHub MCP server is available, stop and return a failed result explaining that required GitHub tools are missing.
-- Read project.mdc file
-- First, load all the rules for the cursor editor (.cursor/rules/.*mdc).
+- Apply @rules/base-constraints.mdc
+- Apply @rules/github-operations.mdc
+- Apply @rules/jira-operations.mdc
 - Before resolving a task, always switch to the main branch, download the latest changes, and make sure you have the latest code in the main branch.
-- I want the texts to be in the language in which the assignment was written.
 - If you are not on the main git branch in the project, switch to it.
-- For comments posted to JIRA, always use JIRA Wiki Markup (not Markdown) and follow the universal structure from JIRA-focused skills.
 - Pull request creation is mandatory for every resolved JIRA issue selected by this skill. Do not finish without a GitHub PR URL linked to the selected JIRA issue.
+- **Safe error messages:** All user-facing error and validation messages must be written so they do not reveal internal implementation details, database structure, file paths, or technology specifics that could help an attacker deduce an exploit vector. Messages should be helpful for the user but not informative for an attacker.
 
 **Steps:**
-- Log into JIRA and load all issues using the acli console tool first. If acli is not available, use the JIRA MCP server if available. If neither is available, stop and display a message stating that at least one of these tools must be installed to use the skill.
+- Log into JIRA and load all issues using the preferred JIRA tool (see @rules/jira-operations.mdc).
   List only those issues that are to be resolved by AI (they are tagged). Look for tasks labeled "Resolve_by_AI." If you are supposed to search in other places as well, find those other places too. Only not resolved issues should be listed!
-- Randomly select one and try to resolve it. Use the skill @.cursor/skills/resolve-jira-issue/SKILL.md.
+- Randomly select one and try to resolve it. Use the skill @skills/resolve-jira-issue/SKILL.md.
 - Completion is valid only when the delegated flow creates a GitHub PR and links it in the selected JIRA issue.
+- Before creating the PR, run @skills/code-review-jira/SKILL.md for the current changes and treat it as mandatory CR.
+- Fix all Critical, Moderate, and Minor findings from that CR directly in code/tests, then run @skills/code-review-jira/SKILL.md again.
+- Repeat the CR + fix cycle until there are no Critical, Moderate, or Minor findings left.
+
+**After completing the tasks**
+- Once the PR is created and pushed, perform a final validation pass with @skills/code-review-jira/SKILL.md for the selected JIRA issue.
+- If according to @skills/test-like-human/SKILL.md the changes can be tested, do it!
+- If the work is done, run @skills/code-review-jira/SKILL.md for the current issue.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

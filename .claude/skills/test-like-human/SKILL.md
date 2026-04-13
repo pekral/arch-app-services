@@ -12,12 +12,10 @@ metadata:
 
 **Constraint:**
 
--   For all GitHub operations, prefer GitHub CLI (`gh`) as the primary tool.
--   If `gh` is not available or cannot be used, use an available GitHub MCP server as fallback.
--   If neither `gh` nor a GitHub MCP server is available, stop and return a failed result explaining that required GitHub tools are missing.
--   Read project.mdc file!
--   First load all cursor editor rules (.cursor/rules/.\*mdc).
--   I want the texts to be in the language in which the task was assigned. Never combine multiple languages in your answer, e.g., one part in English and the other in Czech.
+-   Apply @rules/base-constraints.mdc
+-   Apply @rules/github-operations.mdc
+-   Apply @rules/jira-operations.mdc
+-   Never combine multiple languages in your answer, e.g., one part in English and the other in Czech.
 -   **Before starting to test**, analyze all comments and discussions in the issue so that you fully understand what the final state should be and what logic should have been created. Only then begin testing.
 -   Work only with the **current pull request**. Testing instructions must be taken only from the PR conversation.
 -   Specifically search for a section named **'Doporučení k testování'** or **'Testing Recommendations'**. Prefer recommendations that include direct in-app links (full URLs) for fast click-through testing.
@@ -164,7 +162,7 @@ Produce a human-readable markdown report containing:
 
 **After completing the tasks**
 
--   Post the final human-readable test report as a comment to the **related issue** in the issue tracker (GitHub issue, JIRA ticket, etc.). Use available CLI tools or MCP servers to post it. The comment must be written in the language of the task assignment.
+-   Post the final human-readable test report as a comment to the **related issue** in the issue tracker (GitHub issue, JIRA ticket, etc.) using the preferred tool for the tracker (see @rules/github-operations.mdc and @rules/jira-operations.mdc). The comment must be written in the language of the task assignment.
 -   Summarize which scenarios failed or were unclear (with technical info for the developer).
 
 ## Output Humanization

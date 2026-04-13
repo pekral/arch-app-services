@@ -7,9 +7,8 @@ metadata:
 ---
 
 **Constraint:**
-- First, load all rules for Cursor editor (`.cursor/rules/.*mdc`).
-- Read `project.mdc` and all architecture rules that define Action pattern requirements before writing any code.
-- Keep all texts in the language used in the assignment.
+- Apply @rules/base-constraints.mdc
+- Read all architecture rules that define Action pattern requirements before writing any code.
 - Preserve behavior: refactor orchestration location, not business result.
 - In this iteration, do not report code review output to any third-party service.
 - After generating or updating code, run immediate internal code review focused on architecture and fix findings ASAP.
@@ -71,6 +70,7 @@ metadata:
 - Do not create multiple public business methods in an Action.
 - Do not bypass Repository/ModelManager boundaries.
 - Do not change unrelated behavior while refactoring.
+- Do not create `final class` wrappers with a single static method for simple utility logic — use a global helper function in `app/helpers.php` instead (see Custom Helpers in `@rules/laravel/architecture.mdc`).
 
 **Definition of done:**
 - Target entry point method is thin and delegates to a dedicated Action.

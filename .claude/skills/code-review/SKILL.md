@@ -4,35 +4,27 @@ description: Senior PHP code reviewer. Use when reviewing pull requests, examini
 ---
 
 **Constraint:**
-- Read project.mdc file
-- First, load all the rules for the cursor editor (.cursor/rules/.*mdc).
-- Always apply @.cursor/skills/smartest-project-addition/SKILL.md internally to identify one highest-impact, low-risk addition candidate; include it only if it maps to a real finding and keep the final output in the required findings-only format.
-- I want the texts to be in the language in which the assignment was written.
-- **Before starting the review**, analyze all comments and discussions in the issue so that you fully understand what the final state should be and what logic should have been created. Only then begin reviewing.
-- Always load existing CR reports/comments from the issue tracker and related PR (using available CLI tools or MCP servers) before generating a new CR report, and never repeat a previously reported finding.
-- Switch to the main branch and make sure you have the updated main branch. Then switch to the branch where the PR is and, to be on the safe side, update the branch for the PR as well, then continue with the code review.
+- Apply @rules/base-constraints.mdc
+- Apply @rules/review-only.mdc
+- Always apply @skills/smartest-project-addition/SKILL.md internally to identify one highest-impact, low-risk addition candidate; include it only if it maps to a real finding and keep the final output in the required findings-only format.
+- All CR output (findings, recommendations, comments) must be written in English.
 - Identify changes vs main branch (list commits).
 - Understand context before reviewing
-- All messages formatted as markdown for output.
-- NEVER CHANGE THE CODE! Generate the output only.
-- Every CR must use @.cursor/skills/security-review/SKILL.md for the current changes.
+- Every CR must use @skills/security-review/SKILL.md for the current changes.
 - Check for any points where the current changes could break the logic. If it is shared functionality, make sure to check these parts of the application as well!
 
 **Steps:**
-- Read project.mdc file
 - **Cancel CR if PR has conflicts!** If the PR has merge conflicts with the base branch, do not perform the code review; cancel and report that the CR was skipped due to conflicts.
 - Before writing findings, collect previous CR reports from the related PR/issue discussion and build a dedup list by problem signature (file/scope + risk + root cause). Do not repeat already reported findings unless severity or impact changed.
 - **Plan Alignment Analysis:** Compare the implementation against the original issue description, planning documents, or step description. Identify deviations from the planned approach, architecture, or requirements. Assess whether deviations are justified improvements or problematic departures. Verify that all planned functionality has been implemented — list any missing or only partially met items.
-- **Security review (every CR):** Always apply @.cursor/skills/security-review/SKILL.md for the current changes.
-- All changes must comply with `.cursor/rules/**/*.mdc`.
-- **All business logic is allowed only in classes that follow the action pattern!**
-- **Action pattern (only when `vendor/pekral/arch-app-services` exists):** Apply @.cursor/skills/refactor-entry-point-to-action/SKILL.md rules when reviewing PHP entry points (controllers, jobs, commands, listeners, **Livewire components**). If a new or changed entry point contains orchestration logic without an Action class, flag it as **Critical**.
-- **Livewire component structure (only in Livewire projects):** Livewire components must be split into a PHP class (`app/Livewire/`) and a Blade view (`resources/views/livewire/`). Single-file (Volt) components are forbidden — flag as **Critical**. Business logic in Livewire component methods must be delegated to Action classes — flag inline business logic as **Critical**.
-- **Data Validator pattern (only when `vendor/pekral/arch-app-services` exists):** If an Action class throws `ValidationException` directly or calls `Validator::make()` inline instead of delegating to a dedicated Data Validator class, flag it as **Critical**. Validation logic must be encapsulated in `app/DataValidators/{Domain}/` classes.
-- **BaseModelService pattern (only when `vendor/pekral/arch-app-services` exists):** All services that primarily work with a specific Eloquent Model must extend `BaseModelService` and implement `getModelManager()`, `getRepository()`, and `getModelClass()`. If a service works with a model but does not extend `BaseModelService`, flag it as **Critical**. If a service does not primarily serve a single model but exists as a plain service class, flag it as **Moderate** and recommend refactoring to an Action pattern class.
-- **SQL analysis (only when changes touch the database):** If the changes include any database-related modifications (migrations, schema changes, repositories, raw SQL, query builder, or Eloquent/queries in changed files), use @.cursor/skills/mysql-problem-solver/SKILL.md for systematic analysis of those parts (identify query, inspect schema, EXPLAIN, evaluate indexes, propose safe optimizations). If there are no such changes, skip this step.
-- **Race condition review (when shared state is modified):** If the changes contain any of the following signals — read-modify-write sequences, shared counters/balances/stock/quotas, `firstOrCreate`/`updateOrCreate`, retried or re-dispatched jobs that mutate shared records, cache write-back patterns, or bulk read-then-write operations — apply @.cursor/skills/race-condition-review/SKILL.md. If none of these signals are present, skip this step.
-- When the task has stated requirements or acceptance criteria (from the issue/PR), verify each item against the changes; list any that are not addressed or only partially met.
+- **Simplification analysis:** Evaluate whether the solution can be written more simply without altering the new logic, leveraging rules and conventions already defined in `rules/**/*.mdc`. Flag unnecessary complexity as a finding.
+- **Regression analysis:** For every changed file, check whether the modifications could break existing functionality that is NOT part of the ticket scope. Trace callers and dependents of changed methods/classes. If a change alters shared logic (helpers, services, traits, base classes, interfaces), verify that all consumers still behave correctly. Flag any regression risk as a finding — even if the new code is correct in isolation, breaking unrelated features is **Critical**.
+- **Security review (every CR):** Always apply @skills/security-review/SKILL.md for the current changes.
+- All changes must comply with `rules/**/*.mdc`.
+- Apply @rules/architecture-patterns.mdc
+- **SQL analysis (only when changes touch the database):** If the changes include any database-related modifications (migrations, schema changes, repositories, raw SQL, query builder, or Eloquent/queries in changed files), use @skills/mysql-problem-solver/SKILL.md for systematic analysis of those parts (identify query, inspect schema, EXPLAIN, evaluate indexes, propose safe optimizations). If there are no such changes, skip this step.
+- **Race condition review (when shared state is modified):** If the changes contain any of the following signals — read-modify-write sequences, shared counters/balances/stock/quotas, `firstOrCreate`/`updateOrCreate`, retried or re-dispatched jobs that mutate shared records, cache write-back patterns, or bulk read-then-write operations — apply @skills/race-condition-review/SKILL.md. If none of these signals are present, skip this step.
+- **Acceptance criteria verification:** If the issue or PR contains acceptance criteria (e.g. "Acceptance Criteria", "Akceptační kritéria", "AC", or a checklist of expected behaviors), verify every single criterion against the actual changes. For each criterion, state whether it is fully met, partially met, or not met. Report any unmet or partially met acceptance criterion as a **Critical** finding.
 - Understand what has changed and pay attention to the structural quality of the code defined in the rules.
 - Ensure SRP in each class and apply SOLID principles so that the code is readable for developers.
 - **Type safety and defensive programming:** Check for proper error handling robustness, type safety, and defensive programming patterns. Verify guard clauses, null checks, and safe return types.
@@ -66,12 +58,17 @@ description: Senior PHP code reviewer. Use when reviewing pull requests, examini
 - Short transactions; batch writes in one transaction where appropriate.
 - Use `SHOW ENGINE INNODB STATUS` to diagnose lock waits when investigating issues.
 - Controllers: slim; delegate to Services; accept FormRequest only; never `validate()` in controller.
-- **Invokeable controller rule (**Critical**):** Any controller method that is not a standard CRUD method (`index`, `create`, `store`, `show`, `edit`, `update`, `destroy`) must be a dedicated single-action invokeable controller exposing only `__invoke()`. A resource controller must not contain non-CRUD methods — flag as **Critical** if found.
-- **Validation rules as traits:** Reusable validation rules must be stored as traits in `App\Concerns`. Duplicated rule arrays across FormRequests should be flagged as **Moderate**.
+- **Endpoint I/O typing (**Moderate**):** Controller actions must accept a FormRequest (or typed DTO) and return a typed response (Resource, DTO, or response class). Passing raw `$request->all()` arrays or returning ad-hoc associative arrays is **Moderate** — flag and recommend a typed DTO or API Resource so the contract is explicit.
 - Services: hold business logic; return DTOs or models.
-- **DTO attribute syntax (**Moderate**):** If a Spatie Laravel Data DTO overrides `from()` solely to rename input keys, or uses manual array mapping instead of `#[MapInputName(SnakeCaseMapper::class)]` / `#[MapName(SnakeCaseMapper::class)]` attributes, flag as **Moderate** and suggest the declarative attribute approach.
+- **Service single-responsibility (**Moderate**):** A service class must not mix business logic with cross-cutting concerns (validation, email/notification dispatch, logging, metrics). If a service method contains more than one of these, flag as **Moderate** and recommend extracting cross-cutting work into middleware, events/listeners, or dedicated classes.
+- **DTO attribute syntax (**Moderate**):** If a Spatie Laravel Data DTO overrides `from()` solely to rename input keys, or uses manual array mapping instead of `#[MapInputName(SnakeCaseMapper::class)]` / `#[MapName(SnakeCaseMapper::class)]` attributes, flag as **Moderate** and suggest the declarative attribute approach. Custom named static constructors (e.g. `fromModel()`, `fromRequest()`, `fromArray()`) that perform domain-specific data transformation beyond simple key renaming are a valid pattern and must not be flagged.
 - Repositories: read-only. ModelManagers: write-only.
+- **Repository interface overkill (**Minor**):** Do not require an interface for a repository (or any service) that has only one implementation and no realistic second implementation on the horizon. Flag unnecessary single-implementation interfaces as **Minor** — they add indirection without value.
+- **Eloquent query scopes (**Moderate**):** When a model defines query scopes, all Eloquent queries in changed code must use those scopes instead of inline `->where()` calls that duplicate the scope logic. If the same query condition appears in multiple places without a scope, flag as **Moderate** and recommend extracting a query scope on the model.
 - Jobs, Events, Commands: slim; delegate to Services.
+- **Middleware for cross-cutting concerns (**Moderate**):** Logging, authentication, metrics, retry logic, and rate limiting must not be copy-pasted into individual handlers or services. These belong in middleware (HTTP middleware, job middleware, or pipeline stages). If the same cross-cutting logic appears in multiple handlers, flag as **Moderate** (DRY violation) and recommend extraction into middleware or a decorator.
+- **Façade simplicity (**Minor**):** The calling code should interact with a simple, intention-revealing API. Implementation complexity (retry strategies, idempotence guards, provider selection, circuit breakers) must be encapsulated inside the service — not leaked to the caller. Flag leaked complexity as **Minor**.
+- **Request traceability (**Moderate**):** The path of a request through the system must be linear and easy to follow. Flag implicit side effects that break traceability — hidden event listeners that silently mutate state, magic method calls, or service calls triggered by model boot events that are not obvious from the calling code. Each side effect should be explicitly dispatched or documented at the call site.
 - New controller actions must have corresponding Request classes.
 - Race conditions
 - Cache stampede risks
@@ -82,6 +79,7 @@ description: Senior PHP code reviewer. Use when reviewing pull requests, examini
 - Timezone handling
 - N+1 queries
 - Unhandled or swallowed exceptions in critical paths; overly broad catch blocks; silent failures; poor logging.
+- **Safe error messages (**Moderate**):** User-facing error and validation messages must not reveal internal implementation details, database structure, file paths, stack traces, or specific technology versions that could help an attacker craft an exploit. Messages should be informative for the user but generic enough to prevent information leakage. Flag overly detailed error messages as **Moderate**.
 - Defensive code: timeouts, invalid input, empty responses, failed API calls. Suggest safer error paths and guard clauses.
 - N+1: relationships used in loops must be eager-loaded (`with()`, `load()`); no DB or model calls inside loops that could be batched.
 - Avoid nested loops over large data; prefer chunk/cursor and set-based or batched work; cache repeated lookups (e.g. config, reference data).
@@ -102,30 +100,31 @@ description: Senior PHP code reviewer. Use when reviewing pull requests, examini
 - Explicitly detect and report **DRY violations** (duplicated logic, duplicated validation rules, repeated branching/condition blocks, and copy-pasted code paths) as findings with actionable refactoring recommendations.
 - Issues static analysis may not fully trace: business-logic flaws, missing authorization checks, data flow to sensitive sinks.
 - Coverage for changed files only (target 100% for changes). Run tests only for changed files.
-- New code is tested: arrange-act-assert; error cases first; descriptive names; data providers via argument; mock only external services.
+- New code is tested: arrange-act-assert; error cases first; descriptive names; data providers via argument; mock only external services. **Prefer partial mocks** over full mocks — flag full mocks as **Minor** when a partial mock would suffice.
 - Identify missing test variations.
 - For new or changed behavior, suggest concrete test scenarios where coverage is missing or unclear (e.g. "Unit: method X with null/empty input"; "Integration: POST without auth must return 401"). This supports testing readiness alongside coverage metrics.
 - Laravel: prefer `Http::fake()` over Mockery.
-- **Laravel AI SDK (**Critical**):** If a Laravel project implements AI features (e.g., LLM calls, embeddings, agents) without using the [Laravel AI SDK](https://laravel.com/docs/13.x/ai-sdk) — for example by calling AI provider APIs directly via raw HTTP or a non-Laravel SDK — flag it as **Critical** and recommend migrating to the Laravel AI SDK.
 
-**Deliver:** Vypiš **pouze nálezy** (chyby/problémy/risks) se stručným návrhem řešení. Žádné shrnutí, žádné “co bylo zkontrolováno”, žádná chvála.
-- Použij přesně tři úrovně závažnosti pro každý nález: **Critical**, **Moderate**, **Minor**.
-- Výstup seskup podle závažnosti (Critical → Moderate → Minor).
-- Každý nález musí mít: **lokaci** (soubor + řádek, nebo minimálně soubor), **dopad/riziko** a **konkrétní doporučení opravy** (u jednoduchých fixů klidně krátký snippet).
-- Pokud nejsou žádné nálezy, napiš jen informaci, že nebyly nalezeny žádné problémy.
+**Deliver:** Output **only findings** (bugs/issues/risks) with a brief suggested fix. No “what was checked”, no praise.
+- Use exactly three severity levels for every finding: **Critical**, **Moderate**, **Minor**.
+- Group output by severity (Critical → Moderate → Minor).
+- Use numbered lists for findings — do not use bullet points.
+- Each finding must include: **location** (file + line, or at least file), **impact/risk**, and a **concrete fix recommendation** (include a short snippet for simple fixes).
+- **Code coverage for changed files must be 100%.** If coverage is below 100% for any changed file, report it as a **Critical** finding.
+- End the output with a **Summary** line showing the total count of findings per severity, e.g.: `**Summary: 3 Critical, 2 Moderate, 1 Minor**`. If there are no findings, state that no issues were found.
 
 **Communication protocol:**
-- Neuváděj pozitivní hodnocení ani “well done” pasáže; výstup má obsahovat jen nálezy.
-- Pokud najdeš významné odchylky od zadání/požadavků, zalistuj je jako nálezy se závažností a doporučením.
-- Pro implementační problémy dávej jasné kroky k opravě (a krátký příklad kódu, když to zrychlí fix).
+- Do not include positive feedback or “well done” passages; output must contain only findings.
+- If you find significant deviations from the requirements/specification, list them as findings with severity and recommendation.
+- For implementation problems, provide clear steps to fix (and a short code example when it speeds up the fix).
 
 **Review best practices:**
 - Give concrete fixes or code snippets where relevant; not only “something is wrong”.
-- Evaluate code in project context and against `.cursor/rules/**/*.mdc`.
+- Evaluate code in project context and against `rules/**/*.mdc`.
 - Findings are recommendations; final decisions remain with the human reviewer.
 
 **After completing the tasks**
-- If all **Critical** and **Moderate** findings from the current CR cycle are resolved, then (and only then) run @.cursor/skills/test-like-human/SKILL.md when the changes can be tested.
+- If all **Critical** and **Moderate** findings from the current CR cycle are resolved, then (and only then) run @skills/test-like-human/SKILL.md when the changes can be tested. The test-like-human skill must post its unified test report as a comment to the related issue in the issue tracker.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

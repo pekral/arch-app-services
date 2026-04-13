@@ -23,7 +23,7 @@ globs: ["*"]
 
 ## DTOs (Spatie Laravel Data)
 - Use Spatie Laravel Data DTOs (`Spatie\LaravelData\Data`) for all typed data exchange between layers; never pass raw `array<mixed>`.
-- **Use PHP attributes for property mapping** — never override `from()` or use manual array mapping to rename keys. Prefer attribute-based configuration for a clean, declarative syntax:
+- **Use PHP attributes for property mapping** — never override `from()` solely to rename keys or perform manual array mapping. Prefer attribute-based configuration for a clean, declarative syntax. Custom named static constructors (e.g. `fromModel()`, `fromRequest()`, `fromArray()`) are allowed and encouraged when they provide a clear, domain-specific transformation that goes beyond simple key renaming:
   - `#[MapInputName(SnakeCaseMapper::class)]` — map all incoming snake_case keys to camelCase properties globally (class-level).
   - `#[MapName(SnakeCaseMapper::class)]` — map both input and output; use when the DTO is also serialized back (e.g. API responses).
   - `#[MapInputName('some_key')]` — map a single specific input key to a differently named property.
@@ -112,24 +112,36 @@ final class CreateUserData extends Data
 - Laravel: prefer Http::fake() over Mockery
 - **Queue/Bus/Event assertions** — Do not pass a callback (closure) as the second argument to `Queue::assertPushed()`, `Queue::assertNotPushed()`, `Bus::assertDispatched()`, `Bus::assertNotDispatched()`, or `Event::assertDispatched()`. Assert only that the job/event class was pushed or dispatched (and optionally the count). Use `Queue::assertPushed(JobClass::class)` or `Queue::assertPushed(JobClass::class, $count)`; never use a callback to inspect job payload or filter matches.
 - Always call console commands using Artisan::call(MyCommand::class)
-- Mocking services is only allowed for classes that use external service calls or if it is necessary to simulate an exception throw.
+- Mocking services is only allowed for classes that use external service calls or if it is necessary to simulate an exception throw. **Prefer partial mocks** (`Mockery::mock(Service::class)->makePartial()` or `$this->partialMock(Service::class)`) so that real method implementations are preserved and only the needed methods are overridden.
 - **Eloquent rows in tests:** Persisted database rows that map to Eloquent models must be created only via model factories (`Model::factory()->create()`, `make()`, `count()`, `state()`, `for()`, `has()`, `afterCreating()`, etc.). Do not persist such data using `Model::create()`, `new Model([...])->save()`, `DB::table(...)->insert()`, `DB::insert()`, or raw SQL. If a model has no factory yet, add a factory before writing tests that need persisted rows for that model.
 - Factory: multiple records with the same attributes — When creating multiple instances of a model with the same attributes in your tests, use Model::factory()->count(n)->create([...]) instead of repeatedly calling Model::factory()->create([...]). Do not pass attributes that are not verified by the test (e.g., name); a single call is clearer and consistent with Laravel style. Omit factory attributes that are already covered by a database `DEFAULT` unless the test needs a non-default value.
 - If the PEST test requires calling a method that is in an abstract class, use the notation `test()->methodName()`.
 - **Dispatching jobs in tests:** Push jobs using the job class static `dispatch()` method (`Dispatchable` trait) — e.g. `ExportActivityRecurring::dispatch($payload)`. Do not use `dispatch(new ExportActivityRecurring(...))`, `Bus::dispatch(new ExportActivityRecurring(...))`, or `new ExportActivityRecurring(...)` without dispatching when the test should queue the job. Never combine `new` with `::dispatch()` (invalid PHP); call `JobClass::dispatch(...)` only.
-- Mocking the necessary classes only via app()->instance(Mock::class), e.g. 
+- Mocking the necessary classes only via app()->instance(Mock::class). Prefer partial mocks, e.g.
 ```
-$intercomServiceMock = Mockery::mock(IntercomService::class);
+$intercomServiceMock = Mockery::mock(IntercomService::class)->makePartial();
     $intercomServiceMock->shouldNotReceive('updateOrCreateCompanyData');
     $intercomServiceMock->shouldNotReceive('updateOrCreateUser');
 
     app()->instance(IntercomService::class, $intercomServiceMock);
 ```
 
+### No external connections in tests
+- Tests must **never** communicate with third-party services or external endpoints.
+- All HTTP requests must be mocked. `Http::preventStrayRequests()` is called globally in `TestCase::setUp()` to prevent accidental real HTTP requests.
+- Database connection tests (PDO) must use `sqlite::memory:` or local file-based SQLite instead of connecting to real MySQL/PostgreSQL/SQL Server hosts. For testing failure paths, use SQLite with an inaccessible path.
+- DNS lookups (`gethostbyname`, `dns_get_record`) should be avoided in tests. If an action performs DNS resolution, mock the action or use the `fakeTestDatabaseConnectionAction()` helper.
+- When testing an action that makes external calls, bind a fake implementation via the container rather than making real calls.
 
 ## Helpers
 - Use Laravel helpers instead of `use` section classes. Examples: use `auth()->id()` instead of `Auth::id()` and adding `Auth` in the `use` section. Other examples: use `redirect()->route()` instead of `Redirect::route()`, or `str()->slug()` instead of `Str::slug()`.
 - Replace all foreach with collect() helper.
+
+## Custom Helpers
+- Small utility functions that don't belong to any specific class (cache key generators, input validators, formatters) must be implemented as **global helper functions** in `app/helpers.php` (autoloaded via `composer.json` `files` key).
+- Follow the [Laravel News helpers pattern](https://laravel-news.com/creating-helpers): plain functions, no wrapper classes, snake_case names.
+- Do **not** create `final class` wrappers with a single static method for simple utility logic — use a helper function instead.
+- Helper functions are globally available — no `use` imports needed.
 
 ## Best practices
 - Follow Laravel best practices and conventions
@@ -158,7 +170,7 @@ $intercomServiceMock = Mockery::mock(IntercomService::class);
 - Mandatory flow: `Livewire Component -> Action -> ModelService -> Repository (read) / ModelManager (write)`.
 - No direct Eloquent queries or `DB::` calls in Livewire components.
 - Keep component methods slim — validate input and delegate to Actions/Services.
-- See `.cursor/rules/laravel/livewire.mdc` for full Livewire conventions.
+- See `rules/laravel/livewire.mdc` for full Livewire conventions.
 
 ## Queue System and Jobs
 - Queue long-running or external-dependent tasks.
