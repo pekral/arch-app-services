@@ -10,7 +10,7 @@ use Pekral\Arch\Tests\Models\UserDynamoModel;
 /**
  * @extends \Pekral\Arch\Repository\DynamoDb\BaseRepository<\Pekral\Arch\Tests\Models\UserDynamoModel>
  */
-final class UserDynamoRepository extends BaseRepository
+final readonly class UserDynamoRepository extends BaseRepository
 {
 
     protected function getModelClassName(): string

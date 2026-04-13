@@ -137,7 +137,7 @@ use App\Models\User;
 /**
  * @extends BaseRepository<User>
  */
-final class UserRepository extends BaseRepository
+final readonly class UserRepository extends BaseRepository
 {
 
     protected function getModelClassName(): string

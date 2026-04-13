@@ -5,7 +5,7 @@ Repositories can opt in to transparent read caching by using the `Pekral\Arch\Re
 ## Enabling caching for a repository
 
 ```php
-final class UserRepository extends BaseRepository
+final readonly class UserRepository extends BaseRepository
 {
     use CacheableRepository;
 

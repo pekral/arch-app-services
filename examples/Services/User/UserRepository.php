@@ -11,7 +11,7 @@ use Pekral\Arch\Tests\Models\User;
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\Pekral\Arch\Tests\Models\User>
  */
-final class UserRepository extends BaseRepository
+final readonly class UserRepository extends BaseRepository
 {
 
     use CacheableRepository;

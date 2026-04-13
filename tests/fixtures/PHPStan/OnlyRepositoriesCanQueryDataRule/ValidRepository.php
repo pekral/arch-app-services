@@ -10,7 +10,7 @@ use Pekral\Arch\Tests\Models\User;
 /**
  * @extends BaseRepository<User>
  */
-final class ValidRepository extends BaseRepository
+final readonly class ValidRepository extends BaseRepository
 {
 
     protected function getModelClassName(): string
