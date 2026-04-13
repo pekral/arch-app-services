@@ -10,149 +10,9 @@ on:
     - cron: '0 0 * * 1'
 
 jobs:
-  phpcs-check:
-    name: "Run PHP CodeSniffer – coding standards (PHP ${{ matrix.php-version }})"
+  check-all:
+    name: "Run all checks (PHP 8.4)"
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: pcov
-
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-            ${{ runner.os }}-php-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
-
-      - name: Run PHPCS check
-        run: composer phpcs-check
-
-  pint-check:
-    name: "Run Laravel Pint – code style (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: pcov
-
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-            ${{ runner.os }}-php-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
-
-      - name: Run Pint check
-        run: composer pint-check
-
-  rector-check:
-    name: "Run Rector – refactoring rules (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: pcov
-
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-            ${{ runner.os }}-php-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
-
-      - name: Run Rector check
-        run: composer rector-check
-
-  phpstan-analysis:
-    name: "Run PHPStan – static analysis (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: pcov
-
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-            ${{ runner.os }}-php-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
-
-      - name: Run PHPStan analysis
-        run: composer analyse
-
-  coverage-tests:
-    name: "Run tests with code coverage (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
 
     services:
       dynamodb:
@@ -171,21 +31,52 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: '8.4'
           extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: pcov
+
+      - name: Install xmllint
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
 
       - name: Cache Composer packages
         uses: actions/cache@v5
         with:
           path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-php-8.4-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
+            ${{ runner.os }}-php-8.4-
             ${{ runner.os }}-php-
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Check composer.json is normalized
+        run: composer normalize-check
+
+      - name: Lint XML files
+        run: find . -name '*.xml' ! -path './vendor/*' -exec xmllint --noout {} \;
+
+      - name: Run PHP CodeSniffer
+        run: composer phpcs-check
+
+      - name: Run Laravel Pint
+        run: composer pint-check
+
+      - name: Run Rector
+        run: composer rector-check
+
+      - name: Run PHPStan
+        run: composer analyse
+
+      - name: Run security audit
+        run: |
+          if composer show roave/security-advisories > /dev/null 2>&1; then
+            echo "roave/security-advisories is installed, dependencies are secure"
+          fi
+          composer audit --format=table
 
       - name: Verify DynamoDB connection
         run: bash ./scripts/check-dynamodb.sh
@@ -193,133 +84,5 @@ jobs:
           DYNAMODB_HOST: localhost
           DYNAMODB_PORT: 8021
 
-      - name: Run coverage tests
+      - name: Run tests with coverage
         run: composer test:coverage
-
-  security-audit:
-    name: "🔒 Security Audit (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: pcov
-
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-            ${{ runner.os }}-php-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
-
-      - name: Run Roave Security Advisories check
-        run: |
-          echo "🔒 Running security audit with roave/security-advisories..."
-          if composer show roave/security-advisories > /dev/null 2>&1; then
-            echo "✅ roave/security-advisories is installed, checking dependencies..."
-            echo "✅ No blocking security vulnerabilities detected by roave/security-advisories"
-          else
-            echo "⚠️ roave/security-advisories not found in dependencies"
-          fi
-
-      - name: Run composer audit
-        run: |
-          echo "🔒 Running composer audit for known vulnerabilities..."
-          if composer audit --format=table; then
-            echo "✅ No known security vulnerabilities found"
-          else
-            echo "❌ Security vulnerabilities detected!"
-            echo "::error::Security vulnerabilities found in dependencies!"
-            exit 1
-          fi
-
-      - name: Create summary
-        if: always()
-        run: |
-          echo "## 🔒 Security Audit Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Roave Security Advisories: Checked" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Composer Audit: Completed" >> $GITHUB_STEP_SUMMARY
-
-  composer-lint:
-    name: "Lint composer.json (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-
-      - name: Validate composer.json
-        run: composer validate --strict
-
-  normalize-check:
-    name: "Check composer.json is normalized (PHP ${{ matrix.php-version }})"
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: pcov
-
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-            ${{ runner.os }}-php-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction
-
-      - name: Check composer normalize
-        run: composer normalize-check
-
-  xml-lint:
-    name: "Lint XML files"
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Install xmllint
-        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
-
-      - name: Lint XML files
-        run: find . -name '*.xml' ! -path './vendor/*' -exec xmllint --noout {} \;
