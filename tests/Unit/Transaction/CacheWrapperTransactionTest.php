@@ -199,7 +199,7 @@ test('clear all cache does not execute when transaction is rolled back', functio
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\Pekral\Arch\Tests\Models\User>
  */
-final class CacheWrapperTransactionRepository extends BaseRepository
+final readonly class CacheWrapperTransactionRepository extends BaseRepository
 {
 
     use CacheableRepository;

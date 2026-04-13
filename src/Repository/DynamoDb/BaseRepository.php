@@ -20,7 +20,7 @@ use function is_array;
  * @template TModel of \BaoPham\DynamoDb\DynamoDbModel
  * @implements \Pekral\Arch\Repository\Repository<TModel>
  */
-abstract class BaseRepository implements Repository
+abstract readonly class BaseRepository implements Repository
 {
 
     /**

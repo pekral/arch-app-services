@@ -378,7 +378,7 @@ test('cache wrapper uses default driver when no driver specified', function (): 
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\Pekral\Arch\Tests\Models\User>
  */
-final class TestCacheableUserRepository extends BaseRepository
+final readonly class TestCacheableUserRepository extends BaseRepository
 {
 
     use CacheableRepository;

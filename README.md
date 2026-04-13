@@ -108,7 +108,7 @@ use App\Models\User;
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\App\Models\User>
  */
-final class UserRepository extends BaseRepository
+final readonly class UserRepository extends BaseRepository
 {
     use CacheableRepository;
 
@@ -131,7 +131,7 @@ namespace App\Repositories;
 use Pekral\Arch\Repository\Mysql\BaseRepository;
 use App\Models\User;
 
-final class UserRepository extends BaseRepository
+final readonly class UserRepository extends BaseRepository
 {
     protected function getModelClassName(): string
     {

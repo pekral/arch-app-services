@@ -37,7 +37,7 @@ final class MakeArchServiceCommandTest extends TestCase
 
         $repositoryContent = file_get_contents($repositoryPath);
         $this->assertStringContainsString('namespace App\Services\Product;', $repositoryContent);
-        $this->assertStringContainsString('final class ProductRepository extends BaseRepository', $repositoryContent);
+        $this->assertStringContainsString('final readonly class ProductRepository extends BaseRepository', $repositoryContent);
         $this->assertStringContainsString('use CacheableRepository;', $repositoryContent);
 
         $serviceContent = file_get_contents($servicePath);

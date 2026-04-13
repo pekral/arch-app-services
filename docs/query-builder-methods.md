@@ -51,7 +51,7 @@ Thanks to generic types (`@template`) in `BaseRepository` and correctly written 
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\App\Models\Job>
  */
-final class JobRepository extends BaseRepository
+final readonly class JobRepository extends BaseRepository
 {
     protected function getModelClassName(): string
     {

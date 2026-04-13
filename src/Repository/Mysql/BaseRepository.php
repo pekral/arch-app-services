@@ -19,7 +19,7 @@ use function is_array;
  * @implements \Pekral\Arch\Repository\Repository<TModel>
  * @method \Pekral\Arch\Repository\CacheWrapper cache()
  */
-abstract class BaseRepository implements Repository
+abstract readonly class BaseRepository implements Repository
 {
 
     /**

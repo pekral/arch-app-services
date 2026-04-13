@@ -47,7 +47,7 @@ final readonly class ValidModelService extends BaseModelService
 /**
  * @extends BaseRepository<User>
  */
-final class ValidServiceRepository extends BaseRepository
+final readonly class ValidServiceRepository extends BaseRepository
 {
 
     protected function getModelClassName(): string

@@ -11,7 +11,7 @@ use {{ modelClass }};
 /**
  * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\{{ modelClass }}>
  */
-final class {{ class }} extends BaseRepository
+final readonly class {{ class }} extends BaseRepository
 {
 
     use CacheableRepository;

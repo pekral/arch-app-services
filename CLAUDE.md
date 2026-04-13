@@ -214,7 +214,7 @@ final readonly class CreateUser implements ArchAction
 
 ### Repository with Caching
 ```php
-final class UserRepository extends BaseRepository
+final readonly class UserRepository extends BaseRepository
 {
     use CacheableRepository;
 
