@@ -29,7 +29,7 @@
   "require": {
     "php": "^8.4",
     "ext-simplexml": "*",
-    "baopham/dynamodb": "^7.0",
+    "baopham/dynamodb": "^7.1",
     "illuminate/contracts": "^12.0 || ^13.0",
     "illuminate/database": "^12.0 || ^13.0",
     "illuminate/pagination": "^12.0 || ^13.0",
@@ -37,8 +37,8 @@
     "spatie/laravel-data": "^4.21.0"
   },
   "require-dev": {
-    "aws/aws-sdk-php": "^3.378.2",
-    "ergebnis/composer-normalize": "^2.50.0",
+    "aws/aws-sdk-php": "^3.379.0",
+    "ergebnis/composer-normalize": "^2.51.0",
     "iksaku/laravel-mass-update": "^1.0.9",
     "larastan/larastan": "^3.9.5",
     "laravel/pint": "^1.29.0",
@@ -46,7 +46,7 @@
     "pekral/cursor-rules": "dev-master",
     "pekral/phpcs-rules": "dev-master",
     "pekral/rector-rules": "dev-master",
-    "pestphp/pest": "^4.5.0",
+    "pestphp/pest": "^4.6.0",
     "pestphp/pest-plugin-type-coverage": "^4.0.4",
     "phpstan/extension-installer": "^1.4.3",
     "phpstan/phpstan": "^2.1.47",
