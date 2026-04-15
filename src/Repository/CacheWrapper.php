@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 use function class_basename;
+use function json_encode;
 use function method_exists;
 
 /**
@@ -71,7 +72,7 @@ final readonly class CacheWrapper
     private function generateCacheKey(string $methodName, array $arguments): string
     {
         $repositoryName = class_basename($this->repository);
-        $hash = md5($methodName . ':' . serialize($arguments));
+        $hash = md5($methodName . ':' . json_encode($arguments, JSON_THROW_ON_ERROR));
 
         return sprintf('%s:%s:%s:%s', $this->getCachePrefix(), $repositoryName, $methodName, $hash);
     }

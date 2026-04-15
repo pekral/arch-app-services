@@ -12,6 +12,9 @@ return [
     | paginated queries in repositories. You can override this on a per-query
     | basis by passing the itemsPerPage parameter.
     |
+    | Note: Laravel 13 changed the framework default from 15 to 25.
+    | This package maintains its own default of 15 independently.
+    |
     */
 
     'default_items_per_page' => 15,
@@ -54,6 +57,11 @@ return [
     | Configure caching for repositories. TTL is specified in seconds.
     | Cache keys are automatically generated using MD5 hash of method
     | name and arguments.
+    |
+    | Important (Laravel 13): If your cache store uses
+    | `serializable_classes => false` (new L13 default for new apps),
+    | you must allowlist your model classes in config/cache.php or set
+    | `serializable_classes => true` to cache Eloquent objects.
     |
     */
 
