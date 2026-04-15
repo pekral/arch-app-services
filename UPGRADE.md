@@ -35,9 +35,11 @@ If you use `CacheableRepository` (repository caching), cached results contain El
         // ...
         'serializable_classes' => [
             \Illuminate\Database\Eloquent\Collection::class,
+            \Illuminate\Support\Collection::class,
             \Illuminate\Pagination\LengthAwarePaginator::class,
-            \App\Models\User::class, // your model classes
             \Carbon\Carbon::class,
+            \Carbon\CarbonImmutable::class,
+            // your model classes
         ],
     ],
 ],
@@ -49,20 +51,11 @@ If you use `CacheableRepository` (repository caching), cached results contain El
 
 Laravel 13 changed the framework's default pagination from 15 to 25 items per page. This package controls its own default via `config('arch.default_items_per_page', 15)` and is **not affected** by this change.
 
-### Cache Key Generation
-
-Cache key hashing was changed from `serialize()` to `json_encode()`. This means:
-
-- Existing cached entries will **not** be found after upgrading (cache miss, not an error)
-- New entries will use the updated key format
-- If you need to avoid cache misses, clear your repository cache before deploying
-
 ### Breaking Changes Checklist
 
 | Area | Impact | Action Required |
 |------|--------|-----------------|
 | `serializable_classes` | Medium | Configure cache allowlist if using `CacheableRepository` on new L13 apps |
-| Cache key format | Low | Clear repository cache after upgrade (optional, avoids stale entries) |
 | Pagination default | None | Package uses its own default (15) |
 | Pipeline API | None | No changes |
 | Validation API | None | No changes |
