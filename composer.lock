@@ -9208,12 +9208,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/pekral/cursor-rules.git",
-                "reference": "2c4b355f594ca985ac45187f436e398ab79dd6e7"
+                "reference": "980c1332470639b26211340c94a51b274cffe1a3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pekral/cursor-rules/zipball/2c4b355f594ca985ac45187f436e398ab79dd6e7",
-                "reference": "2c4b355f594ca985ac45187f436e398ab79dd6e7",
+                "url": "https://api.github.com/repos/pekral/cursor-rules/zipball/980c1332470639b26211340c94a51b274cffe1a3",
+                "reference": "980c1332470639b26211340c94a51b274cffe1a3",
                 "shasum": ""
             },
             "require": {
@@ -9226,11 +9226,11 @@
                 "pekral/phpcs-rules": "^0.4.8",
                 "pekral/phpstan-rules": "^0.4.5",
                 "pekral/rector-rules": "^0.4.8",
-                "pestphp/pest": "^4.6.0",
+                "pestphp/pest": "^4.6.1",
                 "pestphp/pest-plugin": "^4.0",
                 "pestphp/pest-plugin-type-coverage": "^4.0.4",
                 "phpstan/extension-installer": "^1.4.3",
-                "phpstan/phpstan": "^2.1.47",
+                "phpstan/phpstan": "^2.1.48",
                 "phpstan/phpstan-deprecation-rules": "^2.0.4",
                 "phpstan/phpstan-mockery": "^2.0",
                 "phpstan/phpstan-phpunit": "^2.0.16",
@@ -9282,7 +9282,7 @@
                 "issues": "https://github.com/pekral/cursor-rules/issues",
                 "source": "https://github.com/pekral/cursor-rules"
             },
-            "time": "2026-04-15T19:20:40+00:00"
+            "time": "2026-04-16T08:20:18+00:00"
         },
         {
             "name": "pekral/phpcs-rules",

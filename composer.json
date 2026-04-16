@@ -95,7 +95,7 @@
       "echo \"🔍 Running PHPStan static analysis...\"",
       "vendor/bin/phpstan analyse --memory-limit=2G"
     ],
-    "build": "composer fix && composer check && vendor/bin/cursor-rules install --force --editor=claude",
+    "build": "vendor/bin/cursor-rules install --force --editor=claude && composer fix && composer check",
     "check": [
       "echo \"🚀 Running full quality check...\"",
       "@normalize-check",

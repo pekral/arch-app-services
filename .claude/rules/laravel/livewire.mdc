@@ -1,0 +1,29 @@
+---
+description: Livewire-specific rules and conventions
+globs:
+  - app/Livewire/**/*.php
+  - resources/views/livewire/**/*.blade.php
+---
+
+## Component Structure
+- Never use single-file Volt components unless the repository explicitly uses them already.
+- Every Livewire component must be split into:
+  - a PHP class in `app/Livewire`
+  - a Blade view in `resources/views/livewire`
+- Component classes must extend `Livewire\\Component`.
+
+## Responsibilities
+- Livewire components are entry points.
+- Keep component classes slim: accept input, validate, delegate work, update UI state.
+- Do not place business logic directly in Livewire components.
+- Delegate business logic to Actions or Services according to project architecture.
+- Do not execute direct Eloquent queries or `DB::` calls in components unless the repository already uses that pattern consistently.
+
+## Validation and UI
+- Use Livewire's built-in validation where appropriate.
+- Reuse validation traits from `App\\Concerns` when available.
+- Keep lifecycle hooks (`mount`, `updated*`, `dehydrate`) slim.
+- Keep Blade templates presentation-only.
+- Prefer Livewire events/listeners over tight component coupling.
+- Use `wire:model` for form bindings unless there is a clear reason not to.
+- Keep UI strings in the language expected by the repository.
