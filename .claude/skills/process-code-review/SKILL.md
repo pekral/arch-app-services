@@ -10,6 +10,7 @@ metadata:
 - Apply @rules/php/core-standards.mdc
 - Apply @rules/git/general.mdc
 - Apply @rules/jira/general.mdc
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Never combine multiple languages in your answer
 - All CR output must be written in English
 - Never push direct changes to the main branch
@@ -23,12 +24,29 @@ metadata:
 - Identify the task from the provided issue code or URL
 - Find all open pull requests for the task
   - If multiple PRs exist, process each independently
+- Before processing a PR, switch to the PR branch and pull latest changes
 
 ### For each PR:
 
 - Load all review comments (including threads and general comments)
 - Build a checklist from all review findings
 - Map each finding to a concrete code or test change
+
+#### Reproducer extraction (per finding)
+
+For every Critical and Moderate finding, extract the reproducer fields published by the CR skills (`@skills/code-review/SKILL.md`, `@skills/code-review-github/SKILL.md`, `@skills/code-review-jira/SKILL.md`, `@skills/security-review/SKILL.md`):
+
+- **Faulty Example** — the minimal snippet or input that reproduces the bug
+- **Expected Behavior** — the assertion target the test must verify
+- **Test Hint** — the layer (unit, integration, feature) and entry point
+
+Use these to write a failing test **before** applying the fix:
+
+1. Drop the Faulty Example into a new test case at the layer named in the Test Hint.
+2. Assert the Expected Behavior — the test must fail on the current code.
+3. Apply the fix from the finding; rerun the test until it passes.
+
+If a finding lacks one of these fields, request a CR rerun rather than guessing — the CR skills are responsible for providing them.
 
 ---
 
@@ -70,6 +88,12 @@ metadata:
 
 ---
 
+### Pre-push quality gates
+
+- Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`)
+- Run available fixers on all changed files and fix any violations
+- Run available checkers/analyzers on all changed files and resolve all reported errors
+
 ### Finalization
 
 - Run @skills/test-like-human/SKILL.md if changes are testable
@@ -90,6 +114,22 @@ metadata:
 - **If original comment cannot be found or edited:**
   - Add a new top-level PR comment with resolved-point status
 - Mark resolved items (checkbox or inline) in all cases
+
+#### Per-item justification (required)
+
+Every resolved review point in the PR comment **must** include a brief justification using this format:
+
+```
+- [x] {short finding title}
+  - **Why:** {what was wrong / what the reviewer asked for}
+  - **Reason:** {root cause or rule that was violated}
+  - **Solution:** {what was changed and why this is the best fit}
+```
+
+Rules:
+- Keep each line **one sentence max**.
+- Skip the section only if a point was rejected or deferred — in that case state the rejection reason instead.
+- Do not pad with filler, restate the obvious, or paraphrase the diff.
 
 ---
 

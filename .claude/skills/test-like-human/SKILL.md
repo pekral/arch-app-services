@@ -28,6 +28,7 @@ metadata:
 - Locate **"Testing Recommendations" / "Doporučení k testování"**
 - Extract all scenarios
 - Do not invent new requirements unless needed to verify suspicious behavior
+- Every extracted scenario must be covered by an automated test. Map each scenario to an existing test; if no matching test exists, write one before the run is considered complete. Build/CI-level scenarios (e.g. `composer build`, coverage thresholds) are considered covered by the project's CI pipeline and do not require a duplicate unit test.
 
 ### 3. Choose testing method per scenario
 Use the most appropriate approach:
@@ -52,25 +53,7 @@ For each scenario, think:
 
 ## Report format
 
-```markdown
-## Scenario — Short Title
-
-What was tested  
-Short description of the user goal.
-
-Expected result  
-What a normal user would expect.
-
-Observed result  
-What actually happened.
-
-Status  
-Passed / Failed / Blocked / Unclear
-
-Comment  
-Human-readable note focused on user experience.
-
-```
+Use the template defined in `templates/test-report.md`.
 
 ## Deliver
 - Reference the pull request

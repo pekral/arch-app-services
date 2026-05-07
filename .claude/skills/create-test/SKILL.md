@@ -15,6 +15,7 @@ Create or update tests to cover current changes according to project conventions
 
 ## Constraints
 - Apply @rules/code-testing/general.mdc
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Do not modify production code unless strictly required
 
 ---
@@ -38,16 +39,30 @@ Create or update tests to cover current changes according to project conventions
     - regression scenarios
 
 ### 4. Validate
-- Run relevant tests
+- Run relevant tests after each change and confirm they pass
 - Ensure deterministic behavior
 - Remove flakiness
+
+### 5. Verify Coverage
+- Ensure 100% code coverage for all changed or added code paths
+- If coverage tooling exists, run it and verify the result
+
+### 6. Code Style and Quality Gates
+- Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`)
+- Run available fixers on changed test files and fix any violations
+- Run available checkers/analyzers on changed test files and resolve all reported errors
+
+### 7. Test Review
+- Run a quick code review of the created/updated tests against `@rules/code-testing/general.mdc`
+- Fix any findings before finalizing
 
 ---
 
 ## Output
 
 - Created or updated test files
-- Coverage status for current changes
+- Coverage status for current changes (must be 100%)
+- Test review result
 
 ---
 
@@ -59,7 +74,7 @@ Create or update tests to cover current changes according to project conventions
 - Focus on changed code only
 - Follow project test conventions strictly
 - Prefer minimal tests for maximum coverage
-- Avoid duplication across test cases
+- Use data providers where they improve readability and reduce duplication
 - Keep tests readable and maintainable
 
 ## Output Humanization

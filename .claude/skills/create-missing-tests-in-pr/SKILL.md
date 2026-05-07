@@ -14,6 +14,7 @@ metadata:
 -   Apply @rules/php/core-standards.mdc
 -   Apply @rules/git/general.mdc
 -   Apply @rules/code-testing/general.mdc
+-   If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 -   If you are not on the main git branch in the project, switch to it.
 -   This task is based on the existing pull request review.
 -   First read your existing code review for the current pull request
@@ -52,7 +53,7 @@ metadata:
     current changes.
 -   If coverage tooling exists, verify that current changes are covered
     with 100% coverage.
--   If fixers or test-related wrappers exist in the project, use them.
+-   If fixers or test-related wrappers exist in the project, use them (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
 -   Do not run the whole test suite unless it is required for the
     changed files workflow.
 -   If the review recommendation is already satisfied by existing tests,
@@ -70,10 +71,14 @@ Provide a brief markdown summary including:
 
 **After completing the tasks**
 
+-   Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
+-   Run available fixers on all changed test files and fix any violations.
+-   Run available checkers/analyzers on all changed test files and resolve all reported errors.
+-   Run a quick code review of all added or updated tests against `@rules/code-testing/general.mdc` and fix any findings.
 -   Summarize what testing recommendations from the code review were
     verified.
 -   List added or modified test files.
--   Confirm whether current changes now meet the required test coverage.
+-   Confirm whether current changes now meet the required test coverage (must be 100%).
 -   If something is still missing, clearly describe the blocker or
     uncovered scenario.
 - Ask for create new commit with missing tests
@@ -84,6 +89,8 @@ Provide a brief markdown summary including:
 - Follow code review recommendations strictly
 - Do not duplicate existing tests
 - Prefer minimal changes for full coverage
+- Use data providers where they improve readability and reduce duplication
+- Every test change must be verified to pass before moving on
 - Focus on changed code only
 
 ## Output Humanization

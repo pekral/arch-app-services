@@ -21,8 +21,9 @@ Focus on:
 ---
 
 ## Constraints
+- Apply @rules/refactoring/general.mdc — shared definition of refactoring, recommended incremental process, and "no big-bang rewrite" rule.
 - Apply @rules/php/core-standards.mdc
-- Apply @rules/laravel/architecture.mdc
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Apply @rules/code-testing/general.mdc
 - Never change behavior
 - Keep public API stable unless explicitly required
@@ -32,6 +33,7 @@ Focus on:
 ## Execution
 
 - Analyze the class and identify the highest-impact refactoring.
+- Follow the incremental process from `@rules/refactoring/general.mdc` (stabilize → identify entry points → introduce Action pattern → split responsibilities → modernize → DRY → concurrency). Never propose a big-bang rewrite.
 - Fix any obvious pre-existing bugs before refactoring (separate commit).
 - Apply focused refactoring:
   - simplify structure
@@ -47,7 +49,9 @@ Focus on:
 
 - Ensure single responsibility per class.
 - Separate orchestration from business logic.
+- Replace per-row DB queries inside loops with batch operations per `@rules/sql/optimalize.mdc` "Batch over per-row operations" — ModelManager `batchUpdate` / `batchInsert`, `whereIn(...)->delete()`, or a single bulk read keyed in memory. Keep per-row work only when an explicit side-effect dependency between iterations cannot be batched.
 - Remove duplication (DRY).
+- Before modifying code, enumerate every place that modifies data before it is saved or passed downstream (DTO mapping, payload shaping, key renaming, default fallbacks, format normalization, business-driven derivation). Surface the list in the refactoring plan and consolidate duplicates into the canonical layer per `@rules/laravel/architecture.mdc` Data Modification (DRY) section (Data Builder, DTO named constructor, Data Validator, ModelManager, Repository).
 - Prefer small, focused methods.
 - Extract intention-revealing private methods when it improves clarity.
 - Avoid deep nesting and complex conditionals.
@@ -61,6 +65,7 @@ Focus on:
 - Do not place business logic in controllers or Livewire components.
 - Use existing query scopes instead of duplicating conditions.
 - Prefer DTOs over raw arrays when the project uses them.
+- Keep Repositories limited to basic, reusable queries. When refactoring uncovers a feature-specific query method on a Repository, move it to a Service (single-model) or an Action (cross-model / cross-feature) that composes basic Repository methods (see `@rules/laravel/architecture.mdc` Repositories and ModelManagers section).
 
 ---
 
@@ -92,6 +97,12 @@ Focus on:
 - Improve only what is necessary
 
 ---
+
+## Pre-push quality gates
+
+- Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`)
+- Run available fixers on all changed files and fix any violations
+- Run available checkers/analyzers on all changed files and resolve all reported errors
 
 ## After Completion
 

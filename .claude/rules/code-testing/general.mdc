@@ -22,9 +22,10 @@ globs: []
 - Avoid mocking data that can be created via factories.
 
 ## Mocking
+- Prefer storing real data in the database over mocking ModelManager or Repository classes.
 - Mock only:
-    - external services
-    - exception scenarios
+    - external services that cannot run in test environment
+    - exception scenarios that are hard to reach otherwise
 - Prefer partial mocks over full mocks.
 - Remove unnecessary or redundant mocks.
 
@@ -48,3 +49,19 @@ globs: []
 
 ## Quality
 - Prefer simple, readable tests over complex setups.
+- Use data providers (datasets) where they improve readability and reduce duplication across similar test cases.
+- Tests must not contain conditions (e.g., `if`, `switch`); split conditional logic into separate test cases or data providers instead.
+
+## Coverage
+- Every test change must be verified to be functional — run affected tests after each modification.
+- Ensure 100% code coverage for all changed or added code paths.
+- If coverage tooling exists in the project, use it to verify coverage after test changes.
+
+## Code Style and Quality Gates
+- Discover available fixers and checkers: prefer Phing targets (`build.xml`/`phing.xml`) over Composer scripts (`composer.json`).
+- Run available fixers on changed test files and fix any violations.
+- Run available checkers/analyzers on changed test files and resolve all reported errors.
+- Complete all quality gates before finalizing test changes.
+
+## Test Review
+- After completing test changes, run a quick code review focused on test quality against these rules.

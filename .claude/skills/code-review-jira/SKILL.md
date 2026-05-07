@@ -29,8 +29,21 @@ Perform code review for JIRA issues by analyzing related pull requests and publi
 ## Execution
 
 ### 1. Load Context
-- Load JIRA issue, comments, and attachments
+- Load JIRA issue, comments, and attachments using `acli`. If `acli` is unavailable, fall back to JIRA MCP server.
 - Identify all open PRs linked to the issue
+- Before reviewing a PR, switch to the PR branch and pull latest changes
+
+#### Issue Context Analysis
+Before reviewing code, load and analyze the full JIRA issue:
+
+1. Fetch the complete JIRA issue — description, all comments, and all attachments (screenshots, files, embedded data).
+2. Extract from the issue:
+   - **Requirements and acceptance criteria** — what the code must do
+   - **Expected behavior** — how the feature or fix should work
+   - **Edge cases and constraints** — mentioned by the reporter or in comments
+   - **Test data** — any sample inputs, payloads, or scenarios provided in the issue
+3. Use this context to evaluate whether the implementation fully satisfies the issue — not just whether the code is technically correct.
+4. If the issue contains test data or test scenarios, verify they are covered by existing or new tests. Flag missing test coverage as a finding.
 
 ### 2. Pre-checks
 - If PR has conflicts → skip review for that PR
@@ -40,41 +53,66 @@ Perform code review for JIRA issues by analyzing related pull requests and publi
 - For each PR:
   - run @skills/code-review/SKILL.md
   - run @skills/security-review/SKILL.md
+  - run @skills/class-refactoring/SKILL.md — read-only refactoring lens scoped to the PR diff. Surface DRY duplication and tech-debt-reducing changes only on lines actually touched by the PR.
 
 - Run conditionally:
   - DB changes → @skills/mysql-problem-solver/SKILL.md
   - Shared state → @skills/race-condition-review/SKILL.md
+  - Third-party API or service changes → ensure the **Third-Party API & Service Analysis** step from `@skills/code-review/SKILL.md` is executed for the diff
+
+#### Refactoring & Tech Debt (DRY) Analysis (PR diff only)
+
+1. Restrict the analysis to lines added or modified in the PR — never review untouched code.
+2. For each changed block, apply `@skills/class-refactoring/SKILL.md` and look for:
+   - duplicated logic that already exists elsewhere (DRY)
+   - data shaping repeated across Actions/Services/controllers/jobs/listeners/Livewire/commands
+   - oversized methods, deep nesting, mixed responsibilities introduced or amplified by the change
+3. Each finding must include the file path, the affected line range, and a concrete refactoring that *reduces* tech debt.
+4. In-scope refactorings go into the **Refactoring (DRY / Tech Debt Reduction)** section of the GitHub PR comment template. Out-of-scope structural problems still belong in **Refactoring Proposals**.
 
 ### 4. Publish Results
 
-#### GitHub
-- Post findings as PR comment
+#### GitHub (technical findings only)
+- If a previous CR exists for the same PR, analyze all previous findings and classify each as: **Resolved**, **Deferred**, or **Still open**
+- Include a **Previous CR Status** section at the top of the GitHub comment (before new findings)
+- Post all technical findings as PR comment
 - Format:
-  - Critical → Moderate → Minor
+  - Critical → Moderate → Minor → Refactoring (DRY / Tech Debt Reduction)
   - file + line
   - actionable fix
+- For each finding that maps to a concrete line in the PR diff, attach an inline review comment via the GitHub review API (`gh api -X POST repos/{owner}/{repo}/pulls/{pr}/reviews` with a `comments[]` array of `{path, line, side, body}` entries). Submit one review with all inline comments so the PR shows a single reviewer pass instead of scattered ad-hoc comments. Use `event=COMMENT` for advisory passes; reserve `event=REQUEST_CHANGES` for blocking Critical findings.
+- The top-level PR comment still aggregates severity counts and lists items that cannot be anchored to a specific line (missing test coverage, cross-diff architectural concerns).
+- This is the only place where technical details appear
 
-#### JIRA
-- Post simplified summary:
-  - short status (clean / has issues)
-  - key risks
-  - testing recommendations (with links)
+#### JIRA (non-technical summary only)
+- Never post file paths, line numbers, code snippets, or technical severity levels to JIRA
+- Post a plain-language summary:
+  - overall status (clean / has issues)
+  - key risks described in business terms
+  - testing recommendations with step-by-step instructions
+  - link to the GitHub PR for full technical details
 
 ---
 
 ## Output Rules
 
-### GitHub
-- Findings only
-- No praise
-- No explanations of what was checked
-- Use severity levels:
-  - Critical
-  - Moderate
-  - Minor
+### GitHub (technical report — only here)
+- All technical findings go exclusively to GitHub PR comments
+- Include: file paths, line numbers, code references, severity levels, concrete fixes
+- Findings only — no praise, no explanations of what was checked
+- Use severity levels: Critical, Moderate, Minor
+- Each **Critical** and **Moderate** finding must include:
+    - **Faulty Example** — minimal code snippet or input payload reproducing the issue (redact secrets/PII)
+    - **Expected Behavior** — single assertable statement (return value, exception, persisted state, emitted event)
+    - **Test Hint** — one sentence pointing at the test layer (unit, integration, feature) and entry point
+- These three fields exist so `@skills/process-code-review/SKILL.md` can convert each finding into a reproducer test directly from the PR comment.
+- Minor findings may omit these fields when no behavior change is implied.
+- Use the template defined in `templates/github-output.md`
 
-- End with:
-  **Summary: X Critical, Y Moderate, Z Minor**
+### JIRA (non-technical summary — only here)
+- Never include file paths, line numbers, code snippets, or technical severity levels
+- Write in plain language understandable by non-developers
+- Use the template defined in `templates/jira-output.md`
 
 ---
 
@@ -90,8 +128,7 @@ Perform code review for JIRA issues by analyzing related pull requests and publi
 
 ## After Completion
 
-- If no **Critical** or **Moderate** findings:
-  - run @skills/test-like-human/SKILL.md
+- Always run @skills/test-like-human/SKILL.md, regardless of code review findings.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.
