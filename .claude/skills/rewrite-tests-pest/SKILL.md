@@ -9,6 +9,7 @@ metadata:
 ## Constraints
 - Apply `@rules/php/core-standards.mdc`
 - Apply `@rules/code-testing/general.mdc`
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Do not generate `covers()`
 
 ## Use when
@@ -35,10 +36,21 @@ metadata:
 9. Run the rewritten tests and confirm they pass consistently.
 10. Simplify nearby similar tests only when the cleanup is small, safe, and clearly improves maintainability.
 
+## Post-rewrite validation
+1. Run all rewritten tests and confirm they pass.
+2. Verify 100% code coverage for all rewritten test paths — if coverage tooling exists, run it.
+3. Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
+4. Run available fixers on changed test files and fix any violations.
+5. Run available checkers/analyzers on changed test files and resolve all reported errors.
+6. Run a quick code review of rewritten tests against `@rules/code-testing/general.mdc` and fix any findings.
+
 ## Done when
 - Target tests are rewritten to Pest syntax
 - Rewritten tests preserve original intent and behavior
 - Tests are deterministic and pass reliably
+- 100% code coverage is verified for rewritten code paths
+- Code style and quality checks pass (fixers and checkers ran clean)
+- Test review passed with no findings
 - Duplication is reduced where it meaningfully improves readability
 - Shared lightweight helpers are extracted appropriately
 - The rewritten tests follow project testing conventions

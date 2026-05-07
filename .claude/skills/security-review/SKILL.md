@@ -9,6 +9,10 @@ metadata:
 ## Constraints
 - Apply `@rules/php/core-standards.mdc`
 - Apply `@rules/code-review/general.mdc`
+- Apply `@rules/security/backend.mdc`
+- Apply `@rules/code-review/frontend.mdc`
+- Apply `@rules/code-review/mobile.mdc`
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Output must be in English
 - Focus on realistic, exploitable issues
 - Never reveal secrets
@@ -47,6 +51,7 @@ Avoid generic best-practice noise.
 - dangerous protocols (`file://`, `gopher://`, etc.)
 - missing validation after redirects
 - missing rate limiting or abuse protection
+- third-party API contract — when the diff integrates with a third-party API or service, verify the security-critical aspects of the implementation against the public API documentation: authentication and scope handling, signature/webhook verification, idempotency and retry semantics, error envelopes, and rate-limit handling. Functional alignment with the issue assignment is owned by `@skills/code-review/SKILL.md` — do not duplicate it here.
 
 ### File Handling
 - unsafe uploads (extension, MIME, signature)
@@ -88,26 +93,16 @@ Avoid generic best-practice noise.
 - exploit scenario
 - recommended fix
 
+### Reproducer fields (mandatory for Critical and High)
+- **Faulty Example** — minimal code snippet or attacker payload that reproduces the vulnerability (redact secrets, tokens, and PII)
+- **Expected Behavior** — single assertable security guarantee (rejection, authorization denial, escaped output, no side effect)
+- **Test Hint** — one sentence pointing at the test layer (unit, feature, HTTP) and entry point
+
+These fields exist so `@skills/process-code-review/SKILL.md` can turn each finding into a regression test without re-deriving the attack vector. Medium and Low findings may omit them when no behavior change is implied.
+
 ### Output format
-```markdown
-## Security Audit Report - <Project Name>
 
-### Critical
-- ...
-
-### High
-- ...
-
-### Medium
-- ...
-
-### Low
-- ...
-
-### Action Items
-1. [ ] ...
-
-```
+Use the template defined in `templates/audit-report.md`.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

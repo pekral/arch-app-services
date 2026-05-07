@@ -9,6 +9,7 @@ metadata:
 **Constraint:**
 - Apply @rules/php/core-standards.mdc
 - Apply @rules/git/general.mdc
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Write the summary in singular first person (one developer made the changes).
 - The output must be formatted in markdown.
 - Focus on the "why" and business impact, not on implementation details.
@@ -25,23 +26,7 @@ metadata:
 
 **Output format:**
 
-```markdown
-## Summary of changes — [branch name]
-
-### What changed
-A concise paragraph (3-5 sentences) explaining the overall purpose of the changes and their business impact.
-
-### Changes by category
-
-#### [Category name]
-- Description of change (file or area affected)
-
-### Breaking changes
-List any breaking changes that require action from other team members (API changes, migration steps, configuration updates). If there are none, state "No breaking changes."
-
-### Testing notes
-Brief notes on what was tested or what should be verified before deployment.
-```
+Use the template defined in `templates/pr-summary-report.md`.
 
 **After completing the tasks**
 - Post the summary as a comment to the related PR or issue if available.

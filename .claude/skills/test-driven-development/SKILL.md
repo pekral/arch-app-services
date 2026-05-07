@@ -9,6 +9,7 @@ metadata:
 ## Constraints
 - Apply `@rules/php/core-standards.mdc`
 - Apply `@rules/code-testing/general.mdc`
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Follow test conventions from `@skills/create-test/SKILL.md`
 
 ## Core principle
@@ -67,12 +68,22 @@ Never fix a bug without first writing or updating a test that reproduces it.
 - Fix obvious blocking issues only when necessary for safe implementation
 - Keep unrelated cleanup out of scope unless it is trivial and low risk
 
+## Post-cycle validation
+1. Verify 100% code coverage for all changed or added code paths — if coverage tooling exists, run it.
+2. Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
+3. Run available fixers on changed files and fix any violations.
+4. Run available checkers/analyzers on changed files and resolve all reported errors.
+5. Run a quick code review of all tests written during the TDD cycle against `@rules/code-testing/general.mdc` and fix any findings.
+
 ## Done when
 - Every implemented behavior is backed by a test
 - Each new test was observed failing before implementation
 - Production code was added only to satisfy failing tests
 - Changed behavior, edge cases, and failure paths are covered
 - Relevant tests pass
+- 100% code coverage is verified for all changes
+- Code style and quality checks pass (fixers and checkers ran clean)
+- Test review passed with no findings
 - Refactoring did not introduce new behavior
 
 ## Output Humanization

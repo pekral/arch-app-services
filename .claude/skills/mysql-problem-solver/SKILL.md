@@ -20,6 +20,7 @@ Focus on:
 
 ## Constraints
 - Apply @rules/sql.mdc
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Be practical and direct
 - Prefer investigation over assumptions
 - Do not invent schema, indexes, or runtime behavior
@@ -59,6 +60,7 @@ Look for:
 - poor sort/group plans
 - offset pagination on large datasets
 - N+1 behavior from application code
+- per-row queries inside loops — per-row `update()` / `create()` / `delete()` or single-row reads driven by a `foreach` (distinct from N+1 eager-loading: this is application code intentionally writing or reading row-by-row when a single batch query would suffice)
 - redundant or overlapping indexes
 
 ### 5. Propose Optimizations
@@ -67,6 +69,7 @@ Recommend only justified changes, such as:
 - Eloquent/query builder rewrite
 - eager loading change
 - pagination change
+- batching per-row loops into a single bulk operation — ModelManager batch methods (`batchUpdate`, `batchInsert`), `whereIn(...)->delete()` for deletes, or one bulk read keyed in memory for lookups (see `@rules/sql/optimalize.mdc` "Batch over per-row operations")
 - index addition or replacement
 - redundant index removal
 - splitting one query into smaller ones
@@ -101,40 +104,7 @@ If access fails, continue statically and say so.
 
 ## Output Format
 
-```md
-## MySQL Analysis Report
-
-### Query Under Review
-...
-
-### Tables Inspected
-...
-
-### Existing Indexes
-...
-
-### EXPLAIN Summary
-...
-
-### Problems Found
-- ...
-
-### Recommended Optimizations
-1. ...
-2. ...
-
-### Suggested Query or Code Rewrite
-...
-
-### Suggested Index Changes
-...
-
-### Risks and Trade-offs
-...
-
-### Confidence / Limitations
-...
-```
+Use the template defined in `templates/analysis-report.md`.
 ---
 
 ## Principles

@@ -7,8 +7,9 @@ metadata:
 ---
 
 ## Constraints
+- Apply `@rules/refactoring/general.mdc` — incremental migration only, never a big-bang rewrite.
 - Apply `@rules/php/core-standards.mdc`.
-- Read and follow `@rules/laravel/architecture.mdc` before making changes.
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
 - Preserve behavior, signatures, response contracts, and tenant/account scope.
 - Do not report review output to any third-party service.
 - After changes, run an internal architecture-first review and fix important findings immediately.
@@ -36,9 +37,10 @@ Example input:
 - Action class must be `final readonly`.
 - Action must expose exactly one public business method: `__invoke(...)` with an explicit return type.
 - Action must orchestrate only: validation, mapping, and delegation.
-- Do not place inline validation inside the Action. Use a dedicated Data Validator (default location `app/DataValidators/<Domain>/`, but follow the project's existing convention).
+- Do not place inline validation inside the Action. Use a dedicated Data Validator (default location `app/DataValidators/<Domain>/`, but follow the project's existing convention). Data Validators must use validation rules from reusable traits in `app/Concerns/`.
 - Do not use direct Eloquent queries or `DB::` calls inside the Action.
 - Keep reads in repositories and writes in model managers/services according to project architecture.
+- When the orchestration touches the database in a loop, prefer ModelManager batch methods (`batchUpdate`, `batchInsert`) and bulk delete/read patterns (`whereIn(...)->delete()`, `findBy{Attribute}In(...)` keyed in memory) over per-row queries (see `@rules/sql/optimalize.mdc` "Batch over per-row operations"). Per-row queries inside the Action are allowed only when iterations have an unavoidable side-effect dependency that must be justified in a code comment.
 - Add or update PHPDoc where needed for PHPStan clarity.
 
 ## Execution
@@ -46,11 +48,11 @@ Example input:
 2. Scan touched files for obvious pre-existing issues that would block or compromise the refactor. Fix only safe, relevant issues; keep unrelated cleanup out of scope.
 3. Create or reuse a dedicated Action in the correct domain folder.
 4. Move orchestration from the entry point into the Action `__invoke(...)`.
-5. Extract inline validation into a dedicated Data Validator if needed.
+5. Extract inline validation into a dedicated Data Validator (using validation traits from `app/Concerns/`) if needed.
 6. Preserve repository/service/manager boundaries and multitenancy/account scope.
 7. Update the entry point to delegate via `$action(...)` and keep its public contract unchanged.
 8. Add or update tests for the refactored flow and important failure paths.
-9. Run required checks/fixers for changed PHP files and resolve issues.
+9. Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`). Run fixers first, then checkers/analyzers on all changed files. Resolve all reported issues.
 10. Run `@skills/code-review/SKILL.md` for the current changes.
 11. Run `@skills/process-code-review/SKILL.md` and fix critical or medium findings before finishing.
 
@@ -65,10 +67,10 @@ Example input:
 ## Done when
 - The target entry point is thin and delegates to a dedicated Action.
 - The Action follows project Action-pattern rules.
-- Validation is delegated to a dedicated Data Validator when applicable.
+- Validation is delegated to a dedicated Data Validator (using validation traits from `app/Concerns/`) when applicable.
 - Behavior, signatures, and response format remain unchanged.
 - Tests cover the refactored flow and important edge/failure paths.
-- Required checks pass for changed files.
+- Fixers and checkers ran clean on all changed files.
 - Internal architecture-focused review was completed and important findings were fixed.
 
 ## Output Humanization

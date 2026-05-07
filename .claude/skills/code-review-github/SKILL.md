@@ -27,6 +27,19 @@ Run a full code review for GitHub pull requests and publish findings directly to
 ### 1. Load Context
 - Load PR, linked issue, and comments using CLI or MCP tools
 - If multiple PRs exist for one issue, review each independently
+- Before reviewing a PR, switch to the PR branch and pull latest changes
+
+#### Issue Context Analysis
+Before reviewing code, load and analyze the full linked issue:
+
+1. Fetch the complete GitHub issue — description, all comments, and any referenced attachments or links.
+2. Extract from the issue:
+   - **Requirements and acceptance criteria** — what the code must do
+   - **Expected behavior** — how the feature or fix should work
+   - **Edge cases and constraints** — mentioned by the reporter or in comments
+   - **Test data** — any sample inputs, payloads, or scenarios provided in the issue
+3. Use this context to evaluate whether the implementation fully satisfies the issue — not just whether the code is technically correct.
+4. If the issue contains test data or test scenarios, verify they are covered by existing or new tests. Flag missing test coverage as a finding.
 
 ### 2. Pre-checks
 - If PR has merge conflicts → cancel review
@@ -36,10 +49,22 @@ Run a full code review for GitHub pull requests and publish findings directly to
 - Always run:
     - @skills/code-review/SKILL.md
     - @skills/security-review/SKILL.md
+    - @skills/class-refactoring/SKILL.md — read-only refactoring lens scoped to the PR diff. Surface DRY duplication and tech-debt-reducing changes that apply to lines actually touched by the PR. Do not propose changes outside the diff.
 
 - Run conditionally:
     - Database changes → @skills/mysql-problem-solver/SKILL.md
     - Shared state → @skills/race-condition-review/SKILL.md
+    - Third-party API or service changes → ensure the **Third-Party API & Service Analysis** step from `@skills/code-review/SKILL.md` is executed for the diff
+
+#### Refactoring & Tech Debt (DRY) Analysis (PR diff only)
+
+1. Restrict the analysis to lines added or modified in the PR — never review untouched code.
+2. For each changed block, apply `@skills/class-refactoring/SKILL.md` and look for:
+   - duplicated logic that already exists elsewhere (DRY)
+   - data shaping repeated across Actions/Services/controllers/jobs/listeners/Livewire/commands
+   - oversized methods, deep nesting, mixed responsibilities introduced or amplified by the change
+3. Each finding must include the file path, the affected line range, and a concrete refactoring that *reduces* tech debt.
+4. In-scope refactorings go into the **Refactoring (DRY / Tech Debt Reduction)** section of the PR comment template. Out-of-scope structural problems still belong in **Refactoring Proposals**.
 
 ### 4. Post Results
 
@@ -50,17 +75,39 @@ Run a full code review for GitHub pull requests and publish findings directly to
 
 #### Posting strategy
 - **If an existing CR comment is found (follow-up review):**
-    - Post a **summary-only** top-level PR comment (e.g. status update, summary line)
+    - Analyze all previous CR findings and classify each as: **Resolved**, **Deferred**, or **Still open**
+    - Include a **Previous CR Status** section at the top of the new review comment (before any new findings)
     - Post **detailed findings** as a new PR comment that references the original CR comment (quote its first line or link to it)
     - GitHub does not support native replies to issue comments — use quoting (e.g. "> Replying to code review from {date}") to create a visual thread
 
 - **If no existing CR comment is found (first review):**
     - Post findings as a single PR comment using CLI tools
 
+#### Inline review comments (per finding)
+
+Mirror how a human reviewer leaves comments in the GitHub UI before clicking *Request changes*:
+
+1. Group findings (Critical, Moderate, Minor, and Refactoring (DRY / Tech Debt Reduction)) by `file:line`.
+2. For each finding that maps to a concrete line in the PR diff, attach a GitHub **review comment** anchored to that line via the GitHub review API:
+   ```bash
+   gh api -X POST "repos/{owner}/{repo}/pulls/{pr}/reviews" \
+     -F event=COMMENT \
+     -F body="<top-level review summary>" \
+     -F "comments[][path]=src/Foo/Bar.php" \
+     -F "comments[][line]=42" \
+     -F "comments[][side]=RIGHT" \
+     -F "comments[][body]=<finding body — severity, impact, fix, faulty example, expected behavior, test hint>"
+   ```
+   Submit a single review with all inline comments attached so they appear as one reviewer pass, not many ad-hoc comments.
+3. Use `event=COMMENT` for advisory passes. Use `event=REQUEST_CHANGES` only when at least one **Critical** finding is present and blocking merge is appropriate.
+4. The top-level summary comment (from the strategy above) must include severity counts and a link to each inline thread.
+5. If a finding cannot be anchored to a specific changed line (e.g. missing test coverage, architectural concern across the diff), keep it in the top-level summary comment instead of the inline review.
+
 #### Format
-- Critical → Moderate → Minor
+- Critical → Moderate → Minor → Refactoring (DRY / Tech Debt Reduction)
 - Include file + line
 - Include actionable fix
+- Inline review comments target specific lines; the summary comment aggregates them and lists items that have no single anchor line.
 
 - If no findings:
     - post: "No findings identified"
@@ -72,13 +119,20 @@ Run a full code review for GitHub pull requests and publish findings directly to
 - Findings only
 - No praise
 - No “what was checked”
-- Use exactly three severity levels:
-    - Critical
-    - Moderate
-    - Minor
+- Use exactly three severity levels: Critical, Moderate, Minor
+- Add a **Refactoring (DRY / Tech Debt Reduction)** section after the Minor findings whenever the diff contains in-scope tech-debt-reducing changes (DRY duplication, oversized methods, mixed responsibilities). Each item must include `file:line` and a concrete refactoring step.
+- Each **Critical** and **Moderate** finding must include:
+    - **Faulty Example** — minimal code snippet or input payload reproducing the issue (redact secrets/PII)
+    - **Expected Behavior** — single assertable statement (return value, exception, persisted state, emitted event)
+    - **Test Hint** — one sentence pointing at the test layer (unit, integration, feature) and entry point
+- These three fields exist so `@skills/process-code-review/SKILL.md` can convert each finding into a reproducer test directly from the PR comment.
+- Minor findings may omit these fields when no behavior change is implied.
+- If reviewed code violates project rules or architecture but is **out of scope** for the current PR, add a **Refactoring Proposals** section with issue drafts (justified by defined rules only)
+- End with summary line
 
-- End with summary:
-**Summary: X Critical, Y Moderate, Z Minor**
+## Output Format
+
+Use the template defined in `templates/pr-comment-output.md`.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.
