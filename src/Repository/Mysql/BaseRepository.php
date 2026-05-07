@@ -172,7 +172,10 @@ abstract readonly class BaseRepository implements Repository
 
         /** @var \Illuminate\Database\Eloquent\Builder<TModel> $result */
         $result = Collection::make($orderBy)->reduce(
-            static fn (Builder $builder, string $direction, string $column): Builder => $builder->orderBy($column, $direction),
+            static fn (Builder $builder, string $direction, string $column): Builder => $builder->orderBy(
+                $column,
+                strtolower($direction) === 'desc' ? 'desc' : 'asc',
+            ),
             $queryBuilder,
         );
 
