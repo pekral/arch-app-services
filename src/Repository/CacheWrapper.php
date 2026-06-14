@@ -100,7 +100,7 @@ final readonly class CacheWrapper
 
     private function isCachingEnabled(): bool
     {
-        return (bool) config('arch.repository_cache.enabled', true);
+        return (bool) config('arch.repository_cache.enabled', default: true);
     }
 
     private function isInsideTransaction(): bool

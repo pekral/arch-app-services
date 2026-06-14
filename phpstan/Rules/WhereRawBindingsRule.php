@@ -87,7 +87,7 @@ final class WhereRawBindingsRule implements Rule
 
     private function isRawMethod(string $methodName): bool
     {
-        return in_array($methodName, self::RAW_METHODS, true);
+        return in_array($methodName, self::RAW_METHODS, strict: true);
     }
 
     private function getCallerType(Node $node, Scope $scope): ?Type

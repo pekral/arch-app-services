@@ -38,7 +38,7 @@ return new class () extends Migration {
                     return null;
                 }
 
-                $tableConfig = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+                $tableConfig = json_decode($content, associative: true, depth: 512, flags: JSON_THROW_ON_ERROR);
 
                 if (is_array($tableConfig) && isset($tableConfig['TableName'])) {
                     return $tableConfig;

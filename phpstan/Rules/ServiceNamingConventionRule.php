@@ -86,7 +86,7 @@ final class ServiceNamingConventionRule implements Rule
             return false;
         }
 
-        return in_array(self::BASE_MODEL_SERVICE_CLASS, $type->getObjectClassNames(), true);
+        return in_array(self::BASE_MODEL_SERVICE_CLASS, $type->getObjectClassNames(), strict: true);
     }
 
     private function hasCorrectSuffix(string $className): bool

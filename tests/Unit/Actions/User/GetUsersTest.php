@@ -15,7 +15,7 @@ test('get users returns paginated users', function (): void {
     expect($foundUsers)->toHaveCount(config()->integer('arch.default_items_per_page'));
     
     $foundUsers->collect()->each(function (User $user) use ($usersIds): void {
-        expect(in_array($user->id, $usersIds, true))->toBeTrue();
+        expect(in_array($user->id, $usersIds, strict: true))->toBeTrue();
     });
 });
 

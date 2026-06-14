@@ -132,7 +132,7 @@ test('paginate by params with order by', function (): void {
         'password' => 'password123',
     ]);
 
-    $result = $userModelService->paginateByParams([], [], null, ['name' => 'desc']);
+    $result = $userModelService->paginateByParams([], [], perPage: null, orderBy: ['name' => 'desc']);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(2);
@@ -166,7 +166,7 @@ test('paginate by params with group by throws exception', function (): void {
         'password' => 'password123',
     ]);
 
-    $userModelService->paginateByParams([], [], null, [], ['name']);
+    $userModelService->paginateByParams([], [], perPage: null, orderBy: [], groupBy: ['name']);
 })->throws(DynamoDbNotSupported::class, 'GROUP BY');
 
 test('count by params with group by throws exception', function (): void {
@@ -284,7 +284,7 @@ test('paginate by params with empty order by', function (): void {
         ]);
     }
 
-    $result = $userModelService->paginateByParams([], [], null, []);
+    $result = $userModelService->paginateByParams([], [], perPage: null, orderBy: []);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(3);
@@ -461,7 +461,7 @@ test('get model class returns correct class name', function (): void {
     $userModelService = app(UserDynamoModelService::class);
     $reflection = new ReflectionClass($userModelService);
     $method = $reflection->getMethod('getModelClass');
-    $method->setAccessible(true);
+    $method->setAccessible(accessible: true);
 
     $modelClass = $method->invoke($userModelService);
 

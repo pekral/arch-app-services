@@ -188,7 +188,7 @@ test('insert or ignore with empty data', function (): void {
     $manager = app(UserModelManager::class);
     $manager->insertOrIgnore([]);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('insert or ignore with valid data', function (): void {

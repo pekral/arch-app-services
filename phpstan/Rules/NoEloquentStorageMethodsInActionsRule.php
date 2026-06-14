@@ -54,7 +54,7 @@ final class NoEloquentStorageMethodsInActionsRule implements Rule
 
         $methodName = $node->name->toString();
 
-        if (!in_array($methodName, self::ELOQUENT_STORAGE_METHODS, true)) {
+        if (!in_array($methodName, self::ELOQUENT_STORAGE_METHODS, strict: true)) {
             return [];
         }
 

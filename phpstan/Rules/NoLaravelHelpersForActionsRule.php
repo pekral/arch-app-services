@@ -52,7 +52,7 @@ final class NoLaravelHelpersForActionsRule implements Rule
 
         $functionName = $node->name->toString();
 
-        if (!in_array($functionName, self::FORBIDDEN_HELPERS, true)) {
+        if (!in_array($functionName, self::FORBIDDEN_HELPERS, strict: true)) {
             return [];
         }
 

@@ -90,7 +90,7 @@ final readonly class ModelNamingSuffixRule implements Rule
 
         $classReflection = $this->reflectionProvider->getClass($resolvedName);
 
-        return in_array(self::ELOQUENT_MODEL_CLASS, $classReflection->getParentClassesNames(), true);
+        return in_array(self::ELOQUENT_MODEL_CLASS, $classReflection->getParentClassesNames(), strict: true);
     }
 
     private function hasCorrectSuffix(string $className): bool

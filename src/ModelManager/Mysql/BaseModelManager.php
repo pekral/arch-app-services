@@ -210,7 +210,7 @@ abstract class BaseModelManager implements ModelManager
      */
     private function ensureMassUpdatableTraitUsed(string $modelClassName): void
     {
-        if (!in_array('Iksaku\Laravel\MassUpdate\MassUpdatable', class_uses_recursive($modelClassName), true)) {
+        if (!in_array('Iksaku\Laravel\MassUpdate\MassUpdatable', class_uses_recursive($modelClassName), strict: true)) {
             throw MassUpdateNotAvailable::traitNotUsed($modelClassName);
         }
     }

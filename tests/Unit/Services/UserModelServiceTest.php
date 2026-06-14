@@ -43,7 +43,7 @@ test('get model class returns correct class name', function (): void {
     $userModelService = app(UserModelService::class);
     $reflection = new ReflectionClass($userModelService);
     $method = $reflection->getMethod('getModelClass');
-    $method->setAccessible(true);
+    $method->setAccessible(accessible: true);
 
     $modelClass = $method->invoke($userModelService);
 

@@ -32,6 +32,7 @@ globs:
   - return a response or update UI state
 
 - Do not place business logic in controllers, jobs, commands, listeners, or Livewire components.
+- Eloquent models are allowed to carry simple, self-contained domain methods (own-attribute predicates, computed values, simple state derivations) — see the **Business Logic Layers** section for the boundary.
 - Legacy untouched code is a carve-out, but all new or materially changed flows must follow this architecture.
 - Multitenancy remains mandatory in every layer: all reads and writes must stay account-scoped.
 - **Invokeable call convention:** When calling Action classes, always use direct invocation `$action($params)` — never `$action->__invoke($params)`.
@@ -46,6 +47,18 @@ globs:
 - **Laravel AI SDK:** When implementing AI features in a Laravel project, always use the [Laravel AI SDK](https://laravel.com/docs/13.x/ai-sdk). Never call AI provider APIs directly when the Laravel AI SDK covers the use case.
 - **Custom Helpers:** Small utility functions that don't belong to any specific class (cache key generators, input validators, formatters) must be implemented as **global helper functions** in `app/helpers.php` (autoloaded via `composer.json` `files` key). Follow the [Laravel News helpers pattern](https://laravel-news.com/creating-helpers): plain functions, no wrapper classes, snake_case names. Do **not** create `final class` wrappers with a single static method for simple utility logic — use a helper function instead.
 
+## Business Logic Layers
+- Business logic must live **only** in one of the following seven class types — no other class is an allowed home for business logic:
+  - **Actions** (`app/Actions/{Domain}/`) — orchestration of a single use case.
+  - **Model Services** (extending `BaseModelService`) — single-model domain operations.
+  - **Repositories** (`app/Repositories/{Domain}/`) — read-only data access (basic, reusable queries).
+  - **ModelManagers** (`app/ModelManagers/{Domain}/`) — write-only persistence (create, update, delete, batch writes).
+  - **Data Validators** (`app/DataValidators/{Domain}/`) — input validation that throws `ValidationException`.
+  - **Data Builders** (`app/DataBuilders/{Domain}/`) — mapping, hydration, and normalization of input into DTOs.
+  - **Eloquent models** (`app/Models/`) — **only** simple, self-contained domain methods (predicates on own attributes, computed values from already-loaded data, simple state derivations). Allowed only when the method needs no external services, no repositories, no model managers, no new database queries beyond own loaded data, no persistence side effects, and no multi-entity orchestration. The moment a method needs any of those, it must move to one of the other six layers above. Methods or accessors that touch `$this->relation->...` when the caller has not eager-loaded the relationship count as "new database queries" and breach the boundary — eager-load at the call site or move the logic out of the model.
+- **Single-responsibility per file:** Each class file must own exactly one of the seven responsibilities above. A single file must never mix concerns from two or more layers (e.g. validation + persistence on a model, mapping + orchestration in a Service, querying + writing). Framework boilerplate on Eloquent models — relationships, scopes, casts, accessors — is implicit and does not count toward the single-responsibility limit; the model's single business-logic responsibility is the simple-domain-methods home defined in the **Eloquent models** layer above. Models may not also carry orchestration, persistence dispatch, or queries beyond own data — those still count as separate (and forbidden) responsibilities.
+- **Refactoring trigger:** When a class file contains business logic that spans more than one of the seven layers, or contains business logic that does not fit any of the seven layers — including an Eloquent model method that crosses the simple-logic boundary above — apply `@skills/class-refactoring/SKILL.md` to split the responsibilities into dedicated classes from the list above.
+- **Entry points and infrastructure exceptions:** Controllers, Jobs, Commands, Listeners, Livewire components, Middleware, FormRequests, DTOs, Enums, custom validation `Rule` classes, helper functions in `app/helpers.php`, and framework boilerplate are **not** business-logic layers. They must delegate to one of the seven allowed homes above.
 
 ## Actions
 - Store all Actions under `app/Actions/{Domain}`.
@@ -134,8 +147,20 @@ globs:
 - Use Data Builders when DTO construction involves non-trivial mapping, hydration, or normalization that does not belong in the DTO itself.
 - Actions may call Data Builders for complex DTO transformations instead of performing inline mapping.
 
+## Shared Concerns (Traits)
+- `app/Concerns/` is the **canonical home for all globally shared and reusable logic** in the application — typically PHP traits, but also small reusable helpers and value objects that exist purely to be consumed across unrelated domains.
+- Place a trait, class, or helper in `app/Concerns/` **only when all three conditions hold**:
+  - **Globally applicable** — consumed by two or more unrelated domains, layers, or entry points (e.g. validation rule trait reused across multiple FormRequests and Data Validators, formatting helper trait reused across multiple Services or controllers).
+  - **Domain-agnostic** — carries no knowledge of a specific business model, aggregate, feature flow, or domain rule. No hard-coded references to `User`, `Invoice`, `Order`, `Subscription`, or any other concrete domain concept.
+  - **Reusable as-is** — consumers use it without further specialization or per-domain branching inside the trait.
+- **Forbidden in `app/Concerns/`:**
+  - Domain-specific logic — anything tied to a concrete model, aggregate, feature flow, or business rule must live in the relevant business-logic layer under `app/{Domain}/` (Actions, Model Services, Repositories, ModelManagers, Data Validators, Data Builders, Eloquent models — see **Business Logic Layers**).
+  - Single-use traits or helpers consumed by exactly one class with no second consumer expected — inline the logic in that class instead. Keep `app/Concerns/` reserved for genuine reuse.
+  - Orchestration, persistence, query, or HTTP/queue dispatching logic — those still belong to the seven business-logic layers, regardless of how the trait is structured.
+- The **Validation Rules (Traits)** section below is one specific instance of this broader rule — validation rule traits are the canonical worked example of a Concern, not the only allowed category.
+
 ## Validation Rules (Traits)
-- Store all validation rules as reusable traits in `app/Concerns/` following the existing naming convention (e.g. `GitHubIssueNumbersValidationRules`, `JiraIssueKeysValidationRules`). Keep this approach consistent across the entire application.
+- Store all validation rules as reusable traits in `app/Concerns/` following the existing naming convention (e.g. `GitHubIssueNumbersValidationRules`, `JiraIssueKeysValidationRules`). Keep this approach consistent across the entire application. This is the canonical worked example of the **Shared Concerns (Traits)** rule above.
 - Use these validation traits in FormRequest classes and Data Validator classes — never duplicate rule arrays.
 - Use custom Rule classes in `app/Rules/` for complex or reusable validation logic that goes beyond simple rule arrays.
 
@@ -156,8 +181,12 @@ globs:
 
 ## Controllers and Other Entry Points
 - Controllers must stay slim and delegate orchestration to Actions.
-- Controllers should accept FormRequests where appropriate.
-- Never call `validate()` directly in controllers.
+- **Every controller method that consumes request input — resource controller actions (`store`, `update`, `index`, `show`, …), single-action `__invoke()` controllers, and any custom method — must type-hint a project-owned `FormRequest` subclass. Never type-hint the generic `Illuminate\Http\Request`, never leave the parameter untyped, and never read `$request->*` off a generic `Request` instance from inside the controller.** The FormRequest is the single home for that endpoint's validation rules (`rules()`), authorization (`authorize()`), input casting / preparation (`prepareForValidation()`), and any per-request shaping; the controller body reads the already-validated payload via `$request->validated()` (or typed accessors / a DTO named constructor) and forwards it to the Action.
+- **One dedicated FormRequest per request shape.** Do not reuse a single FormRequest across unrelated endpoints, do not share one FormRequest across HTTP verbs with diverging rule sets, and do not branch the rule set on `$this->method()` inside `rules()`. Each request shape gets its own class.
+- Place FormRequests under `app/Http/Requests/{Domain}/` and use the `Request` suffix (`StoreInvoiceRequest`, `UpdateUserProfileRequest`, `ListProjectsRequest`).
+- FormRequest classes must compose validation rules from reusable traits in `app/Concerns/` (see **Validation Rules (Traits)**) and must never duplicate rule arrays already published by an existing trait or custom Rule class.
+- A controller method that genuinely receives no request payload (no body, no query string, no caller-supplied header the action reads, no inputs beyond a route-bound model) may omit the FormRequest parameter entirely; it must not type-hint `Illuminate\Http\Request` "just in case". The trigger for the FormRequest requirement is **any read of user-supplied input** off the request — `$request->input(...)`, `$request->all()`, `$request->only(...)`, `$request->except(...)`, `$request->get(...)`, `$request->query(...)`, `$request->post(...)`, `$request->json(...)`, `$request->file(...)`, `$request->boolean(...)`, `$request->date(...)`, `$request->enum(...)`, `$request->validated()`, `$request->safe()`, `$request->header('X-…')` for caller-supplied headers, magic property access (`$request->field_name`), and any equivalent shortcut. **Framework accessors are exempt** — `$request->user()`, `$request->ip()`, `$request->ips()`, `$request->method()` / `->isMethod(...)`, `$request->fullUrl()` / `->url()` / `->path()`, `$request->route()`, `$request->bearerToken()`, `$request->session()`, and `$request->expectsJson()` read framework / auth state, not user input subject to validation, and do not trigger the FormRequest requirement on their own. A controller that touches only the exempt accessors and a route-bound model may keep the plain `Illuminate\Http\Request` parameter; the moment it reads a single input field, switch to a project-owned FormRequest.
+- Never call `validate()`, `Validator::make()`, or `$request->validate()` directly in controllers — validation belongs to the FormRequest (or to a Data Validator invoked by the Action for non-HTTP entry points).
 - Never execute database queries directly in controllers.
 - Jobs, console commands, listeners, and Livewire components must also delegate orchestration to Actions.
 - Use direct invocation syntax for Actions:
@@ -203,16 +232,23 @@ globs:
 
 ### CR Severity Rules
 - Mark as critical:
+  - business logic placed outside the seven allowed layers (Actions, Model Services, Repositories, ModelManagers, Data Validators, Data Builders, Eloquent models) — see "Business Logic Layers" section
+  - a single class file mixing responsibilities from two or more of the seven business-logic layers (e.g. validation + persistence, mapping + orchestration)
+  - Eloquent model method that crosses the simple-logic boundary — invoking external services, repositories, model managers, issuing new database queries beyond own loaded data, performing persistence side effects, or coordinating multiple entities (must move to an Action / Service / Repository / ModelManager per "Business Logic Layers")
   - new orchestration that bypasses Actions
   - inline `Validator::make()` inside Actions
   - `ValidationException` thrown directly inside Actions
   - validation logic not encapsulated in a dedicated Data Validator class (e.g. inline validation in controllers, jobs, commands, listeners, or Livewire components outside of FormRequest)
+  - controller method (resource action, single-action `__invoke()`, or custom method) that consumes request input but type-hints `Illuminate\Http\Request` (or leaves the parameter untyped, or reads user-supplied input — `input()` / `all()` / `only()` / `except()` / `get()` / `query()` / `post()` / `json()` / `file()` / `boolean()` / `date()` / `enum()` / `validated()` / `safe()` / caller-supplied `header('X-…')` / magic field access — off a generic `Request`) instead of a project-owned `FormRequest` subclass; framework accessors (`user()`, `ip()`, `method()` / `isMethod()`, `fullUrl()` / `url()` / `path()`, `route()`, `bearerToken()`, `session()`, `expectsJson()`) do not by themselves trigger this finding — see **Controllers and Other Entry Points** for the full exempt list. Every request shape must have its own dedicated FormRequest that owns validation rules, authorization, and input shaping.
+  - one FormRequest reused across unrelated endpoints / HTTP verbs with diverging rule sets, or `rules()` branching on `$this->method()` instead of splitting into separate FormRequest classes per request shape
   - inline imperative validation in Actions, Services, Facades, Jobs, Commands, or Listeners — guard clauses that check input and throw exceptions (e.g. `if (!in_array(...)) throw new InvalidArgumentException(...)`) must be extracted into a Data Validator
   - Data Validator class calling `Validator::make()` directly when `pekral/arch-app-services` is installed (must use `DataValidator` trait and `$this->validate()`)
   - Data Validator defining validation rules inline instead of using reusable traits from `app/Concerns/`
   - inline database queries (Eloquent or `DB::`) in Actions, Services, Facades, controllers, jobs, commands, listeners, or Livewire components — reads must go through Repositories, writes through ModelManagers
   - services tied to one model that do not extend `BaseModelService`
   - non-CRUD methods inside resource controllers
+  - domain-specific code placed under `app/Concerns/` — anything tied to a concrete model, aggregate, feature flow, or business rule must move into the relevant business-logic layer under `app/{Domain}/` per **Shared Concerns (Traits)**
+  - shared, reusable trait or helper logic placed outside `app/Concerns/` while being consumed by two or more unrelated domains, layers, or entry points — must be consolidated into `app/Concerns/` per **Shared Concerns (Traits)**
 - Mark as moderate:
   - feature-specific or use-case–specific query methods inside Repositories — Repositories must expose only basic, reusable queries; specialization belongs in Services or Actions composing those basic methods
   - calling Actions via `->__invoke()` instead of `$action(...)`
@@ -221,6 +257,7 @@ globs:
   - Data Builder class using Action pattern (`__invoke()`) instead of named public methods
   - non-trivial or reusable validation logic written inline instead of as a custom Rule class in `app/Rules/`
   - per-row DB queries inside loops (per-row `update()`, `create()`, `delete()`, or single-row read inside a `foreach`) — must be replaced by ModelManager batch methods, `whereIn(...)->delete()`, or a single bulk read keyed in memory (see `@rules/sql/optimalize.mdc` "Batch over per-row operations"); allowed only when an explicit comment or PR description justifies an unavoidable per-row side-effect dependency
+  - single-use trait parked in `app/Concerns/` (used by exactly one class, no second consumer expected) — inline the logic into the consuming class per **Shared Concerns (Traits)** *Reusable as-is* criterion
 
 ## Exceptions
 - No Action is required for:

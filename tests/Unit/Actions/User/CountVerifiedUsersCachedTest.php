@@ -12,7 +12,7 @@ test('count verified users uses cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->andReturn($cacheMock);
     
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
     
@@ -39,7 +39,7 @@ test('count verified users skips cache when disabled', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->andReturn($cacheMock);
     
-    Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.enabled', value: false);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
     
@@ -59,7 +59,7 @@ test('count verified users with real database', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->andReturn($cacheMock);
     
-    Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.enabled', value: false);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
     

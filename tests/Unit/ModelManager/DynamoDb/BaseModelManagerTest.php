@@ -290,7 +290,7 @@ test('insert or ignore with empty data', function (): void {
     $manager = app(UserDynamoModelManager::class);
     $manager->insertOrIgnore([]);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('insert or ignore with valid data', function (): void {
@@ -300,7 +300,7 @@ test('insert or ignore with valid data', function (): void {
         ['id' => fake()->uuid(), 'name' => 'Jane Smith', 'email' => 'jane@example.com', 'password' => 'password456'],
     ]);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('insert or ignore with duplicate data', function (): void {
@@ -318,7 +318,7 @@ test('insert or ignore with duplicate data', function (): void {
         ['id' => fake()->uuid(), 'name' => 'Another User', 'email' => 'new@example.com', 'password' => 'password456'],
     ]);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('update or create creates new record', function (): void {
@@ -446,7 +446,7 @@ test('update or create returns model instance', function (): void {
 
     expect($result)->toBe($mockModel);
 
-    TestableDynamoDbModelForStaticMethods::setMockUpdateOrCreateResult(null);
+    TestableDynamoDbModelForStaticMethods::setMockUpdateOrCreateResult(model: null);
 });
 
 test('get or create returns model instance', function (): void {
@@ -460,7 +460,7 @@ test('get or create returns model instance', function (): void {
 
     expect($result)->toBe($mockModel);
 
-    TestableDynamoDbModelForStaticMethods::setMockFirstOrCreateResult(null);
+    TestableDynamoDbModelForStaticMethods::setMockFirstOrCreateResult(model: null);
 });
 
 test('delete by params returns bool when delete succeeds', function (): void {

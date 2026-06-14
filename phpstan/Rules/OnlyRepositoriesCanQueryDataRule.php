@@ -161,12 +161,12 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
 
     private function isQueryMethod(string $methodName): bool
     {
-        return in_array($methodName, self::QUERY_METHODS, true);
+        return in_array($methodName, self::QUERY_METHODS, strict: true);
     }
 
     private function isSafeBuilderMethod(string $methodName): bool
     {
-        return in_array($methodName, self::SAFE_BUILDER_METHODS, true);
+        return in_array($methodName, self::SAFE_BUILDER_METHODS, strict: true);
     }
 
     private function getCallerType(Node $node, Scope $scope): ?Type

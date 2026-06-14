@@ -260,17 +260,17 @@ final class NoDirectDatabaseQueriesInActionsRule implements Rule
 
     private function isAllowedRetrievalMethod(string $methodName): bool
     {
-        return in_array($methodName, self::ALLOWED_RETRIEVAL_METHODS, true);
+        return in_array($methodName, self::ALLOWED_RETRIEVAL_METHODS, strict: true);
     }
 
     private function isAlwaysForbiddenMethod(string $methodName): bool
     {
-        return in_array($methodName, self::ALWAYS_FORBIDDEN_METHODS, true);
+        return in_array($methodName, self::ALWAYS_FORBIDDEN_METHODS, strict: true);
     }
 
     private function isSafeBuilderMethod(string $methodName): bool
     {
-        return in_array($methodName, self::SAFE_BUILDER_METHODS, true);
+        return in_array($methodName, self::SAFE_BUILDER_METHODS, strict: true);
     }
 
     private function getCallerType(Node $node, Scope $scope): ?Type

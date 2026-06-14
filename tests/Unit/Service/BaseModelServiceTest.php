@@ -46,7 +46,7 @@ test('paginate by params with order by', function (): void {
     User::factory()->create(['name' => 'Alice']);
     User::factory()->create(['name' => 'Bob']);
     
-    $result = $userModelService->paginateByParams([], [], null, ['name' => 'desc']);
+    $result = $userModelService->paginateByParams([], [], perPage: null, orderBy: ['name' => 'desc']);
     
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(2);
@@ -61,7 +61,7 @@ test('paginate by params with group by', function (): void {
     User::factory()->count(5)->create(['name' => 'John']);
     User::factory()->count(3)->create(['name' => 'Jane']);
     
-    $result = $userModelService->paginateByParams([], [], null, [], ['name']);
+    $result = $userModelService->paginateByParams([], [], perPage: null, orderBy: [], groupBy: ['name']);
     
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(2);

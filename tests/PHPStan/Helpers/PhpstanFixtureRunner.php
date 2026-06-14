@@ -80,7 +80,7 @@ final class PhpstanFixtureRunner
 
         try {
             /** @var array{files?: array<string, array{messages?: array<int, array{message?: string}>}>} $decoded */
-            $decoded = json_decode($jsonPayload, true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($jsonPayload, associative: true, depth: 512, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             return [];
         }

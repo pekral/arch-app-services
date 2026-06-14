@@ -19,7 +19,7 @@ use stdClass;
 test('clear cache defers invalidation until after commit when inside transaction', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -49,7 +49,7 @@ test('clear cache defers invalidation until after commit when inside transaction
 test('clear cache defers invalidation on custom connection until after commit', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -67,7 +67,7 @@ test('clear cache defers invalidation on custom connection until after commit', 
     $repository = new CacheWrapperTransactionRepository();
     DB::connection('testing')->beginTransaction();
 
-    $repository->cache(null, 'testing')->clearCache('testMethod', []);
+    $repository->cache(driver: null, connection: 'testing')->clearCache('testMethod', []);
 
     expect($state->cleared)->toBeFalse();
 
@@ -88,7 +88,7 @@ test('clear cache executes immediately when outside transaction', function (): v
     $dbConnection->shouldReceive('transactionLevel')->once()->andReturn(0);
 
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -96,7 +96,7 @@ test('clear cache executes immediately when outside transaction', function (): v
 
     $repository = new CacheWrapperTransactionRepository();
 
-    $wrapper = new CacheWrapper($repository, null, 'cache_test');
+    $wrapper = new CacheWrapper($repository, driver: null, connection: 'cache_test');
 
     $result = $wrapper->clearCache('testMethod', []);
 
@@ -106,7 +106,7 @@ test('clear cache executes immediately when outside transaction', function (): v
 test('clear all cache defers flush until after commit when inside transaction', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -143,7 +143,7 @@ test('clear all cache flushes immediately when outside transaction', function ()
     $dbConnection->shouldReceive('transactionLevel')->once()->andReturn(0);
 
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -151,17 +151,17 @@ test('clear all cache flushes immediately when outside transaction', function ()
 
     $repository = new CacheWrapperTransactionRepository();
 
-    $wrapper = new CacheWrapper($repository, null, 'cache_test');
+    $wrapper = new CacheWrapper($repository, driver: null, connection: 'cache_test');
 
     $wrapper->clearAllCache();
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('clear cache does not execute when transaction is rolled back', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -174,13 +174,13 @@ test('clear cache does not execute when transaction is rolled back', function ()
 
     DB::rollBack();
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('clear all cache does not execute when transaction is rolled back', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -193,7 +193,7 @@ test('clear all cache does not execute when transaction is rolled back', functio
 
     DB::rollBack();
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 /**

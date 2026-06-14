@@ -227,7 +227,7 @@ final class MakeArchServiceCommand extends Command
         $directory = dirname($path);
 
         if (!$this->filesystem->isDirectory($directory)) {
-            $this->filesystem->makeDirectory($directory, 0755, true);
+            $this->filesystem->makeDirectory($directory, 0755, recursive: true);
         }
     }
 

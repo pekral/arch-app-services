@@ -92,7 +92,7 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
 
     private function isPersistenceMethod(string $methodName): bool
     {
-        return in_array($methodName, self::PERSISTENCE_METHODS, true);
+        return in_array($methodName, self::PERSISTENCE_METHODS, strict: true);
     }
 
     private function getCallerType(Node $node, Scope $scope): ?Type
@@ -141,12 +141,12 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
 
         $currentClassName = $classReflection->getName();
 
-        if (in_array($currentClassName, $allowedClasses, true)) {
+        if (in_array($currentClassName, $allowedClasses, strict: true)) {
             return true;
         }
 
         foreach ($classReflection->getAncestors() as $ancestor) {
-            if (in_array($ancestor->getName(), $allowedClasses, true)) {
+            if (in_array($ancestor->getName(), $allowedClasses, strict: true)) {
                 return true;
             }
         }

@@ -14,7 +14,7 @@ test('execute sends email successfully', function (): void {
 
     ($action)($user, ['source' => 'registration']);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('execute sends email with empty context', function (): void {
@@ -26,7 +26,7 @@ test('execute sends email with empty context', function (): void {
 
     ($action)($user);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('execute with custom context', function (): void {
@@ -42,5 +42,5 @@ test('execute with custom context', function (): void {
 
     ($action)($user, $context);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });

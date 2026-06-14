@@ -1,57 +1,113 @@
-## Previous CR Status
+# Code Review
 
-> Include this section only in follow-up reviews when a previous CR exists for the same PR. Omit entirely for first reviews.
+> **Section visibility — render only sections that have content.** Always render the header block (Status / Counts / Last updated) and the final `Summary` line. The `Coverage:` header line, the `## Coverage` section, and the `coverage …` slot in the summary line are conditional — render them **only** when the coverage gate produced something to report (uncovered changed lines or unavailable / non-runnable tooling, both Critical findings per `@skills/code-review/SKILL.md` Coverage gate). When every changed line is at 100% coverage and the tool ran successfully, drop all three coverage surfaces; the Counts line is the clean signal. The `## Architecture` section follows the same conditional rule (issue #530): on Laravel projects the architecture walk runs on every CR run, but the heading is rendered **only when the walk produces at least one finding** — when the walk is clean, omit the heading entirely (no "walked, 0 findings" line, no "clean" placeholder, no confirmation that the check ran). On non-Laravel projects (`laravel/framework` not in `composer.json` `require`), omit the `## Architecture` section entirely. Every section is conditional: omit its heading and body entirely when it has no items. Never emit `None.` / `Not applicable.` / `n/a` / `100%` / `walked, 0 findings` placeholders for empty sections or omitted coverage surfaces — drop them entirely. The Counts line in the header is the single source of "zero" signal; the goal is a clean, scannable PR comment a human can read at a glance — only items that still need action remain in the body.
 
-| # | Finding | Status |
-|---|---------|--------|
-| 1 | Previous finding description | ✅ Resolved / ⏳ Deferred / ❌ Still open |
+**Status:** clean / needs-fix
+**Counts:** Critical {n} · Moderate {n} · Minor {n} · Refactoring {n}
+**Coverage:** {result} (tool: {name or "not available — <reason>"})  *(render this line only when the `## Coverage` section is rendered — i.e. uncovered changed lines or unavailable tooling)*
+**Last updated:** {ISO-8601 timestamp of this CR run}
+
+> **Single-comment upsert:** the CR wrapper (`code-review-github` / `code-review-jira`) publishes this output as **one comment per (PR | linked issue | JIRA ticket, actor)** keyed by an actor marker (`<!-- cr-comment:actor=<gh-login> -->` for GitHub, `{anchor:cr-comment-actor-<slug>}` for JIRA). Follow-up CR runs **edit that comment in place**, so history is preserved by the tracker's edit history — never re-create a `Previous CR Status` section in the body.
 
 ---
 
-## Critical
+## Findings
 
-1. [file:line] Description
-   Impact: ...
-   Fix: ...
-   Faulty Example:
-   ```php
-   // minimal code or input that reproduces the issue
-   ```
-   Expected Behavior: what the correct outcome (return value, exception, side effect) must be.
-   Test Hint: one-sentence outline of the test that would fail today and pass after the fix.
+> Render only when at least one Critical, Moderate, or Minor finding exists. Within this section, render only the severity sub-headings that have items — omit the others entirely. When all three severities are empty, omit the entire `## Findings` parent heading.
 
-## Moderate
+### 🔴 Critical 1. <short title>
 
-1. ...
+- **Location:** `path/to/file.php:42`
+- **Rule:** `@rules/<area>/<file>.mdc#<section>`
+- **Impact:** one sentence — what breaks or what risk this introduces.
+- **Faulty Example:**
+  ```php
+  // minimal code or input that reproduces the issue (no secrets / PII)
+  ```
+- **Expected behavior:** single assertable statement (return value, thrown exception, persisted state, emitted event).
+- **Test hint:** test layer (unit / integration / feature) + entry point, in one sentence.
+- **Suggested fix:**
+  ```php
+  // minimal corrected snippet — must comply with @rules/php/core-standards.mdc (and @rules/laravel/architecture.mdc on Laravel projects). Use `n/a — <reason>` only when a snippet adds no value.
+  ```
 
-## Minor
+### 🟠 Moderate 1. <short title>
 
-1. ...
+(same six fields as Critical)
 
-## Refactoring (DRY / Tech Debt Reduction)
+### 🟡 Minor 1. <short title>
 
-> Include only items that apply to lines actually touched by this PR (added or modified). Never review untouched code here. Each item must reduce technical debt — no stylistic preferences.
+- **Location:** `path/to/file.php:42`
+- **Note:** one sentence. Faulty Example / Expected behavior / Test hint / Suggested fix may be omitted when no behavior change is implied.
 
-1. [file:line] DRY duplication or structural problem in the changed code
-   Suggested refactoring: concrete consolidation step (Data Builder, DTO, Service, Action, Repository, etc.)
-   Why: which rule from `@rules/laravel/architecture.mdc` or `@skills/class-refactoring/SKILL.md` is satisfied by the change.
+---
 
-> **Faulty Example, Expected Behavior, and Test Hint are mandatory for every Critical and Moderate finding.** They feed `process-code-review` so each fix can be backed by a reproducer test.
-> - Faulty Example must be a minimal, runnable snippet (or sample input/payload) — never paste secrets or real PII; redact with placeholders.
-> - Expected Behavior must be a single assertable statement (return value, thrown exception, persisted state, emitted event).
-> - Test Hint must point at the layer the test belongs in (unit, integration, feature) and the entry point to call.
-> - Minor findings may omit these fields when no behavior change is implied (e.g. naming, dead code).
+## Refactoring (DRY / tech debt)
 
-## Refactoring Proposals
+> Render only when at least one in-scope refactoring item exists. Only items on lines touched by this PR (added or modified). Each item must reduce tech debt — no stylistic preferences. Omit the entire section when there are no items.
 
-If any reviewed code violates project rules (`@rules/php/core-standards.mdc`, `@rules/laravel/architecture.mdc`) or has clear structural issues that are **out of scope** for the current PR, propose a new issue for each refactoring opportunity:
+1. **Location:** `path/to/file.php:42`
+   **Problem:** one sentence.
+   **Refactor:** concrete consolidation step (Data Builder / DTO / Service / Action / Repository / ModelManager).
+   **Why:** rule reference (`@rules/laravel/architecture.mdc#<section>` or `@skills/class-refactoring/SKILL.md`) satisfied by the change.
+
+---
+
+## Refactoring proposals
+
+> Render only when at least one out-of-scope structural improvement is justified by a rule. Omit the entire section when there are no items.
 
 1. **Title:** short, actionable issue title
    **Scope:** affected file(s) or area
-   **Reason:** which rule or principle is violated and why it matters
-   **Suggested approach:** brief description of the expected refactoring
+   **Reason:** rule violated + why it matters
+   **Approach:** brief description
 
-Only propose refactoring that is justified by defined rules or architecture — not stylistic preferences.
-If no refactoring opportunities are found, omit this section.
+---
 
-**Summary: X Critical, Y Moderate, Z Minor, R Refactoring (DRY / Tech Debt Reduction)**
+## Database Analysis
+
+> Render only when the diff touches database operations (raw SQL, Eloquent / query-builder calls, eager loads, model scopes, ModelManager / Repository methods, migrations, seeders, DynamoDB / NoSQL access) **and** at least one finding is produced by `@skills/mysql-problem-solver/SKILL.md`. Omit the entire section when no DB operations are present in the diff, or when DB ops are present but no findings result — never leave a placeholder or fold it into Coverage.
+>
+> Report only findings (errors) and their fix recommendations. Never include the trigger decision, an inspected `file:line` list, or an EXPLAIN / static-analysis summary — those belong to the internal investigation, not the published review.
+
+- **Findings:**
+  1. **{Critical / Moderate / Minor}** — `file:line` — one-sentence problem
+     **Suggested Fix:** {query rewrite to reuse an existing index per `@rules/sql/optimalize.mdc`, batch operation per "Batch over per-row operations", or new-index proposal justified by EXPLAIN when no existing index covers the query}
+
+---
+
+## Architecture
+
+> **Laravel-only, conditional on findings (issue #530).** On every Laravel project (`laravel/framework` is in `composer.json` `require`), the architecture walk per `@skills/code-review/SKILL.md` Core Analysis "Architecture conformance (Laravel) — mandatory standalone walk-through" runs on every CR run, but this section is rendered **only when the walk produces at least one finding**.
+>
+> - **Walk produced findings →** render the `## Architecture` heading and list the findings below under Critical / Moderate / Minor severity sub-headings (same six reproducer fields as `## Findings`), each citing the offending `file:line` and the specific subsection of `@rules/laravel/architecture.mdc` (`Business Logic Layers`, `Actions`, `Action Rules`, `Model Services`, `Repositories and ModelManagers`, `DTOs`, `Data Modification (DRY)`, `Data Builders`, `Validation Rules (Traits)`, `Data Validators`, `Controllers and Other Entry Points`, `Resource Controllers`, `Single-Action Controllers`, `Livewire`, `Custom Helpers`).
+> - **Walk produced zero findings →** omit the entire `## Architecture` heading and body. Do not render a `walked, 0 findings` status line, a `clean` placeholder, or any other confirmation that the check ran. The absence of the section is the clean signal — only items that still need action are reported.
+> - **Non-Laravel projects →** omit the entire `## Architecture` section. Do not emit a "skipped" placeholder.
+
+### 🔴 Critical 1. <short title>
+
+(same six fields as `## Findings` — Location / Rule / Impact / Faulty Example / Expected behavior / Test hint / Suggested fix)
+
+### 🟠 Moderate 1. <short title>
+
+(same six fields as Critical)
+
+### 🟡 Minor 1. <short title>
+
+- **Location:** `path/to/file.php:42`
+- **Rule:** `@rules/laravel/architecture.mdc#<subsection>`
+- **Note:** one sentence. Faulty Example / Expected behavior / Test hint / Suggested fix may be omitted when no behavior change is implied.
+
+---
+
+## Coverage
+
+> Render this section **only** when the coverage gate produced something to report — uncovered changed lines (Critical findings) or unavailable / non-runnable coverage tooling (Critical finding). When every changed line is at 100% coverage and the tool ran successfully, omit the entire `## Coverage` section, the `Coverage:` header line, and the `coverage …` slot in the summary line — the Counts line is the clean signal.
+
+- **Tool:** {project's available coverage tooling used to verify the changed files (Phing coverage target, Composer `test:coverage` / `coverage`, or `vendor/bin/pest --coverage-clover` / PHPUnit `--coverage-clover`) — or "coverage tooling unavailable — <reason>". Assess the changed files only; do not gate on a project-wide coverage percentage.}
+- **Command:** `<exact command run — e.g. `vendor/bin/pest --coverage-clover=coverage.xml`>`
+- **Result:** {list of uncovered added/changed lines — which must also appear as Critical findings — or "coverage tooling unavailable — <reason>"}
+
+---
+
+**Summary:** {n} Critical · {n} Moderate · {n} Minor · {n} Refactoring{` · coverage {result}` — appended only when the `## Coverage` section is rendered; omitted on a clean 100% pass}

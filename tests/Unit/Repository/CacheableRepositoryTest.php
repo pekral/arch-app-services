@@ -20,7 +20,7 @@ test('cache returns wrapper instance', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -33,7 +33,7 @@ test('cache wrapper calls paginate by params with cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -60,7 +60,7 @@ test('cache wrapper calls get one by params with cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -86,7 +86,7 @@ test('cache wrapper calls find one by params with cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -112,7 +112,7 @@ test('cache wrapper calls count by params with cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -138,7 +138,7 @@ test('cache wrapper skips cache when disabled', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', false);
+    Config::set('arch.repository_cache.enabled', value: false);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -156,7 +156,7 @@ test('cache wrapper throws exception for non existent method', function (): void
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -174,7 +174,7 @@ test('cache wrapper clear cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -195,7 +195,7 @@ test('cache wrapper clear all cache', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -204,7 +204,7 @@ test('cache wrapper clear all cache', function (): void {
 
     $testCacheableUserRepository->cache()->clearAllCache();
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('cache wrapper uses custom configuration', function (): void {
@@ -212,7 +212,7 @@ test('cache wrapper uses custom configuration', function (): void {
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
 
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 7_200);
     Config::set('arch.repository_cache.prefix', 'custom_prefix');
     User::factory()->create(['email' => 'test@example.com']);
@@ -229,7 +229,7 @@ test('cache wrapper uses custom configuration', function (): void {
 
     $testCacheableUserRepository->cache()->getOneByParams($params);
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('cache wrapper uses custom driver', function (): void {
@@ -237,7 +237,7 @@ test('cache wrapper uses custom driver', function (): void {
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
 
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -271,7 +271,7 @@ test('cache passes connection to wrapper for transaction awareness', function ()
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -279,18 +279,18 @@ test('cache passes connection to wrapper for transaction awareness', function ()
 
     DB::connection('testing')->beginTransaction();
 
-    $testCacheableUserRepository->cache(null, 'testing')->clearCache('testMethod', []);
+    $testCacheableUserRepository->cache(driver: null, connection: 'testing')->clearCache('testMethod', []);
 
     DB::connection('testing')->commit();
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('cache wrapper clear cache with custom driver', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -318,7 +318,7 @@ test('cache wrapper clear all cache with custom driver', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     Cache::shouldReceive('store')->byDefault()->andReturn($cacheMock);
     $testCacheableUserRepository = new TestCacheableUserRepository();
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 
@@ -340,14 +340,14 @@ test('cache wrapper clear all cache with custom driver', function (): void {
 
     $testCacheableUserRepository->cache($customDriver)->clearAllCache();
 
-    expect(true)->toBeTrue();
+    expect(value: true)->toBeTrue();
 });
 
 test('cache wrapper uses default driver when no driver specified', function (): void {
     $cacheMock = Mockery::mock(CacheRepository::class);
     $testCacheableUserRepository = new TestCacheableUserRepository();
 
-    Config::set('arch.repository_cache.enabled', true);
+    Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
     Config::set('arch.repository_cache.prefix', 'arch_repo');
 

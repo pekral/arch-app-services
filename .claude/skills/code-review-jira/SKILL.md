@@ -19,8 +19,8 @@ Perform code review for JIRA issues by analyzing related pull requests and publi
 ## Constraints
 - Apply @rules/jira/general.mdc
 - Apply @rules/git/general.mdc
-- Never modify code
-- GitHub output must be in English
+- Apply @rules/reports/general.mdc. The **GitHub PR technical comment** this skill posts (Status / Counts / Findings / Refactoring / Database Analysis / Coverage / Summary) stays in canonical English per the rule's *Exception — technical CR findings on the GitHub PR*. The **JIRA comment** delegated to `@skills/pr-summary/SKILL.md` and the **mirrored linked-GitHub-issue summary** follow the language of the source JIRA assignment. Never mix languages inside the same comment; never use bilingual *Kritické (Critical)* style parentheses.
+- **Read-only skill** — never modify code, never stage / commit / push changes, and never run any git write operation (`git add`, `git commit`, `git push`, `git reset`, `git checkout -- …`, etc.). Switching to the relevant branch and `git pull` to read the latest diff are allowed; mutating the working tree or pushing to the remote is not. Publishing is limited to PR / linked-issue comments via `gh` and to JIRA ticket comments via `acli`.
 - JIRA output must be understandable for non-developers
 - Output findings only (no praise)
 
@@ -29,8 +29,10 @@ Perform code review for JIRA issues by analyzing related pull requests and publi
 ## Execution
 
 ### 1. Load Context
-- Load JIRA issue, comments, and attachments using `acli`. If `acli` is unavailable, fall back to JIRA MCP server.
-- Identify all open PRs linked to the issue
+- Load JIRA context by running `skills/code-review-jira/scripts/load-issue.sh <KEY|URL>` — the single deterministic entry point. Never call `acli` directly. Read issue header, description, comments, attachments, subtasks, issue links, custom fields, `devSummary`, and `pullRequests` off the resulting JSON document.
+- The script accepts a bare key (`ECOMAIL-1234`), a `/browse/<KEY>` URL, or any URL containing `?selectedIssue=<KEY>`.
+- If the script is unavailable (missing tool, exit code 2/3) fall back to the JIRA MCP server. Always prefer the MCP fallback for data the script cannot cover: changelog (`expand=changelog`), available next transitions, and friendly custom-field names (`expand=names`).
+- Identify all open PRs linked to the issue from the script's `pullRequests` array
 - Before reviewing a PR, switch to the PR branch and pull latest changes
 
 #### Issue Context Analysis
@@ -50,47 +52,63 @@ Before reviewing code, load and analyze the full JIRA issue:
 
 ### 3. Run Reviews
 
-- For each PR:
+> **Inline dispatch.** Each sub-review below runs **inline in this wrapper's context** — invoke each skill directly (`@skills/<name>/SKILL.md` with any `MODE=cr` flag), passing the PR URL / number and the branch already checked out, and declare the publishing contract for this CR run (quiet vs publish; see step 4). Each invoked skill must return its findings as the canonical markdown block (`## Assignment Compliance` block, Critical / Moderate / Minor lists with reproducer fields, refactoring proposals). The CR wrapper then assembles the outputs into the final GitHub PR comment + JIRA / linked-issue summary. Run the sub-reviews **one at a time** — do not dispatch them as parallel subagents.
+>
+> The mysql-problem-solver / race-condition-review / refactor-entry-point-to-action conditionals follow the same rule: when their trigger fires, invoke them inline after the always-run set, still one at a time.
+
+- For each PR (sub-reviews invoked inline, one at a time):
+  - run @skills/assignment-compliance-check/SKILL.md — non-technical business-logic vs assignment check. The skill **does not publish anywhere itself** — it returns either the assembled `## Assignment Compliance` markdown block (only when at least one Critical gap exists; the wrapper converts it to JIRA Wiki Markup before passing it to `pr-summary` for the JIRA target, and keeps GitHub Markdown for the linked-GitHub-issue mirror), the status `no critical gaps — assignment compliance block omitted` (when the implementation satisfies every stated requirement), or the status `no linked issue — assignment compliance skipped` (when no linked tracker exists). The CR wrapper passes the returned block as an embedded block to `@skills/pr-summary/SKILL.md` **only when a block is returned** so each tracker (JIRA ticket, linked GitHub issue) receives **one consolidated comment** per CR run (per issue #498); on either skip status the wrapper embeds nothing and clean compliance is reported by the absence of the embedded block, consistent with every other "OK" section that is dropped rather than surfaced. **Do not embed** the block into the GitHub PR comment — the PR comment carries technical findings only.
   - run @skills/code-review/SKILL.md
   - run @skills/security-review/SKILL.md
-  - run @skills/class-refactoring/SKILL.md — read-only refactoring lens scoped to the PR diff. Surface DRY duplication and tech-debt-reducing changes only on lines actually touched by the PR.
+  - run @skills/class-refactoring/SKILL.md **with `MODE=cr`** — read-only refactoring lens scoped to the PR diff. Surface DRY duplication and tech-debt-reducing changes only on lines actually touched by the PR. `MODE=cr` guarantees no code changes, commits, fixers, or review chaining.
 
 - Run conditionally:
-  - DB changes → @skills/mysql-problem-solver/SKILL.md
+  - **Diff is a refactoring (behavior-preserving structural change per `@rules/refactoring/general.mdc`) → run the full refactoring skill set read-only.** When the PR restructures existing code without adding a feature or changing observable behavior, additionally invoke `@skills/refactor-entry-point-to-action/SKILL.md` **with `MODE=cr`** to surface the entry-point → Action proposals. **Both refactoring skills run read-only — no code changes, no commits, no fixers, no review chaining — `MODE=cr` enforces this.** Fold their output into the **Refactoring (DRY / Tech Debt Reduction)** section (in-scope) and **Refactoring Proposals** section (out-of-scope) of the GitHub PR comment. The JIRA non-technical comment never carries these technical sections.
+  - **Database operations detected in the diff → `@skills/mysql-problem-solver/SKILL.md` is mandatory.** Trigger pattern list is owned by `@skills/code-review/SKILL.md` Specialized Reviews (raw SQL, Eloquent / query-builder calls, eager loads, model scopes, ModelManager / Repository methods, migrations, seeders, DynamoDB / NoSQL access). Capture its findings and surface them on the GitHub PR comment under the dedicated `## Database Analysis` section (see Output Rules) — never silently fold them into the Critical / Moderate / Minor buckets. The JIRA non-technical comment **does not** carry this section (it stays plain-language via `pr-summary`).
   - Shared state → @skills/race-condition-review/SKILL.md
   - Third-party API or service changes → ensure the **Third-Party API & Service Analysis** step from `@skills/code-review/SKILL.md` is executed for the diff
 
 #### Refactoring & Tech Debt (DRY) Analysis (PR diff only)
 
 1. Restrict the analysis to lines added or modified in the PR — never review untouched code.
-2. For each changed block, apply `@skills/class-refactoring/SKILL.md` and look for:
-   - duplicated logic that already exists elsewhere (DRY)
+2. For each changed block, apply `@skills/class-refactoring/SKILL.md` (run with `MODE=cr` — read-only) and look for:
+   - duplicated logic that already exists elsewhere (DRY) — verify the change reuses existing logic instead of introducing a parallel implementation, per `@rules/code-review/general.mdc` Reuse Existing Logic section
    - data shaping repeated across Actions/Services/controllers/jobs/listeners/Livewire/commands
    - oversized methods, deep nesting, mixed responsibilities introduced or amplified by the change
+   - when the PR is itself a refactoring (see the conditional trigger in **Run Reviews**), also fold in the entry-point → Action proposals from `@skills/refactor-entry-point-to-action/SKILL.md` run with `MODE=cr`
 3. Each finding must include the file path, the affected line range, and a concrete refactoring that *reduces* tech debt.
 4. In-scope refactorings go into the **Refactoring (DRY / Tech Debt Reduction)** section of the GitHub PR comment template. Out-of-scope structural problems still belong in **Refactoring Proposals**.
 
 ### 4. Publish Results
 
-#### GitHub (technical findings only)
-- If a previous CR exists for the same PR, analyze all previous findings and classify each as: **Resolved**, **Deferred**, or **Still open**
-- Include a **Previous CR Status** section at the top of the GitHub comment (before new findings)
-- Post all technical findings as PR comment
-- Format:
+> **Quiet mode (loop iterations from `@skills/process-code-review/SKILL.md`):** when the caller explicitly requests "do not publish; return findings as in-memory markdown for this loop iteration only", **skip all publishing** below — no GitHub PR comment, no JIRA comment, no linked-GitHub-issue mirror. Return the assembled review markdown to the caller and stop. Only the final (publishing) call from `process-code-review` after convergence runs Publish Results in full.
+
+#### GitHub (technical findings only — always-new comment per CR run)
+- Every CR run posts a **fresh PR comment**. The helper never edits a prior comment in place — each run produces its own self-contained entry so reviewers see one comment per run, in chronological order. The hidden marker `<!-- cr-comment:actor=<gh-login> -->` is still appended to the body for traceability (auto-appended by the helper) but no longer drives an upsert lookup. History across runs lives in the comment sequence itself; never re-create a `Previous CR Status` section in the body.
+- Publish via `skills/code-review-github/scripts/upsert-comment.sh <PR-NUMBER|URL> -` (body on stdin). The helper detects the current actor (`gh api user --jq .login`), appends the marker, and POSTs a new comment. The published URL is emitted on stdout; the action (`created`) on stderr — log it in the PR comment summary line.
+- If the helper exits with code 2 (missing tool) or 3 (API failure), fall back to the GitHub MCP server's `addIssueComment` — also as a fresh post. Never call `updateIssueComment` to edit a prior CR comment and never quote / reply to one; the always-new-comment convention replaces the previous in-place edit flow.
+- Format inside the comment body:
   - Critical → Moderate → Minor → Refactoring (DRY / Tech Debt Reduction)
   - file + line
   - actionable fix
-- For each finding that maps to a concrete line in the PR diff, attach an inline review comment via the GitHub review API (`gh api -X POST repos/{owner}/{repo}/pulls/{pr}/reviews` with a `comments[]` array of `{path, line, side, body}` entries). Submit one review with all inline comments so the PR shows a single reviewer pass instead of scattered ad-hoc comments. Use `event=COMMENT` for advisory passes; reserve `event=REQUEST_CHANGES` for blocking Critical findings.
-- The top-level PR comment still aggregates severity counts and lists items that cannot be anchored to a specific line (missing test coverage, cross-diff architectural concerns).
-- This is the only place where technical details appear
+- Post all technical findings inside the single PR comment — never as line-anchored review comments. Include the `file:line` reference in the body of each finding instead.
+- This is the only place where technical details appear.
 
-#### JIRA (non-technical summary only)
-- Never post file paths, line numbers, code snippets, or technical severity levels to JIRA
-- Post a plain-language summary:
-  - overall status (clean / has issues)
-  - key risks described in business terms
-  - testing recommendations with step-by-step instructions
-  - link to the GitHub PR for full technical details
+#### JIRA (consolidated non-technical comment — single-comment upsert per actor)
+- Delegate the JIRA comment to `@skills/pr-summary/SKILL.md`. This CR skill must not author its own JIRA summary — the goal is a uniform *"Authors / Available behind / Summary of changes / How to test"* output that non-technical project managers understand and can act on, identical to what `pr-summary` produces for any other audience.
+- **Consolidation contract (issue #498):** invoke `pr-summary` exactly once for the JIRA ticket. When `@skills/assignment-compliance-check/SKILL.md` returned a markdown block (i.e. at least one Critical gap was detected), first convert that block to JIRA Wiki Markup per `@rules/jira/general.mdc` (`## ` → `h2. `, `**bold**` → `*bold*`, etc.) and pass it as an embedded block — `pr-summary` appends it verbatim after `How to test`. When the compliance check returned the `no critical gaps — assignment compliance block omitted` status, **do not** pass an embedded block; `pr-summary` publishes the change summary alone (no "Verdict: clean" line, no "What is satisfied" list — clean compliance is reported by the absence of the block). `pr-summary` then **upserts** the JIRA comment via `skills/code-review-jira/scripts/upsert-comment.sh` (JIRA MCP server fallback when `acli` lacks comment-edit support or exits with code 4). The upsert keeps **exactly one JIRA comment per (ticket, acli actor)** — keyed by the invisible anchor `{anchor:cr-comment-actor-<slug>}` (auto-prepended by the upsert helper) — so follow-up runs edit it in place instead of stacking new comments. Never post a separate JIRA comment for assignment compliance on top of it.
+- When invoking `pr-summary`, pass through the PR `author.login` + `commits[].author.login` set and the git `%an <%ae>` log so the published JIRA comment credits the **real change author(s)** (JIRA display name when the JIRA loader can match a committer; otherwise the GitHub handle; otherwise the git `Name <email>`). Never the agent / CR identity. Confirm the `Authors` line is present in the published comment.
+- When invoking `pr-summary`, also pass through any **test-parameter gating** detected in the diff (feature flag, ENV switch, query-string parameter, request header, admin toggle, allow-list) so the published comment carries the `Available behind` line and folds the toggle-enabling step into `How to test` step 1.
+- Invoke `@skills/pr-summary/SKILL.md` with the **JIRA** tracker target so it renders `@skills/pr-summary/templates/pr-summary-jira.md` in JIRA Wiki Markup and upserts the comment on the originating JIRA ticket through the helper above (no direct `acli jira workitem comment add` calls that bypass the marker).
+- Never post file paths, line numbers, code snippets, technical severity levels, or finding counts to JIRA — `pr-summary` already enforces this constraint by design, and the embedded `Assignment Compliance` block obeys the same rule. Technical content stays exclusively on the GitHub PR comment.
+- When the CR run yields Critical / Moderate findings that block merge, surface that signal in the GitHub PR comment summary line; the consolidated JIRA comment stays focused on what changed, how to test it, and whether the assignment was fulfilled.
+
+#### Linked GitHub issues (consolidated mirror — always-new comment per CR run)
+- If the reviewed PR also references a GitHub issue (i.e. `closingIssues[]` of the GitHub PR JSON is non-empty), delegate the linked-GitHub-issue comment to `@skills/pr-summary/SKILL.md` (GitHub tracker target). The skill renders `@skills/pr-summary/templates/pr-summary-github.md` in GitHub Markdown and posts it via `skills/code-review-github/scripts/upsert-comment.sh` on each entry in `closingIssues[]` (one fresh comment per linked issue per CR run — marker `<!-- cr-comment:actor=<gh-login> -->` appended for traceability, no in-place edit). Pass the same author + test-parameter-gating context as the JIRA invocation above — the mirrored comment must carry the same `Authors` and `Available behind` lines.
+- **Consolidation contract (issue #498):** when `@skills/assignment-compliance-check/SKILL.md` returned a markdown block (i.e. at least one Critical gap was detected), pass its GitHub-Markdown version as an embedded block so the linked-GitHub-issue audience also sees **one consolidated comment per CR run** instead of two separate posts. When the compliance check returned the `no critical gaps — assignment compliance block omitted` status, **do not** pass an embedded block; the linked-GitHub-issue mirror publishes the change summary alone. Follow-up runs add a new comment rather than editing the previous one — the chronological sequence is the audit trail.
+- The JIRA-side summary is the primary tracker comment; the GitHub-issue comment is a courtesy mirror so reviewers reading the GitHub issue see the same *"Summary of changes + How to test + Assignment Compliance"* output without opening JIRA. Both comments come from `pr-summary`, so they are guaranteed to match.
+- If `closingIssues[]` is empty, skip this block and note "no linked GitHub issue — mirror skipped" in the PR comment summary line.
+- If the upsert helper or the GitHub MCP fallback returns a permission error (cross-repo issue, lacking write access), log the failure in the PR comment summary line and continue — do not abort the review.
 
 ---
 
@@ -100,19 +118,24 @@ Before reviewing code, load and analyze the full JIRA issue:
 - All technical findings go exclusively to GitHub PR comments
 - Include: file paths, line numbers, code references, severity levels, concrete fixes
 - Findings only — no praise, no explanations of what was checked
+- **Omit empty sections entirely.** Only the header block (Status / Counts / Last updated / Linked-tracker mirror) and the final `Summary` line are always rendered in the GitHub PR comment. The `Coverage:` header line, the `## Coverage` section, and the `coverage …` slot in the summary line are all conditional — render them **only** when the coverage gate produced something to report (uncovered changed lines or unavailable / non-runnable tooling, both Critical findings). When every changed line is at 100% coverage and the tool ran successfully, drop all three coverage surfaces; the Counts line is the clean signal. Every other section — `Findings` (including each severity sub-heading), `Refactoring (DRY / tech debt)`, `Refactoring proposals`, and `Database Analysis` — appears **only when it has at least one item**. Never emit `None.` / `Not applicable.` / `n/a` / `100%` placeholders for empty sections or omitted coverage surfaces; drop the whole heading and body instead. **History across CR runs** is preserved by the chronological sequence of always-new GitHub PR comments — never re-create a `Previous CR Status` section in the body.
+- **`## Architecture` section (issue #530).** On Laravel projects (`laravel/framework` is in `composer.json` `require`), the architecture walk-through defined in `@skills/code-review/SKILL.md` Core Analysis runs on every CR run, but the `## Architecture` heading is rendered on the GitHub PR comment **only when the walk produces at least one finding**. When findings exist, render the heading and list them. When the walk is clean, omit the heading entirely — never render a `walked, 0 findings` status line, a `clean` placeholder, or any other confirmation that the check ran. On non-Laravel projects, omit the `## Architecture` section entirely. The JIRA non-technical comment (produced by `pr-summary`) never includes this section.
 - Use severity levels: Critical, Moderate, Minor
 - Each **Critical** and **Moderate** finding must include:
     - **Faulty Example** — minimal code snippet or input payload reproducing the issue (redact secrets/PII)
     - **Expected Behavior** — single assertable statement (return value, exception, persisted state, emitted event)
     - **Test Hint** — one sentence pointing at the test layer (unit, integration, feature) and entry point
-- These three fields exist so `@skills/process-code-review/SKILL.md` can convert each finding into a reproducer test directly from the PR comment.
+    - **Suggested Fix** — minimal corrected code snippet that resolves the finding. Must comply with `@rules/php/core-standards.mdc` and, for Laravel projects, `@rules/laravel/architecture.mdc`. Use `n/a — <reason>` only when a snippet adds no value over the one-line Fix description (e.g. naming-only changes, dead-code removal, pointers to an existing helper whose name already says enough).
+- These four fields exist so `@skills/process-code-review/SKILL.md` can convert each finding into a reproducer test and apply the fix directly from the PR comment.
 - Minor findings may omit these fields when no behavior change is implied.
+- When the diff touches database operations (per the trigger list in `@skills/code-review/SKILL.md` Specialized Reviews), the posted GitHub PR comment must include a dedicated `## Database Analysis` section **before** `## Coverage`. The section reports only the `mysql-problem-solver` findings (with severity mirroring Critical / Moderate / Minor) and the proposed query rewrite / index reuse / batching fix per `@rules/sql/optimalize.mdc`. Do not include the queries / migrations inspected list or any EXPLAIN / static-analysis summary — those stay inside the internal investigation. When no DB operations are present, omit the section entirely. The JIRA non-technical comment (produced by `pr-summary`) never includes this section.
+- The posted PR comment includes a `## Coverage` section before the summary line **only** when the coverage gate has something to report — uncovered changed lines (Critical findings) or unavailable / non-runnable coverage tooling (Critical finding). When every changed line is at 100% coverage and the tool ran successfully, omit the `## Coverage` section, the `Coverage:` header line, and the `coverage …` slot from the summary line per `@skills/code-review/SKILL.md` Output Rules. The coverage gate itself (per the Coverage gate in `@skills/code-review/SKILL.md`) still runs on every review; only the user-visible section is short-circuited.
 - Use the template defined in `templates/github-output.md`
 
 ### JIRA (non-technical summary — only here)
-- Never include file paths, line numbers, code snippets, or technical severity levels
-- Write in plain language understandable by non-developers
-- Use the template defined in `templates/jira-output.md`
+- The non-technical JIRA comment is **produced and posted by `@skills/pr-summary/SKILL.md`**, not by this skill. Invoke `pr-summary` with the JIRA tracker target; do not author or embed a custom template here.
+- `pr-summary` enforces the no-file-paths / no-line-numbers / no-code-snippets / no-severity-jargon contract by design — plain language understandable by non-developers, in two sections: *Summary of changes* and *How to test*.
+- The JIRA Wiki Markup conversion (`h2.` / `h3.` headings, `*bold*`, `_italic_`, `{{inline}}`, `{code:php} ... {code}`, `*` / `#` bullets, `[label|url]`, `{quote}`) is handled by `@skills/pr-summary/templates/pr-summary-jira.md` per `@rules/jira/general.mdc`. Do not "translate" the output back to GitHub Markdown when posting via `acli` / JIRA MCP server.
 
 ---
 
@@ -128,7 +151,7 @@ Before reviewing code, load and analyze the full JIRA issue:
 
 ## After Completion
 
-- Always run @skills/test-like-human/SKILL.md, regardless of code review findings.
+- Do **not** auto-invoke `@skills/test-like-human/SKILL.md`. The user-perspective testing skill runs **on demand only** (via `/test-like-human` or an explicit follow-up); CR-track skills must never chain into it.
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

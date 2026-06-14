@@ -95,7 +95,7 @@ test('flatMap can return failure from callback', function (): void {
 });
 
 test('success works with null value', function (): void {
-    $result = Result::success(null);
+    $result = Result::success(value: null);
 
     expect($result->isSuccess())->toBeTrue()
         ->and($result->unwrap())->toBeNull();
