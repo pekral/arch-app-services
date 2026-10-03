@@ -161,7 +161,7 @@
     "test:coverage": [
       "echo \"📊 Running coverage tests with 100% minimum...\"",
       "@dynamodb:start",
-      "php -dpcov.enabled=1 -dpcov.directory=. -dxdebug.mode=off vendor/bin/pest --coverage --min=100 --coverage-filter=src --coverage-clover=build/coverage/clover.xml --coverage-html=build/coverage/html"
+      "php -dzend.assertions=1 -dpcov.enabled=1 -dpcov.directory=. -dxdebug.mode=off vendor/bin/pest --coverage --min=100 --coverage-filter=src --coverage-clover=build/coverage/clover.xml --coverage-html=build/coverage/html"
     ]
   }
 }
