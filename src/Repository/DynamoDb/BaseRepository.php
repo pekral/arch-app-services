@@ -164,16 +164,11 @@ abstract readonly class BaseRepository implements Repository
             return $items;
         }
 
-        return collect($orderBy)
-            ->reduce(
-                static fn (Collection $sorted, string $direction, string $column): Collection => $sorted->sortBy(
-                    $column,
-                    SORT_REGULAR,
-                    $direction === 'desc',
-                ),
-                $items,
-            )
-            ->values();
+        foreach ($orderBy as $column => $direction) {
+            $items = $items->sortBy($column, SORT_REGULAR, $direction === 'desc');
+        }
+
+        return $items->values();
     }
 
     /**
@@ -237,10 +232,8 @@ abstract readonly class BaseRepository implements Repository
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
-     * @return array<TKey, TValue>
+     * @param \Illuminate\Support\Collection<array-key, mixed>|array<array-key, mixed> $params
+     * @return array<array-key, mixed>
      */
     private function normalizeParams(Collection|array $params): array
     {

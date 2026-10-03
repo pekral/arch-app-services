@@ -179,10 +179,8 @@ abstract readonly class BaseRepository implements Repository
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
-     * @return array<TKey, TValue>
+     * @param \Illuminate\Support\Collection<array-key, mixed>|array<array-key, mixed> $params
+     * @return array<array-key, mixed>
      */
     private function normalizeParams(Collection|array $params): array
     {
