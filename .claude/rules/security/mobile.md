@@ -27,6 +27,22 @@ Apply `@rules/security/backend.md` *Malicious Code & Supply-Chain Indicators*, w
 
 Severity follows the backend rule.
 
+## Malicious File Upload Content (issue #680)
+Apply the same CONTENT / RENDER rules as `@rules/security/backend.md` *Malicious File Upload Content*, with these mobile-specific specifics:
+
+> **Scope boundary — CONTENT / RENDER only.** This rule covers the CONTENT / RENDER surface of an uploaded file (active content executed when the file's bytes, name, or metadata are later rendered or served). The file TYPE / TRANSPORT surface (extension allow-list, declared-vs-actual MIME, magic-byte signature, double extension, path traversal, executability in webroot) stays with `security-review/SKILL.md` File Handling — **raise one finding per violation, never both**. A single upload sink that fails both surfaces produces the type/transport finding for the accept decision and the content/render finding for the output decision, on distinct lines; never two findings for the same line.
+
+- **WebView must not render user-uploaded HTML or SVG without sanitization.** Loading a user-uploaded HTML or SVG file into a WebView gives it script execution capability. Always sanitize HTML/SVG content server-side before delivery and render it in a sandboxed WebView (`UIWebView` / `WKWebView` with a restrictive CSP, or `WebView` with `setJavaScriptEnabled(false)`) or as a static preview image rather than an interactive document.
+- **Shared / opened files must be validated.** Files opened via the OS share sheet, document picker, or deep link (iOS `UIDocumentPickerViewController`, Android `Intent.ACTION_OPEN_DOCUMENT`) arrive as attacker-controlled input. Validate the file's MIME and magic bytes server-side and treat filename and metadata fields as untrusted strings — escape or sanitize before displaying in UI.
+- **Do not render filenames or metadata into HTML contexts.** If the app embeds file metadata (name, EXIF tags, PDF author) into HTML rendered inside a WebView, escape all values as HTML entities; never concatenate raw strings into HTML.
+
+## Hidden / Invisible Characters in Stored Fields (issue #714)
+Apply the same INPUT / STORAGE rules as `@rules/security/backend.md` *Hidden / Invisible Characters in Stored Fields* — the durable defense is server-side NFC normalization and invisible / bidi / control-character stripping at the write boundary, before the value reaches the database or the backend API. Mobile-specific specifics:
+
+- **Sanitize on the server, not only in the app.** Stripping zero-width / bidi / control characters in the client before the API call is a UX nicety; a tampered or repackaged app, or a direct API call, submits the raw bytes. The backend write-boundary rule is the authoritative control.
+- **Isolate bidirectional text on render.** When displaying a stored value that may carry bidi control characters (username, comment, filename) in a native label or `WKWebView` / Android `WebView`, isolate it (`<bdi>` / `unicode-bidi: isolate` in WebView, or strip the bidi range) so a persisted Trojan-Source override cannot spoof the surrounding UI.
+- **Treat shared / deep-link strings as untrusted** (see *Malicious File Upload Content* above) — filenames and metadata arriving via the share sheet or a deep link can carry the same invisible characters; normalize and strip them server-side before persisting.
+
 ## WebView Usage
 - Limit WebView access to trusted URLs, and disable JavaScript by default.
 - Enforce HTTPS in WebView to prevent loading insecure content.

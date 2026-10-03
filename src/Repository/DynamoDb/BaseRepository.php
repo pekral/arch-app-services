@@ -93,7 +93,6 @@ abstract readonly class BaseRepository implements Repository
 
         /** @var TModel $result */
         $result = $queryBuilder->firstOrFail();
-        assert($result instanceof Model);
 
         return $result;
     }
@@ -151,10 +150,7 @@ abstract readonly class BaseRepository implements Repository
     {
         $modelClassName = $this->getModelClassName();
 
-        $query = new $modelClassName()->newQuery();
-        assert($query instanceof DynamoDbQueryBuilder);
-
-        return $query;
+        return new $modelClassName()->newQuery();
     }
 
     /**

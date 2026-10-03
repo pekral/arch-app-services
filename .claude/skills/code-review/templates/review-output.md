@@ -1,13 +1,18 @@
 # Code Review
 
+> **Technical review.** This comment is the **Technical review** half of the two-part CR output (`@rules/code-review/general.mdc` *Two-part CR output — Technical & Functional review*) — strict rule compliance only. The **Functional review** (full acceptance-criteria checklist, `Goal met: Yes/No`) is published separately on the linked-tracker comment via `@skills/pr-summary/SKILL.md`; its one-line verdict mirrors onto this comment's `Summary` line as `assignment conformance: …`.
+
 > **Section visibility — render only sections that have content.** Always render the header block (Status / Counts / Last updated) and the final `Summary` line. The `Coverage:` header line, the `## Coverage` section, and the `coverage …` slot in the summary line are conditional — render them **only** when the coverage gate produced something to report (uncovered changed lines or unavailable / non-runnable tooling, both Critical findings per `@skills/code-review/SKILL.md` Coverage gate). When every changed line is at 100% coverage and the tool ran successfully, drop all three coverage surfaces; the Counts line is the clean signal. The `## Architecture` section follows the same conditional rule (issue #530): on Laravel projects the architecture walk runs on every CR run, but the heading is rendered **only when the walk produces at least one finding** — when the walk is clean, omit the heading entirely (no "walked, 0 findings" line, no "clean" placeholder, no confirmation that the check ran). On non-Laravel projects (`laravel/framework` not in `composer.json` `require`), omit the `## Architecture` section entirely. Every section is conditional: omit its heading and body entirely when it has no items. Never emit `None.` / `Not applicable.` / `n/a` / `100%` / `walked, 0 findings` placeholders for empty sections or omitted coverage surfaces — drop them entirely. The Counts line in the header is the single source of "zero" signal; the goal is a clean, scannable PR comment a human can read at a glance — only items that still need action remain in the body.
+
+> **Late-iteration report scope (`iteration > 2`).** When the CR wrapper is invoked with `iteration = <n>` from the Review loop of `@skills/process-code-review/SKILL.md` and `n > 2`, render **Critical and Moderate findings only**: drop every Minor finding (in `## Findings`, `## Architecture`, `## Database Analysis`, and every specialized-review sub-section), drop the whole `## Refactoring (DRY / tech debt)` section, and drop the whole `## Refactoring proposals` section. The `Counts` and `Summary` lines stay **unchanged in shape and content** — every slot, carrying the real number for every severity, including the suppressed Minor and refactoring items — and the header block gains the line `**Report scope:** critical+moderate only (iteration {n}) — Minor findings and refactoring sections not rendered` directly under `Counts`; never drop a slot, never emit a placeholder for a suppressed item, and never report it as a zero count. A run with no `iteration` input is `iteration = 1` and renders the full report. Canonical: `@rules/code-review/general.mdc` *Late-Iteration Report Scope — Critical & Moderate Only (CR iteration > 2)*.
 
 **Status:** clean / needs-fix
 **Counts:** Critical {n} · Moderate {n} · Minor {n} · Refactoring {n}
+**Report scope:** critical+moderate only (iteration {n}) — Minor findings and refactoring sections not rendered  *(render this line only on a late-iteration run, i.e. the caller passed `iteration > 2`; the `Counts` line above keeps its real, unchanged numbers)*
 **Coverage:** {result} (tool: {name or "not available — <reason>"})  *(render this line only when the `## Coverage` section is rendered — i.e. uncovered changed lines or unavailable tooling)*
 **Last updated:** {ISO-8601 timestamp of this CR run}
 
-> **Single-comment upsert:** the CR wrapper (`code-review-github` / `code-review-jira`) publishes this output as **one comment per (PR | linked issue | JIRA ticket, actor)** keyed by an actor marker (`<!-- cr-comment:actor=<gh-login> -->` for GitHub, `{anchor:cr-comment-actor-<slug>}` for JIRA). Follow-up CR runs **edit that comment in place**, so history is preserved by the tracker's edit history — never re-create a `Previous CR Status` section in the body.
+> **Always-new comment:** the CR wrapper (`code-review-github` / `code-review-jira`) publishes this output as a **new comment on every run** — it never edits a prior comment in place. GitHub comments carry an actor marker (`<!-- cr-comment:actor=<gh-login> -->`); JIRA comments carry no marker. The chronological sequence of comments is the audit trail — never re-create a `Previous CR Status` section in the body.
 
 ---
 
@@ -33,7 +38,7 @@
 
 ### 🟠 Moderate 1. <short title>
 
-(same six fields as Critical)
+(same six fields as Critical; a request-for-link finding per `@rules/code-review/general.mdc` *Third-Party API & Service Documentation Verification (issue #748)* step 3 is exempt from Faulty Example / Expected behavior / Test hint — the Suggested fix, the literal request-for-link template, is the whole finding)
 
 ### 🟡 Minor 1. <short title>
 
@@ -49,7 +54,7 @@
 1. **Location:** `path/to/file.php:42`
    **Problem:** one sentence.
    **Refactor:** concrete consolidation step (Data Builder / DTO / Service / Action / Repository / ModelManager).
-   **Why:** rule reference (`@rules/laravel/architecture.mdc#<section>` or `@skills/class-refactoring/SKILL.md`) satisfied by the change.
+   **Why:** the rule reference the item satisfies (`@rules/laravel/architecture.mdc#<section>`, `@rules/code-review/general.mdc#<section>`, …); for a lens-produced item, also the matched `@skills/class-refactoring/SKILL.md` guideline.
 
 ---
 
@@ -66,13 +71,29 @@
 
 ## Database Analysis
 
-> Render only when the diff touches database operations (raw SQL, Eloquent / query-builder calls, eager loads, model scopes, ModelManager / Repository methods, migrations, seeders, DynamoDB / NoSQL access) **and** at least one finding is produced by `@skills/mysql-problem-solver/SKILL.md`. Omit the entire section when no DB operations are present in the diff, or when DB ops are present but no findings result — never leave a placeholder or fold it into Coverage.
+> Render only when the diff touches database operations (raw SQL, Eloquent / query-builder calls, eager loads, model scopes, ModelManager / Repository methods, migrations, seeders, DynamoDB / NoSQL access) **and** at least one finding is produced by `@skills/mysql-problem-solver/SKILL.md` or by the deployment-safety walk. Omit the entire section when no DB operations are present in the diff, or when DB ops are present but no findings result — never leave a placeholder or fold it into Coverage.
 >
 > Report only findings (errors) and their fix recommendations. Never include the trigger decision, an inspected `file:line` list, or an EXPLAIN / static-analysis summary — those belong to the internal investigation, not the published review.
+>
+> This section carries **both** halves of the database review: **performance** findings and **deployment-safety** findings per `@rules/code-review/general.mdc` *Database Change Deployment Safety* (destructive change shipped with the code that reads the old surface, blocking `ALGORITHM=COPY` DDL, missing / no-op `down()`, non-replayable migration, backfill inside a migration, an un-pre-flighted new constraint, a missing index for a newly queried column, an unstated deploy order).
+>
+> Every finding must carry the **concrete optimization artifact** in a fenced code block — the rewritten query in full, the exact index DDL, the rewritten batching code, or, for a deployment-safety finding, the corrected migration `up()` / `down()` pair, the explicit `ALGORITHM=…, LOCK=…` / `pt-online-schema-change` command, the pre-flight counting query, or the deploy-order + rollback block. A prose description of the fix ("add an index on `user_id`", "rewrite it to be SARGable") does not satisfy this section; see `@rules/code-review/general.mdc` *Database Analysis section*. Each **DB-performance** defect is rendered here exactly once and is never duplicated into `## Findings` — but a **security** finding on the same `file:line` is a different defect and always keeps its own `## Findings` entry with the full finding shape.
 
 - **Findings:**
   1. **{Critical / Moderate / Minor}** — `file:line` — one-sentence problem
-     **Suggested Fix:** {query rewrite to reuse an existing index per `@rules/sql/optimalize.mdc`, batch operation per "Batch over per-row operations", or new-index proposal justified by EXPLAIN when no existing index covers the query}
+     **Suggested Fix:** {one sentence naming the fix category per `@rules/sql/optimalize.mdc` — existing-index reuse, query rewrite, pagination change, batching, new index, the documented justification for a slower query, or the deployment-safety fix}
+     ```sql
+     -- Mandatory: the concrete artifact itself, never a prose description of it.
+     -- user-supplied values stay bound (?/:named) — never inlined or concatenated
+     -- query rewrite / index reuse / pagination  → the rewritten query in full
+     -- new index                                 → the exact DDL, e.g.
+     --   ALTER TABLE orders ADD INDEX idx_user_status_created (user_id, status, created_at);
+     -- application-level fix (Eloquent chain, batchUpdate / batchInsert,
+     --   whereIn(...)->delete(), keyed bulk read) → render a php-fenced block instead of this one
+     -- deployment safety (migration up()/down(), ALGORITHM=…/LOCK=…, online-DDL command,
+     --   pre-flight counting query, extracted chunked backfill) → render the statement or php block
+     -- slower-but-justified query / unstated deploy order → the documentation block replaces this snippet
+     ```
 
 ---
 
@@ -110,4 +131,4 @@
 
 ---
 
-**Summary:** {n} Critical · {n} Moderate · {n} Minor · {n} Refactoring{` · coverage {result}` — appended only when the `## Coverage` section is rendered; omitted on a clean 100% pass}
+**Summary:** {n} Critical · {n} Moderate · {n} Minor · {n} Refactoring · assignment conformance: {conformant | N gap(s) | no linked issue}{` · coverage {result}` — appended only when the `## Coverage` section is rendered; omitted on a clean 100% pass}

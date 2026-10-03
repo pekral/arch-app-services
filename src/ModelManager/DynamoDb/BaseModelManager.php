@@ -188,10 +188,7 @@ abstract class BaseModelManager implements ModelManager
     {
         $modelClassName = $this->getModelClassName();
 
-        $query = new $modelClassName()->newQuery();
-        assert($query instanceof DynamoDbQueryBuilder);
-
-        return $query;
+        return new $modelClassName()->newQuery();
     }
 
     /**

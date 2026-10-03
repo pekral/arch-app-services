@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Pekral\Arch\Repository\Repository;
 
-use function assert;
 use function count;
 use function is_array;
 
@@ -68,10 +67,7 @@ abstract readonly class BaseRepository implements Repository
             $orderBy,
         );
 
-        $result = $queryBuilder->firstOrFail();
-        assert($result instanceof Model);
-
-        return $result;
+        return $queryBuilder->firstOrFail();
     }
 
     /**

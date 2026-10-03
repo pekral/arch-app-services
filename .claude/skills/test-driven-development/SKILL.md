@@ -75,6 +75,15 @@ Only after green:
 ### 6. REPEAT
 Move to the next behavior and repeat the cycle.
 
+## Commit boundary — the RED step is never its own commit
+
+RED is a state of the **working tree**, never a state of the published history. The cycle above runs entirely before anything is committed: the failing test from step 1, the production change from step 3 that makes it pass, and the refactor from step 5 land together as **one** commit, made only once step 4 is green.
+
+- **Never commit a failing test.** A committed RED step is a commit that cannot be deployed or cherry-picked, and `git bisect` will blame it for a regression it does not carry (`@rules/git/general.mdc` *Git Rules* — *Every commit is green*).
+- **Never simulate a failure in a committed test** to represent work still to come — no `->skip()` / `->todo()` / `markTestIncomplete()`, no assertion inverted "for now", no commented-out assertion, no fixture pinned to the buggy output. If the behavior is not fixed yet, the test does not get committed yet.
+- **Several cycles, one commit each.** When an item needs more than one RED → GREEN cycle, either commit each completed cycle (green at every step) or commit the whole item at the end — never a commit that stops between RED and GREEN.
+- **Repair in place.** If a commit turns out red after a rebase or reshape, amend that commit; never append a repair commit at the tip (`@skills/git-workflow/SKILL.md`).
+
 ## Bug-fix rule
 Never fix a bug without first writing or updating a test that reproduces it.
 
@@ -86,12 +95,12 @@ Never fix a bug without first writing or updating a test that reproduces it.
 1. Verify 100% code coverage for all changed or added code paths — if coverage tooling exists, run it.
 2. Discover available fixers and checkers (prefer Phing targets from `build.xml`/`phing.xml`; fall back to Composer scripts in `composer.json`).
 3. Run available fixers on changed files and fix any violations.
-4. Run available checkers/analyzers on changed files and resolve all reported errors.
+4. Run available checkers/analyzers on changed files and resolve all reported errors **by rewriting the flagged code, never by adding a suppression annotation** (`@rules/php/core-standards.mdc` PHP Practices).
 5. Run a quick code review of all tests written during the TDD cycle against `@rules/code-testing/general.mdc` and fix any findings.
 
 ## Done when
 - Every implemented behavior is backed by a test
-- Each new test was observed failing before implementation
+- Each new test was observed failing before implementation, and no failing or simulated-failing test was committed
 - Production code was added only to satisfy failing tests
 - Changed behavior, edge cases, and failure paths are covered
 - Relevant tests pass
