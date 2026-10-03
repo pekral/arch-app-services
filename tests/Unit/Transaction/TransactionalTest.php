@@ -94,7 +94,6 @@ test('transaction with explicit connection executes callback', function (): void
         {
             return $this->transaction(
                 fn (): User => User::factory()->create(['name' => 'Connection User']),
-                attempts: null,
                 connection: 'testing',
             );
         }

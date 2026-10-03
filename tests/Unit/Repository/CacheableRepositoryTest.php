@@ -279,7 +279,7 @@ test('cache passes connection to wrapper for transaction awareness', function ()
 
     DB::connection('testing')->beginTransaction();
 
-    $testCacheableUserRepository->cache(driver: null, connection: 'testing')->clearCache('testMethod', []);
+    $testCacheableUserRepository->cache(connection: 'testing')->clearCache('testMethod', []);
 
     DB::connection('testing')->commit();
 

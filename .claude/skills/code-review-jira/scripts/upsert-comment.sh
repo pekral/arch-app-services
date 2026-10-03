@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# upsert-comment.sh — idempotent upsert of a JIRA issue comment, keyed by the
-# acli actor running this script. Used by CR-track skills so each reviewer
-# identity owns exactly one JIRA comment per (issue, actor) and follow-up runs
-# edit it in place instead of stacking new comments.
+# upsert-comment.sh — always-new JIRA issue comment per CR run. Used by
+# CR-track skills so each CR run posts a fresh comment (visible at the bottom
+# of the JIRA thread) instead of editing a prior comment in place. No hidden
+# anchor marker is added to the body.
 #
 # Usage:
 #   upsert-comment.sh <KEY|URL> <BODY_FILE> [<MARKER_KEY>]
@@ -13,41 +13,23 @@
 #               or any URL containing ?selectedIssue=<KEY>.
 #   BODY_FILE   Path to a file holding the JIRA Wiki Markup body, or `-` to
 #               read from stdin.
-#   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`. CR
-#               wrappers (`code-review-github`, `code-review-jira`, `pr-summary`)
-#               leave it at the default; `process-code-review` passes
-#               `cr-status` so its resolved-items follow-up owns a separate
-#               per-actor JIRA comment that gets edited in place across loop
-#               runs instead of stacking on top of the CR comment.
+#   MARKER_KEY  Optional. Accepted for backward compatibility but ignored —
+#               no anchor marker is appended to the body.
 #
 # Behavior:
-#   1. Detect the actor identity from `acli jira auth status` (the
-#      authenticated account email), normalised to a slug.
-#   2. Append a hidden marker `{anchor:<MARKER_KEY>-actor-<slug>}` to the body
-#      (only when the body does not already carry the marker). The marker is
-#      placed at the **bottom** of the body so the JIRA UI keeps the comment's
-#      first line (typically the `*Authors:*` line rendered by `pr-summary`)
-#      flush at the top — prepending would render an empty paragraph above
-#      it. The `{anchor:}` macro is invisible in the JIRA UI but stays
-#      grep-able in the raw body returned by the REST API.
-#   3. List the issue comments and find the most recent one carrying the same
-#      marker — that is the actor's prior comment in this namespace.
-#   4. If found, edit it (`acli jira workitem comment update`). Otherwise add a
-#      fresh one (`acli jira workitem comment create`).
-#
-# When acli is unavailable or the `comment update` command is missing in the
-# installed acli build, the script exits with code 4 so the calling skill can
-# fall back to the JIRA MCP server (`editJiraIssue` / `addCommentToJiraIssue`).
+#   1. Detect the site from `acli jira auth status` to build the output URL.
+#   2. Always create a fresh comment (`acli jira workitem comment create`).
+#      No lookup, no update — every CR run adds a new comment so the
+#      chronological sequence of comments is the audit trail.
 #
 # Output:
-#   The published comment URL on stdout. `action=created|updated` on stderr
+#   The published comment URL on stdout. `action=created` on stderr
 #   for the calling skill to log in its summary line.
 #
 # Exit codes:
 #   1  usage / argument error
 #   2  missing required tool (acli, jq)
 #   3  JIRA API call failed
-#   4  acli does not support comment editing — caller must fall back to MCP
 set -euo pipefail
 
 usage() {
@@ -57,9 +39,7 @@ Usage: upsert-comment.sh <KEY|URL> <BODY_FILE|-> [<MARKER_KEY>]
   KEY         JIRA issue key (e.g. ECOMAIL-1234)
   URL         /browse/<KEY> URL or any URL containing ?selectedIssue=<KEY>
   BODY_FILE   path to a file containing the comment body, or `-` for stdin
-  MARKER_KEY  optional marker namespace (default: cr-comment).
-              Use `cr-status` from process-code-review so the resolved-items
-              comment owns its own per-actor slot.
+  MARKER_KEY  optional, accepted for backward compatibility but ignored
 EOF
 }
 
@@ -70,12 +50,7 @@ fi
 
 INPUT="$1"
 BODY_SRC="$2"
-MARKER_KEY="${3:-cr-comment}"
-
-if [[ ! "$MARKER_KEY" =~ ^[a-z][a-z0-9-]*$ ]]; then
-  echo "upsert-comment.sh: MARKER_KEY must match [a-z][a-z0-9-]* — got: $MARKER_KEY" >&2
-  exit 1
-fi
+# $3 (MARKER_KEY) accepted for backward compatibility but not used.
 
 for bin in acli jq; do
   if ! command -v "$bin" >/dev/null 2>&1; then
@@ -113,97 +88,66 @@ if [[ -z "$BODY" ]]; then
   exit 1
 fi
 
-# Resolve the actor identity and site from `acli jira auth status`. The
-# installed acli build prints them as human-readable lines:
+# Resolve the site from `acli jira auth status` to build the output URL.
+# The installed acli build prints them as human-readable lines:
 #   ✓ Authenticated
 #     Site: your-org.atlassian.net
 #     Email: someone@example.com
 AUTH_STATUS="$(acli jira auth status 2>/dev/null || true)"
-ACTOR_ID="$(printf '%s' "$AUTH_STATUS" | awk -F': *' 'tolower($0) ~ /email:/ { gsub(/[[:space:]]+$/, "", $2); print $2; exit }')"
-if [[ -z "$ACTOR_ID" ]]; then
-  echo "upsert-comment.sh: failed to resolve current JIRA actor — is acli authenticated? (run: acli jira auth status)" >&2
-  exit 3
-fi
 SITE="$(printf '%s' "$AUTH_STATUS" | awk -F': *' 'tolower($0) ~ /site:/ { gsub(/[[:space:]]+$/, "", $2); print $2; exit }')"
-
-# Normalise to an anchor-safe slug (lowercase alnum + dashes).
-ACTOR_SLUG="$(printf '%s' "$ACTOR_ID" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-' | sed -E 's#-+#-#g; s#^-|-$##g')"
-MARKER="{anchor:${MARKER_KEY}-actor-${ACTOR_SLUG}}"
-
-# Append at the bottom of the body so the JIRA UI keeps the first content
-# line (typically the `*Authors:*` line) flush at the top. Prepending would
-# render an empty paragraph above it because `{anchor:…}` on its own line
-# produces an empty block element in the rendered comment.
-if ! grep -Fq "$MARKER" <<<"$BODY"; then
-  BODY="${BODY}
-
-${MARKER}"
-fi
-
-# `comment list --json --paginate` emits one JSON object per page, each with a
-# `.comments` array; `jq -s` slurps the pages into a single list. Comment
-# bodies come back as Atlassian Document Format (ADF) objects, so the marker is
-# matched against the stringified body rather than a raw string.
-#
-# The acli call and the jq transform are kept separate so a failed list call
-# (non-zero acli exit) returns 1 instead of being silently flattened to
-# `{"comments":[]}` by jq -s — that distinction is what lets the caller exit 3
-# rather than mistake an API failure for an empty comment set and post a
-# duplicate comment.
-list_comments() {
-  local raw
-  raw="$(acli jira workitem comment list --key "$KEY" --json --paginate 2>/dev/null)" || return 1
-  printf '%s' "$raw" | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null
-}
-
-find_marked_id() {
-  printf '%s' "$1" \
-    | jq -r --arg marker "$MARKER" '
-        (.comments // [])
-        | map(select((.body | tostring) | contains($marker)))
-        | sort_by(.updated // .created)
-        | last
-        | (.id // empty)
-      ' 2>/dev/null || true
-}
-
-if ! COMMENTS_JSON="$(list_comments)"; then
-  echo "upsert-comment.sh: failed to list comments on $KEY" >&2
+if [[ -z "$SITE" ]]; then
+  echo "upsert-comment.sh: failed to resolve JIRA site — is acli authenticated? (run: acli jira auth status)" >&2
   exit 3
 fi
-
-EXISTING_ID="$(find_marked_id "$COMMENTS_JSON")"
 
 # acli reads the comment body from a file (no stdin flag in the current build).
 BODY_FILE_TMP="$(mktemp)"
 trap 'rm -f "$BODY_FILE_TMP"' EXIT
 printf '%s' "$BODY" > "$BODY_FILE_TMP"
 
-if [[ -n "$EXISTING_ID" ]]; then
-  if ! acli jira workitem comment update --help >/dev/null 2>&1; then
-    echo "upsert-comment.sh: installed acli build does not support 'comment update' — fall back to MCP" >&2
-    exit 4
-  fi
-  if ! acli jira workitem comment update --key "$KEY" --id "$EXISTING_ID" --body-file "$BODY_FILE_TMP" >/dev/null 2>&1; then
-    echo "upsert-comment.sh: acli comment update failed for comment $EXISTING_ID on $KEY" >&2
-    exit 3
-  fi
-  echo "https://${SITE}/browse/${KEY}?focusedCommentId=${EXISTING_ID}"
-  echo "action=updated id=${EXISTING_ID}" >&2
-else
-  if ! acli jira workitem comment create --key "$KEY" --body-file "$BODY_FILE_TMP" --json >/dev/null 2>&1; then
-    echo "upsert-comment.sh: acli comment create failed on $KEY" >&2
-    exit 3
-  fi
-  # The `create --json` shape varies across acli builds, so re-list and match
-  # the just-written marker to resolve the new comment id deterministically.
-  NEW_ID="$(find_marked_id "$(list_comments)")"
-  # The comment is already created; only drop the deep-link fragment when the
-  # re-list could not resolve the id, so stdout stays a valid issue URL.
-  if [[ -n "$NEW_ID" ]]; then
-    echo "https://${SITE}/browse/${KEY}?focusedCommentId=${NEW_ID}"
-  else
-    echo "https://${SITE}/browse/${KEY}"
-  fi
-  echo "action=created id=${NEW_ID}" >&2
+# Always post a fresh comment — never look up or edit a prior one. The
+# chronological sequence of comments is the audit trail across CR runs.
+if ! acli jira workitem comment create --key "$KEY" --body-file "$BODY_FILE_TMP" --json >/dev/null 2>&1; then
+  echo "upsert-comment.sh: acli comment create failed on $KEY" >&2
+  exit 3
 fi
+
+# Re-list comments to resolve the new comment id so stdout carries a deep-link
+# URL. The `create --json` shape varies across acli builds, so we find the
+# most recently created comment after the fact.
+list_comments() {
+  local raw
+  raw="$(acli jira workitem comment list --key "$KEY" --json --paginate 2>/dev/null)" || return 1
+  printf '%s' "$raw" | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null
+}
+
+find_latest_id() {
+  # Note: there is an inherent TOCTOU window between `create` and `list` —
+  # a concurrent comment from another actor could win the "latest" slot and
+  # produce a deep-link URL pointing to their comment instead of ours.
+  # This is a cosmetic accuracy issue only (graceful degradation falls back
+  # to the plain issue URL); it is the accepted trade-off of removing the
+  # anchor marker.
+  printf '%s' "$1" \
+    | jq -r '
+        (.comments // [])
+        | sort_by(.created // "")
+        | last
+        | (.id // empty)
+      ' 2>/dev/null || true
+}
+
+if ! COMMENTS_JSON="$(list_comments)"; then
+  echo "upsert-comment.sh: failed to list comments on $KEY after create — returning issue URL" >&2
+  echo "https://${SITE}/browse/${KEY}"
+  echo "action=created" >&2
+  exit 0
+fi
+
+NEW_ID="$(find_latest_id "$COMMENTS_JSON")"
+if [[ -n "$NEW_ID" ]]; then
+  echo "https://${SITE}/browse/${KEY}?focusedCommentId=${NEW_ID}"
+else
+  echo "https://${SITE}/browse/${KEY}"
+fi
+echo "action=created id=${NEW_ID}" >&2

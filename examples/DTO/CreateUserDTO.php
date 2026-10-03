@@ -18,7 +18,7 @@ final class CreateUserDTO extends DataTransferObject
     public function __construct(
         #[Email, Required]
         public string $email,
-        #[Max(255), Required]
+        #[Max(value: 255), Required]
         public string $name,
         #[Nullable, Rule(new CzechPhoneRule())]
         public ?string $phone = null,

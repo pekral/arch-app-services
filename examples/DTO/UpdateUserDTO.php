@@ -15,9 +15,9 @@ final class UpdateUserDTO extends DataTransferObject
     public function __construct(
         #[ Email, Required]
         public string $email,
-        #[ Max(255), Required]
+        #[ Max(value: 255), Required]
         public string $name,
-        #[Max(20)]
+        #[Max(value: 20)]
         public ?string $phone = null,
     ) {
     }

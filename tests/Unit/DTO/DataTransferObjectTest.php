@@ -115,9 +115,9 @@ final class TestDTO extends DataTransferObject
     public function __construct(
         #[ Email, Required]
         public string $email,
-        #[ Min(1), Required]
+        #[ Min(value: 1), Required]
         public string $name,
-        #[Max(20)]
+        #[Max(value: 20)]
         public ?string $phone = null,
     ) {
     }

@@ -10,7 +10,28 @@ globs: ["*"]
 ## Git Rules
 - Never push directly to `main` branch. NEVER.
 - Use small, focused commits (one logical change per commit).
-- Use meaningful branch names.
+- **The finished history is a logical partition of the change set — reshape it until it is.** Every change you make belongs to exactly one commit, and every commit carries exactly one logical change: no commit bundles two concerns, and no concern is spread across two commits without a stated dependency. This is a property of the **history you hand over**, not merely of the order you happened to write things in, so it is checked before the work is published: read `git log --oneline <default-branch>..HEAD` and compare it against the logical units of the change.
+  - When the history already matches, publish it unchanged.
+  - When a commit bundles two concerns, **split it**; when a concern is scattered, **squash or fixup** its pieces together; when a commit's subject no longer describes what it contains, **amend** the message. Reshape existing commits rather than appending a corrective commit that explains the mess.
+  - When a change has no commit of its own — work that got absorbed into an unrelated commit, or a fix applied while reviewing — **create the commit it deserves** instead of leaving it attached to something else.
+  - Never explain a bundled or misdescribed commit away in the pull-request description; the description documents the history, it does not excuse it. Mechanics (`git rebase -i`, `git reset --soft` + re-commit, `git commit --fixup`, `--autosquash`) live in `@skills/git-workflow/SKILL.md`; reshape only unpublished commits or a branch you are the sole contributor to, and publish the result with `git push --force-with-lease` per *Pull Policy*.
+- **Every commit is green — a red commit never reaches the pull request.** The partition rule above governs *what* each commit contains; this one governs the *state it leaves behind*. Every commit in `<default-branch>..HEAD` must build and pass the project's gate (`composer build` in this repository) **on its own**, not merely at the branch tip. This is what makes the partition worth anything: a commit that is green alone can be cherry-picked onto the default branch and deployed without dragging the rest of the branch along, and `git bisect` / `git revert` keep meaning what they claim.
+  - **Never commit a failing test, and never simulate a failure in one.** A test committed red — the TDD RED step landed as a commit of its own, an assertion inverted "for now", a `->skip()` / `->todo()` / `markTestIncomplete()` / commented-out assertion standing in for behavior that is not fixed yet, or a fixture pinned to the buggy output — turns the history into a trap: that commit is undeployable, a bisect blames it for a regression it does not carry, and the next reader cannot tell a deliberate red from a real one. A test and the production change that makes it pass belong to the **same** commit (`@skills/test-driven-development/SKILL.md` *Commit boundary — the RED step is never its own commit*).
+  - **A rebase or reshape is finished only when every commit has been verified green, one at a time.** Whenever this rule requires the history to be rewritten, verifying the tip proves nothing about the commits below it: the rewrite moved all of them. Replay the range and stop at the first commit whose gate fails: `git rebase --exec '<gate command>' <base>`. The `<gate command>` must be the project's **non-mutating** checking half (`composer check` here, never the fix-and-check `composer build`) — an exec that rewrites tracked files stops the rebase with a dirty-tree error instead of a verdict, hiding which commit is actually red. Repair the failing commit **in place** (amend, then `git rebase --continue`); never append a repair commit at the tip, which leaves the broken commit broken forever and re-creates the scattered-concern violation.
+  - **A commit that cannot be made green alone is not a commit.** Fold it into the commit it depends on, or order the dependency before it and state the edge — never publish a broken intermediate step and explain it in the PR description.
+- **Every commit is live — no commit ships dead code.** Green says the commit *builds*; this one says it *does something*. Everything a commit adds — a class, a method, a branch, a parameter, an enum case, a route, a listener, a config key, a translation key, a column, an asset — must be reached by code that exists in that same commit or in an earlier one: the callee travels with its call site and with the test that exercises it. A commit whose new helper nobody calls until the next commit is dead code at that point of the history, and it fails every promise the green invariant makes: deploying it ships unreachable code, reviewing it alone offers no evidence the code works, reverting it changes no behavior, and `git bisect` can never attribute anything to it. This is the mirror image of a forward reference — one commit *uses* what does not exist yet, the other *defines* what nothing uses yet — and both come from the same mistake.
+  - **Split vertically by concern, never horizontally by layer.** `feat(x): add the action` followed by `feat(x): use the action` builds at every step and is still the wrong partition: one commit per concern carries the whole vertical slice — production change, wiring, coverage — not one layer of it. When a symbol cannot be separated from its call site without leaving one of them dead, both stay in **one** commit and the reason is recorded; an honest larger commit beats a split that ships unreachable code.
+  - **The only code that may precede its consumer is an inert prerequisite** — a config key, a feature flag defaulting to off, or the additive expand step of a schema change (`@skills/pr-staged-merge-plan/SKILL.md` step 5 *Prerequisites first, inert by default*) — and only when the commit body names the consumer it waits for and that consumer lands later in the same branch. A class, a method, or a branch of production code is never an inert prerequisite.
+  - **Code reachable by registration is live.** A route entry, a container binding, an event-listener or scheduler registration, a console command, a migration, a Blade component used by a view, or an interface implementation the container resolves counts as reached when its registration lands in the **same** commit — reachability is by wiring, not by a literal call site.
+  - **Code nothing in the branch ever reaches is a different defect.** Delete it instead of shuffling it between commits: this rule governs *when* code becomes live, not whether it should exist at all.
+  - **Verify it per commit, the same way the review does.** For every symbol a commit adds, `git grep -n '<symbol>' <sha>` at that commit must return a use outside its own declaration; the declaration standing alone is the defect. Repair it by folding the commit into the one that puts the code to work — never by appending the call site as a later commit.
+- **One phase = one commit.** When the issue is complex and split into phases — explicit `Phase N` headings, numbered milestones, ordered acceptance-criteria blocks, or a step-by-step plan written by the reporter — resolve each phase as **exactly one commit** in the PR, in the original phase order. Never merge, reorder, or re-scope phases into a single commit. When no phases are marked but the work covers multiple distinct concerns, split it into independently reviewable phases the same way and map one phase per commit; keep a small atomic change as a single commit (do not invent artificial phases).
+- Use meaningful branch names, always written in English regardless of the assignment language.
+
+## Worktrees / Workspaces
+- **Do not create git worktrees or separate workspaces automatically.** By default an agent works in the current branch and working tree (a feature / fix branch off the default branch is enough); never run `git worktree add`, clone into a side directory, or spin up an isolated workspace on your own initiative.
+- Create an isolated worktree **only on explicit request** — when the caller / user asks for it, or when a workflow the user explicitly opted into (e.g. parallel multi-unit orchestration) genuinely requires per-unit isolation to avoid corrupting a shared tree. Absent that explicit request, stay in the current tree.
+- When an isolated worktree *was* requested, remove it after the PR for the work unit has been merged (deployed) — the post-merge step of `@skills/merge-github-pr/SKILL.md` owns this. Before removing, verify the worktree is not the currently active working tree and has no uncommitted changes; never pass `--force`. Run `git worktree remove <path>` followed by `git worktree prune` to clean up metadata. This keeps git clean and leaves no orphaned trees behind.
 
 ## Pull Policy
 - Resolve the default branch by name first — it is `main` on some repos and `master` on others. Never hardcode `origin/main`; on a `master`-default repo that reference does not exist and the command fails. Derive it once: `DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')"`.
@@ -20,18 +41,19 @@ globs: ["*"]
     2. Take the branch's own remote **first**, so the rebase in step 3 is not undone later: `git pull --rebase` (keeps history linear; a no-op when you are the sole contributor and nothing new was pushed).
     3. Rebase the default branch into the side branch: `git rebase "origin/$DEFAULT_BRANCH"` (replays the branch's commits on top of the newest default branch).
     4. Resolve any conflicts (`@skills/git-workflow/SKILL.md`), then `git rebase --continue`.
+    5. Verify the rebased range commit by commit — `git rebase --exec 'composer check' "origin/$DEFAULT_BRANCH"` — per *Git Rules* (*Every commit is green*), using the non-mutating checking half of the gate so the replay reports a verdict instead of a dirty tree. A rebase replays every commit onto a new base, so a conflict resolution or a moved dependency can leave an intermediate commit red while the tip stays green; the per-commit replay is the only check that catches it. Repair a failing commit in place and continue the rebase.
 - Do **not** run `git pull` again after step 3 — pulling after the rebase replays your commits back onto the branch's old remote tip and discards the sync. The branch's own remote was already taken in step 2; the only remaining publish step is the force-push below.
 - If the rebase changed `composer.lock` (the default branch updated dependencies), run `composer install` immediately afterwards so the installed packages match the new lockfile. Resolve a `composer.lock` conflict before installing.
 - Publishing the rebased branch to its remote uses `git push --force-with-lease` (never plain `--force`, and only when you are the sole contributor — see `@skills/git-workflow/SKILL.md`).
 - **Read-only review skills are exempt.** A read-only skill switches to the branch and runs `git pull` only to read the diff; it must never rebase, `composer install`, or otherwise rewrite the branch or working tree.
 
 ## Commit Messages
-- Language: English
+- Language: always English, regardless of the assignment language. Unlike the PR description (which follows the assignment language), commit messages and PR titles are never translated.
 - Format: `type(scope): short description`
 - Keep messages concise and specific.
 - Use lowercase for `type` and `scope`.
 - Do not end with a period.
-- Never include signatures or attribution (e.g. "Made with Cursor").
+- Never include signatures or attribution. This covers AI co-author trailers: no `Co-Authored-By:` lines and no "Generated with"/"Made with" notes (e.g. "Made with Cursor", "Generated with Claude Code").
 
 ### Allowed Types
 - feat: New feature
@@ -54,6 +76,13 @@ globs: ["*"]
 - Include links to all sources used during analysis.
 - Prefer adding these as a comment on the related GitHub issue.
 
+### Draft pull requests — open as Draft until the PR is ready to merge
+A pull request is a **Draft** for as long as it is **not yet ready to merge and agents will keep working on it** — the canonical case in this workflow is an agent-opened PR that still has to pass the post-PR authoritative review/fix loop (`@skills/code-review-github/SKILL.md` + `@skills/process-code-review/SKILL.md`, i.e. the review ↔ fix convergence loop) before it can be merged. The Draft state is the visible signal that the PR is work-in-progress and the hard code-review merge gate is still unmet.
+
+- **Open as Draft.** When an agent creates a PR that still needs that review/fix loop, create it as a Draft: `gh pr create --draft …`. This covers every agent-driven PR-creation path (`@skills/resolve-issue/SKILL.md`, and the Finalization step of `@skills/process-code-review/SKILL.md` when it has to create the PR itself).
+- **Mark ready on convergence.** The PR is promoted out of Draft (`gh pr ready <PR>`) **only** once the code review has converged to **0 Critical + 0 Moderate** on its final diff. This transition is owned by `@skills/process-code-review/SKILL.md` (it runs the convergence loop), and is performed only after the loop exits converged — never on a PR that still carries Critical / Moderate findings.
+- **A Draft PR is never merged.** `@skills/merge-github-pr/SKILL.md` treats `isDraft == true` as not-ready and skips it: a Draft mirrors the unmet code-review gate. If a Draft PR's review has in fact converged, mark it ready first (the `process-code-review` step above), then merge — never merge a Draft directly, and the GitHub Actions billing exception never relaxes this.
+
 ### Testing
 - Suggest how to test the changes (UI, API, etc.).
 - Verify that tests exist:
@@ -65,6 +94,7 @@ globs: ["*"]
     - Merge into `main`
     - Close the PR
     - Delete the branch
+    - Remove the worktree if one was created for this work unit (see *Worktrees / Workspaces* above for the opt-in / safety rules; `@skills/merge-github-pr/SKILL.md` §4 owns the step)
     - Switch locally to `main`
     - Pull latest changes
 
@@ -81,3 +111,8 @@ globs: ["*"]
 
 ## Merging
 - Use rebase and merge strategy
+- **Code review is a hard merge gate — never optional, never skipped.** A PR may be merged only after a code review has been run on its **final diff** (the exact commits being merged) and the review reports **no errors**: zero Critical and zero Moderate findings. Minor findings do not block. This gate applies to **every** merge path — manual, orchestrated, and autonomous (`autoresolve-oldest-github-issue`) — and is owned by `@skills/merge-github-pr/SKILL.md`.
+- If no code review exists for the PR, or the latest review still carries unresolved Critical / Moderate findings, **do not merge** — run (or re-run) the review to convergence first via `@skills/code-review-github/SKILL.md` + `@skills/process-code-review/SKILL.md`, then merge.
+- If the diff changed after the last review (new commits pushed), the prior review is stale — re-run the code review on the new diff before merging.
+- This gate is independent of the GitHub `reviewDecision` approval state: a GitHub "Approved" without a converged code review (0 Critical + 0 Moderate) is **not** sufficient to merge.
+- A **Draft** PR is never merged (see *Draft pull requests* above): the Draft state mirrors the unmet code-review gate, so `@skills/merge-github-pr/SKILL.md` skips any `isDraft == true` PR and reports it. A converged PR is taken out of Draft by `@skills/process-code-review/SKILL.md` before it reaches the merge step.

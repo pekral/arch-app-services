@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Pekral\Arch\Repository\Repository;
 
-use function assert;
 use function count;
 use function is_array;
 
@@ -68,10 +67,7 @@ abstract readonly class BaseRepository implements Repository
             $orderBy,
         );
 
-        $result = $queryBuilder->firstOrFail();
-        assert($result instanceof Model);
-
-        return $result;
+        return $queryBuilder->firstOrFail();
     }
 
     /**
@@ -183,10 +179,8 @@ abstract readonly class BaseRepository implements Repository
     }
 
     /**
-     * @template TKey of array-key
-     * @template TValue
-     * @param \Illuminate\Support\Collection<TKey, TValue>|array<TKey, TValue> $params
-     * @return array<TKey, TValue>
+     * @param \Illuminate\Support\Collection<array-key, mixed>|array<array-key, mixed> $params
+     * @return array<array-key, mixed>
      */
     private function normalizeParams(Collection|array $params): array
     {

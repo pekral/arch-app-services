@@ -67,7 +67,7 @@ test('clear cache defers invalidation on custom connection until after commit', 
     $repository = new CacheWrapperTransactionRepository();
     DB::connection('testing')->beginTransaction();
 
-    $repository->cache(driver: null, connection: 'testing')->clearCache('testMethod', []);
+    $repository->cache(connection: 'testing')->clearCache('testMethod', []);
 
     expect($state->cleared)->toBeFalse();
 
@@ -96,7 +96,7 @@ test('clear cache executes immediately when outside transaction', function (): v
 
     $repository = new CacheWrapperTransactionRepository();
 
-    $wrapper = new CacheWrapper($repository, driver: null, connection: 'cache_test');
+    $wrapper = new CacheWrapper($repository, connection: 'cache_test');
 
     $result = $wrapper->clearCache('testMethod', []);
 
@@ -151,7 +151,7 @@ test('clear all cache flushes immediately when outside transaction', function ()
 
     $repository = new CacheWrapperTransactionRepository();
 
-    $wrapper = new CacheWrapper($repository, driver: null, connection: 'cache_test');
+    $wrapper = new CacheWrapper($repository, connection: 'cache_test');
 
     $wrapper->clearAllCache();
 

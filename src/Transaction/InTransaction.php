@@ -12,7 +12,7 @@ use Attribute;
  * When applied, the TransactionAwareAction trait wraps the method execution
  * in a database transaction with configurable retry attempts and connection.
  */
-#[Attribute(Attribute::TARGET_METHOD)]
+#[Attribute(flags: Attribute::TARGET_METHOD)]
 final readonly class InTransaction
 {
 

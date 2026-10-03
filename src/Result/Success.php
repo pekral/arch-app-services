@@ -54,8 +54,8 @@ final readonly class Success extends Result
 
     /**
      * @template TNew
-     * @param callable(TSuccess): \Pekral\Arch\Result\Result<TNew, never> $fn
-     * @return \Pekral\Arch\Result\Result<TNew, never>
+     * @param callable(TSuccess): \Pekral\Arch\Result\Result<TNew, mixed> $fn
+     * @return \Pekral\Arch\Result\Result<TNew, mixed>
      */
     public function flatMap(callable $fn): Result
     {

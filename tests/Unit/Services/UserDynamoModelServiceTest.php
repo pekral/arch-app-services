@@ -132,14 +132,13 @@ test('paginate by params with order by', function (): void {
         'password' => 'password123',
     ]);
 
-    $result = $userModelService->paginateByParams([], [], perPage: null, orderBy: ['name' => 'desc']);
+    $result = $userModelService->paginateByParams([], [], orderBy: ['name' => 'desc']);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(2);
 
     $firstUser = $result->items()[0];
     expect($firstUser)->toBeInstanceOf(UserDynamoModel::class);
-    assert($firstUser instanceof UserDynamoModel);
     expect($firstUser->name)->toBe('Bob');
 });
 
@@ -166,7 +165,7 @@ test('paginate by params with group by throws exception', function (): void {
         'password' => 'password123',
     ]);
 
-    $userModelService->paginateByParams([], [], perPage: null, orderBy: [], groupBy: ['name']);
+    $userModelService->paginateByParams([], [], orderBy: [], groupBy: ['name']);
 })->throws(DynamoDbNotSupported::class, 'GROUP BY');
 
 test('count by params with group by throws exception', function (): void {
@@ -284,7 +283,7 @@ test('paginate by params with empty order by', function (): void {
         ]);
     }
 
-    $result = $userModelService->paginateByParams([], [], perPage: null, orderBy: []);
+    $result = $userModelService->paginateByParams([], [], orderBy: []);
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($result->items())->toHaveCount(3);

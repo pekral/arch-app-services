@@ -45,9 +45,10 @@ Do **not** run this skill for tasks that are obviously stateless (formatting, de
 
 ### 1. Load the assignment
 - Detect the originating tracker (GitHub, JIRA, Bugsnag) using `@skills/resolve-issue/references/source-detection.md`.
-- Load the issue via the deterministic loader — `skills/code-review-github/scripts/load-issue.sh` or `skills/code-review-jira/scripts/load-issue.sh`. Never call `gh`, `acli`, or REST endpoints directly.
+- Load the issue via the deterministic loader — `skills/code-review-github/scripts/load-issue.sh` or `skills/code-review-jira/scripts/load-issue.sh`. To pull the whole context in one pass, prefer the matching `gather-issue-context.sh` (issue + comments + attachments + recursively-loaded linked issues/PRs + an inventory of external URLs): `skills/code-review-jira/scripts/gather-issue-context.sh <KEY|URL>` for JIRA, `skills/code-review-github/scripts/gather-issue-context.sh <NUMBER|URL>` for GitHub. Never call `gh`, `acli`, or REST endpoints directly.
 - Read the full `body` / `descriptionText`, every entry in `comments[]`, every attachment URL, and the linked PRs.
 - Group comments by thread per `@skills/resolve-issue/SKILL.md` *Comment analysis* — keep only the **current** requirements.
+- **Consult the per-project compound memory** (`docs/memory/PROJECT_MEMORY.md` per `@rules/compound-engineering/general.mdc` *Compound Memory (per project)*) before mapping scenarios to code in step 3: read it when present and reuse any entry whose `Trigger:` matches this assignment so the mapping builds on recorded lessons instead of re-deriving them. Apply the per-role read filter from `@rules/compound-engineering/general.mdc` *Read protocol* — load only entries where `Role: implementation` or `Role: shared` (this skill also runs ahead of a review pass; in that case also include `Role: review`).
 
 ### 2. Extract concrete scenarios
 For every numbered step, bullet, or paragraph in the *Jak otestovat* / *How to test* / acceptance-criteria section of the assignment, record one scenario:
@@ -113,7 +114,7 @@ Capture the reproduction step verbatim — entry point, inputs, observed output.
 Two destinations:
 
 - **In conversation (every run):** a short status — `ready` or `blocked: <count> open gap(s)`. When `blocked`, list the gaps as a bulleted checklist so the caller can stop immediately.
-- **On the originating tracker (only when MODE = `resolve-issue` and at least one gap was filled or one scenario mapped non-trivially):** delegate the comment to `@skills/pr-summary/SKILL.md`. Pass through the assignment URL, the scenario / gap table, the seed plan, and the seeded record counts so the published comment carries the uniform *Authors / Available behind / Summary of changes / How to test* contract and the testers know which dev-DB state was prepared for them. The non-technical comment never contains code identifiers, file paths, or seed-class names — those stay in the in-conversation report.
+- **On the originating tracker (only when MODE = `resolve-issue` and at least one gap was filled or one scenario mapped non-trivially):** delegate the comment to `@skills/pr-summary/SKILL.md`. The published shape follows the target tracker: on **GitHub** the comment carries the full *TL;DR / Authors / Available behind / Summary of changes / How to test* contract; on **JIRA** `pr-summary` renders **only `TL;DR` and How to test** (plus any conditional embedded blocks), so fold the dev-DB state the testers need into the test steps themselves — the JIRA comment does not carry an *Authors* line, a *Summary of changes* section, or a standalone scenario / gap table. Keep the scenario / gap table and seed plan in the in-conversation report regardless of target. The non-technical comment never contains code identifiers, file paths, or seed-class names — those stay in the in-conversation report.
 
 ---
 

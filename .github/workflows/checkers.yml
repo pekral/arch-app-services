@@ -11,7 +11,7 @@ on:
 
 jobs:
   check-all:
-    name: "Run all checks (PHP 8.4)"
+    name: "Run all checks (PHP 8.5)"
     runs-on: ubuntu-latest
 
     services:
@@ -31,7 +31,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'
           extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: pcov
 
@@ -42,9 +42,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: vendor
-          key: ${{ runner.os }}-php-8.4-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-php-8.5-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.4-
+            ${{ runner.os }}-php-8.5-
             ${{ runner.os }}-php-
 
       - name: Install dependencies
