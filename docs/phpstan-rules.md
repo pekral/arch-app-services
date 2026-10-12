@@ -519,6 +519,96 @@ parameters:
             path: app/Actions/Export/StreamExport.php
 ```
 
+### 10. NoHttpExceptionsInActionsAndDataValidatorsRule
+
+**Purpose:** Guarantees that an Action and a Data Validator never produce an HTTP response exception.
+
+**Rationale:** An Action and a Data Validator are not HTTP entry points. They signal a failure with a domain exception, and the entry point (controller, exception handler) translates it into an HTTP response. An HTTP exception thrown in these layers couples them to HTTP and changes the response body of every caller.
+
+**Layers:**
+- **Action** - a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them with the `actionNamespaces` argument.
+- **Data Validator** - a class whose name ends with `DataValidator`.
+
+**Reported:**
+- `throw` of a Symfony `HttpExceptionInterface` or an Illuminate `HttpResponseException` (or a subclass)
+- `throw_if()` / `throw_unless()` with such an exception as a class-string or as an instance
+- every call of `abort()`, `abort_if()` and `abort_unless()`
+
+**Error identifiers:** `arch.noHttpExceptionInAction`, `arch.noHttpExceptionInDataValidator`
+
+**Example violation:**
+
+```php
+final readonly class ShowReport implements ArchAction
+{
+    public function __invoke(int $id): ReportData
+    {
+        return ReportData::from($this->reports->find($id) ?? throw new NotFoundHttpException()); // ❌ HTTP exception in an Action
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final readonly class ShowReport implements ArchAction
+{
+    public function __invoke(int $id): ReportData
+    {
+        return ReportData::from($this->reports->findOrFail($id)); // ✅ ModelNotFoundException; the handler renders the 404
+    }
+}
+```
+
+**Configuration:** register the rule with the Action namespaces of the project (optional):
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
+        arguments:
+            actionNamespaces:
+                - App\Actions\
+        tags:
+            - phpstan.rules.rule
+```
+
+**Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file. A path-scoped entry that no longer matches is reported, so the exception list shrinks as the code is fixed.
+
+### 11. ActionsMustImplementArchActionRule
+
+**Purpose:** Guarantees that every class declared in an Actions namespace implements `ArchAction`.
+
+**Rationale:** Every other Action rule recognises an Action by the `ArchAction` interface. A class in the Actions namespace that does not implement it silently escapes all of them.
+
+**Configuration:** the rule reports nothing until the namespaces are configured:
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\ActionsMustImplementArchActionRule
+        arguments:
+            actionNamespaces:
+                - App\Actions\
+        tags:
+            - phpstan.rules.rule
+```
+
+**Error identifier:** `arch.actionMustImplementInterface`
+
+**Not reported:** an anonymous class, an interface, a trait, an enum, and a class outside the configured namespaces.
+
+**Example violation:**
+
+```php
+namespace App\Actions;
+
+final readonly class SendInvoice // ❌ does not implement ArchAction
+{
+    public function __invoke(int $id): void {}
+}
+```
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -559,6 +649,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\NoHttpResponseInActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
         tags:
             - phpstan.rules.rule
 ```

@@ -41,3 +41,17 @@ services:
         class: Pekral\Arch\PHPStan\Rules\WhereRawBindingsRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
+        arguments:
+            actionNamespaces:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsAndDataValidatorsRule\Legacy\
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\ActionsMustImplementArchActionRule
+        arguments:
+            actionNamespaces:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\ActionsMustImplementArchActionRule\Actions\
+        tags:
+            - phpstan.rules.rule
