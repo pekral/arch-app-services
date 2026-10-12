@@ -922,6 +922,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 6. **ActionInvokeMethodRule** - Ensures Action classes expose only one public entry point: `__invoke()` (constructor excluded)
 7. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
 8. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
+9. **NoHttpResponseInActionsRule** - Prevents Action methods from returning an HTTP response (`Response`, `JsonResponse`, `View`, `Responsable`, ...). The controller builds the response from the data an Action returns
 
 ### Why These Rules?
 

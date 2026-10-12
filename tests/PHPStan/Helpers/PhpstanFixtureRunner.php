@@ -9,6 +9,8 @@ use Symfony\Component\Process\Process;
 
 /**
  * Shared helper for running PHPStan on fixture files and collecting errors per file.
+ *
+ * @phpstan-type DecodedOutput array{files?: array<string, array{messages?: array<int, array{message?: string, identifier?: string}>}>}
  */
 final class PhpstanFixtureRunner
 {
@@ -22,6 +24,24 @@ final class PhpstanFixtureRunner
      */
     public static function run(string $fixtureDir): array
     {
+        return self::extractErrors(self::analyse($fixtureDir));
+    }
+
+    /**
+     * The PHPStan error identifiers reported per fixture file, in report order.
+     *
+     * @return array<string, array<string>>
+     */
+    public static function runIdentifiers(string $fixtureDir): array
+    {
+        return self::extractIdentifiers(self::analyse($fixtureDir));
+    }
+
+    /**
+     * @return DecodedOutput
+     */
+    private static function analyse(string $fixtureDir): array
+    {
         $projectRoot = realpath(__DIR__ . '/../../../');
         $resolvedDir = realpath($fixtureDir);
 
@@ -30,9 +50,8 @@ final class PhpstanFixtureRunner
         }
 
         $fixtures = self::getFixturePaths($resolvedDir);
-        $rawOutput = self::runPhpstan($projectRoot, $fixtures);
 
-        return self::extractErrors(self::decodeOutput($rawOutput));
+        return self::decodeOutput(self::runPhpstan($projectRoot, $fixtures));
     }
 
     /**
@@ -69,7 +88,7 @@ final class PhpstanFixtureRunner
     }
 
     /**
-     * @return array{files?: array<string, array{messages?: array<int, array{message?: string}>}>}
+     * @return DecodedOutput
      */
     private static function decodeOutput(string $rawOutput): array
     {
@@ -79,7 +98,7 @@ final class PhpstanFixtureRunner
             : substr($rawOutput, $jsonStartPosition);
 
         try {
-            /** @var array{files?: array<string, array{messages?: array<int, array{message?: string}>}>} $decoded */
+            /** @var DecodedOutput $decoded */
             $decoded = json_decode($jsonPayload, associative: true, depth: 512, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             return [];
@@ -89,7 +108,7 @@ final class PhpstanFixtureRunner
     }
 
     /**
-     * @param array{files?: array<string, array{messages?: array<int, array{message?: string}>}>} $decodedOutput
+     * @param DecodedOutput $decodedOutput
      * @return array<string, array<string>>
      */
     private static function extractErrors(array $decodedOutput): array
@@ -105,6 +124,27 @@ final class PhpstanFixtureRunner
                 }
 
                 $result[$fixtureName][] = $message['message'];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param DecodedOutput $decodedOutput
+     * @return array<string, array<string>>
+     */
+    private static function extractIdentifiers(array $decodedOutput): array
+    {
+        $result = [];
+
+        foreach (($decodedOutput['files'] ?? []) as $path => $fileData) {
+            foreach (($fileData['messages'] ?? []) as $message) {
+                if (!isset($message['identifier']) || !is_string($message['identifier'])) {
+                    continue;
+                }
+
+                $result[basename($path)][] = $message['identifier'];
             }
         }
 

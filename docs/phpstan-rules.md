@@ -466,6 +466,59 @@ $rules = UserValidationRules::rules();
 $emailRules = UserValidationRules::emailRules();
 ```
 
+### 9. NoHttpResponseInActionsRule
+
+**Purpose:** Guarantees that no method of an Action (a class implementing `ArchAction`) returns an HTTP response.
+
+**Rationale:** An Action returns data (a DTO, a model, a scalar). The controller owns the HTTP layer and builds the response from that data. An Action that returns a response is coupled to HTTP and cannot be reused from a job, a command, or another Action.
+
+**Inspected types:** the rule reads the declared (or PHPDoc) return type of every method regardless of visibility, and the type of every expression the method returns. A broad declaration such as `mixed`, `object`, or `\Stringable` therefore cannot hide a returned response. Nullable and union members are included. A method without a body (abstract or interface) is not inspected.
+
+**Reported types:**
+- `Symfony\Component\HttpFoundation\Response` and every subclass (`Illuminate\Http\JsonResponse`, `RedirectResponse`, `StreamedResponse`, `BinaryFileResponse`, ...)
+- `Illuminate\Contracts\Support\Responsable` (for example `JsonResource`)
+- `Illuminate\Contracts\View\View`
+- `Illuminate\Contracts\Routing\ResponseFactory`
+- `Inertia\Response` (matched by class name; the package does not depend on Inertia)
+
+**Not reported:** a `spatie/laravel-data` DTO. It implements `Responsable`, but a DTO is the sanctioned Action result (see `ActionReturnDtoRule`). A method declared `mixed` that returns a scalar or a DTO is not reported either.
+
+**Error identifier:** `arch.noHttpResponseInAction`
+
+**Example violation:**
+
+```php
+final readonly class ShowReport implements ArchAction
+{
+    public function __invoke(int $id): JsonResponse
+    {
+        return new JsonResponse($this->reports->find($id)); // ❌ HTTP response in an Action
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final readonly class ShowReport implements ArchAction
+{
+    public function __invoke(int $id): ReportData
+    {
+        return ReportData::from($this->reports->find($id)); // ✅ data; the controller builds the response
+    }
+}
+```
+
+**Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the Action file, in the consuming project:
+
+```neon
+parameters:
+    ignoreErrors:
+        -
+            identifier: arch.noHttpResponseInAction
+            path: app/Actions/Export/StreamExport.php
+```
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -502,6 +555,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\ValidationRulesNoInstantiationRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpResponseInActionsRule
         tags:
             - phpstan.rules.rule
 ```
