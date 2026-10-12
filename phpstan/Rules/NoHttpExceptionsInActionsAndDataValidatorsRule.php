@@ -6,6 +6,7 @@ namespace Pekral\Arch\PHPStan\Rules;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Pekral\Arch\PHPStan\Support\ActionClassMatcher;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\FuncCall;
@@ -42,8 +43,6 @@ final readonly class NoHttpExceptionsInActionsAndDataValidatorsRule implements R
     public const string ACTION_IDENTIFIER = 'arch.noHttpExceptionInAction';
 
     public const string DATA_VALIDATOR_IDENTIFIER = 'arch.noHttpExceptionInDataValidator';
-
-    private const string ARCH_ACTION_INTERFACE = 'Pekral\Arch\Action\ArchAction';
 
     private const string DATA_VALIDATOR_CLASS_SUFFIX = 'DataValidator';
 
@@ -105,7 +104,7 @@ final readonly class NoHttpExceptionsInActionsAndDataValidatorsRule implements R
 
     private function resolveLayerIdentifier(ClassReflection $classReflection): ?string
     {
-        if ($this->isAction($classReflection)) {
+        if (ActionClassMatcher::isAction($classReflection, $this->actionNamespaces)) {
             return self::ACTION_IDENTIFIER;
         }
 
@@ -114,18 +113,6 @@ final readonly class NoHttpExceptionsInActionsAndDataValidatorsRule implements R
         }
 
         return null;
-    }
-
-    private function isAction(ClassReflection $classReflection): bool
-    {
-        if ($classReflection->implementsInterface(self::ARCH_ACTION_INTERFACE)) {
-            return true;
-        }
-
-        return array_any(
-            $this->actionNamespaces,
-            static fn (string $namespace): bool => str_starts_with($classReflection->getName(), $namespace),
-        );
     }
 
     private function resolveViolation(Expr $node, Scope $scope): ?string
