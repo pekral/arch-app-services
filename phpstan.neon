@@ -68,6 +68,10 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpResponseInActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
         class: Pekral\Arch\PHPStan\Rules\WhereRawBindingsRule
         tags:
             - phpstan.rules.rule
