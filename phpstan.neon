@@ -75,3 +75,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\WhereRawBindingsRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
+        tags:
+            - phpstan.rules.rule
