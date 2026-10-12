@@ -2,6 +2,7 @@
 
 declare(strict_types = 1);
 
+use Pekral\Arch\PHPStan\Rules\NoHttpResponseInActionsRule;
 use Pekral\Arch\Tests\PHPStan\Helpers\PhpstanFixtureRunner;
 
 test('NoHttpResponseInActionsRule reports an HTTP response returned from an ArchAction', function (): void {
@@ -20,6 +21,8 @@ test('NoHttpResponseInActionsRule reports an HTTP response returned from an Arch
         'Inertia Response' => ['ReturnsInertiaResponseAction.php', '__invoke', 'Inertia\Response'],
         'nullable response' => ['ReturnsNullableResponseAction.php', '__invoke', 'Illuminate\Http\JsonResponse'],
         'response in a union' => ['ReturnsUnionWithResponseAction.php', '__invoke', 'Illuminate\Http\JsonResponse'],
+        'response behind mixed' => ['ReturnsResponseBehindMixedAction.php', '__invoke', 'Illuminate\Http\JsonResponse'],
+        'response behind Stringable' => ['ReturnsResponseBehindStringableAction.php', '__invoke', 'Illuminate\Http\JsonResponse'],
         'private method' => ['ReturnsResponseFromPrivateMethodAction.php', 'buildResponse', 'Illuminate\Http\JsonResponse'],
     ];
 
@@ -36,11 +39,28 @@ test('NoHttpResponseInActionsRule reports an HTTP response returned from an Arch
     }
 });
 
-test('NoHttpResponseInActionsRule ignores DTOs, void and classes that are not an ArchAction', function (): void {
+test('NoHttpResponseInActionsRule reports every violation with the identifier used to ignore it', function (): void {
+    $identifiers = PhpstanFixtureRunner::runIdentifiers(__DIR__ . '/../../../tests/fixtures/PHPStan/NoHttpResponseInActionsRule');
+
+    $violatingFixtures = array_filter(
+        array_keys($identifiers),
+        static fn (string $fixture): bool => str_starts_with($fixture, 'Returns'),
+    );
+
+    expect($violatingFixtures)->toHaveCount(14);
+
+    foreach ($violatingFixtures as $fixture) {
+        expect($identifiers[$fixture])->toBe([NoHttpResponseInActionsRule::IDENTIFIER]);
+    }
+});
+
+test('NoHttpResponseInActionsRule ignores DTOs, scalars, void and classes that are not an ArchAction', function (): void {
     $errors = PhpstanFixtureRunner::run(__DIR__ . '/../../../tests/fixtures/PHPStan/NoHttpResponseInActionsRule');
 
     expect($errors)->not->toHaveKey('ValidDtoAction.php')
         ->and($errors)->not->toHaveKey('ValidNullableDtoAction.php')
         ->and($errors)->not->toHaveKey('ValidVoidAction.php')
+        ->and($errors)->not->toHaveKey('ValidMixedScalarAction.php')
+        ->and($errors)->not->toHaveKey('ValidMixedDtoAction.php')
         ->and($errors)->not->toHaveKey('NotAnActionController.php');
 });

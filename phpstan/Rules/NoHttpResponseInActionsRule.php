@@ -6,15 +6,19 @@ namespace Pekral\Arch\PHPStan\Rules;
 
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
-use PHPStan\Node\InClassMethodNode;
+use PHPStan\Node\MethodReturnStatementsNode;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use PHPStan\Type\ObjectType;
+use PHPStan\Type\Type;
 use PHPStan\Type\TypeCombinator;
 
 /**
  * Enforces that no method of an ArchAction returns an HTTP response. An Action returns data
  * (a DTO, a model, a scalar); the controller builds the HTTP response from it.
+ *
+ * Both the declared return type and the type of every returned expression are inspected. A broad
+ * declaration (`mixed`, `object`, `\Stringable`) therefore cannot hide a returned response.
  *
  * Reported types: Symfony\Component\HttpFoundation\Response (and every subclass, including the
  * Illuminate JsonResponse and RedirectResponse), Illuminate\Contracts\Support\Responsable,
@@ -26,7 +30,7 @@ use PHPStan\Type\TypeCombinator;
  * A legitimate exception is silenced with PHPStan's standard `ignoreErrors` on the identifier
  * `arch.noHttpResponseInAction`, scoped to the Action file.
  *
- * @implements \PHPStan\Rules\Rule<\PHPStan\Node\InClassMethodNode>
+ * @implements \PHPStan\Rules\Rule<\PHPStan\Node\MethodReturnStatementsNode>
  */
 final readonly class NoHttpResponseInActionsRule implements Rule
 {
@@ -47,11 +51,11 @@ final readonly class NoHttpResponseInActionsRule implements Rule
 
     public function getNodeType(): string
     {
-        return InClassMethodNode::class;
+        return MethodReturnStatementsNode::class;
     }
 
     /**
-     * @param \PHPStan\Node\InClassMethodNode $node
+     * @param \PHPStan\Node\MethodReturnStatementsNode $node
      * @return list<\PHPStan\Rules\IdentifierRuleError>
      */
     public function processNode(Node $node, Scope $scope): array
@@ -62,9 +66,7 @@ final readonly class NoHttpResponseInActionsRule implements Rule
             return [];
         }
 
-        $returnType = TypeCombinator::removeNull($node->getMethodReflection()->getOnlyVariant()->getReturnType());
-
-        foreach ($returnType->getObjectClassNames() as $className) {
+        foreach ($this->getReturnedClassNames($node) as $className) {
             if (!$this->isHttpResponse($className)) {
                 continue;
             }
@@ -83,6 +85,29 @@ final readonly class NoHttpResponseInActionsRule implements Rule
         }
 
         return [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getReturnedClassNames(MethodReturnStatementsNode $node): array
+    {
+        $returnTypes = [$node->getMethodReflection()->getOnlyVariant()->getReturnType()];
+
+        foreach ($node->getReturnStatements() as $returnStatement) {
+            $returnedExpression = $returnStatement->getReturnNode()->expr;
+
+            if ($returnedExpression === null) {
+                continue;
+            }
+
+            $returnTypes[] = $returnStatement->getScope()->getType($returnedExpression);
+        }
+
+        return array_values(array_unique(array_merge(...array_map(
+            static fn (Type $type): array => TypeCombinator::removeNull($type)->getObjectClassNames(),
+            $returnTypes,
+        ))));
     }
 
     private function isHttpResponse(string $className): bool

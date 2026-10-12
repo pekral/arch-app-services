@@ -472,14 +472,16 @@ $emailRules = UserValidationRules::emailRules();
 
 **Rationale:** An Action returns data (a DTO, a model, a scalar). The controller owns the HTTP layer and builds the response from that data. An Action that returns a response is coupled to HTTP and cannot be reused from a job, a command, or another Action.
 
-**Reported return types** (declared or PHPDoc, nullable and union members included, on every method regardless of visibility):
+**Inspected types:** the rule reads the declared (or PHPDoc) return type of every method regardless of visibility, and the type of every expression the method returns. A broad declaration such as `mixed`, `object`, or `\Stringable` therefore cannot hide a returned response. Nullable and union members are included. A method without a body (abstract or interface) is not inspected.
+
+**Reported types:**
 - `Symfony\Component\HttpFoundation\Response` and every subclass (`Illuminate\Http\JsonResponse`, `RedirectResponse`, `StreamedResponse`, `BinaryFileResponse`, ...)
 - `Illuminate\Contracts\Support\Responsable` (for example `JsonResource`)
 - `Illuminate\Contracts\View\View`
 - `Illuminate\Contracts\Routing\ResponseFactory`
 - `Inertia\Response` (matched by class name; the package does not depend on Inertia)
 
-**Not reported:** a `spatie/laravel-data` DTO. It implements `Responsable`, but a DTO is the sanctioned Action result (see `ActionReturnDtoRule`).
+**Not reported:** a `spatie/laravel-data` DTO. It implements `Responsable`, but a DTO is the sanctioned Action result (see `ActionReturnDtoRule`). A method declared `mixed` that returns a scalar or a DTO is not reported either.
 
 **Error identifier:** `arch.noHttpResponseInAction`
 
