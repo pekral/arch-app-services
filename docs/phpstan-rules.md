@@ -468,9 +468,11 @@ $emailRules = UserValidationRules::emailRules();
 
 ### 9. NoHttpResponseInActionsRule
 
-**Purpose:** Guarantees that no method of an Action (a class implementing `ArchAction`) returns an HTTP response.
+**Purpose:** Guarantees that no method of an Action returns an HTTP response.
 
 **Rationale:** An Action returns data (a DTO, a model, a scalar). The controller owns the HTTP layer and builds the response from that data. An Action that returns a response is coupled to HTTP and cannot be reused from a job, a command, or another Action.
+
+**Layers:** an Action is a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them with the optional `actionNamespaces` argument. A class in one of those namespaces counts as an Action even without `ArchAction`. Without the argument the rule inspects `ArchAction` implementations only. The argument works the same way as in `NoHttpExceptionsInActionsAndDataValidatorsRule`.
 
 **Inspected types:** the rule reads the declared (or PHPDoc) return type of every method regardless of visibility, and the type of every expression the method returns. A broad declaration such as `mixed`, `object`, or `\Stringable` therefore cannot hide a returned response. Nullable and union members are included. A method without a body (abstract or interface) is not inspected.
 
@@ -507,6 +509,19 @@ final readonly class ShowReport implements ArchAction
         return ReportData::from($this->reports->find($id)); // ✅ data; the controller builds the response
     }
 }
+```
+
+**Configuration of `actionNamespaces` (optional):**
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpResponseInActionsRule
+        arguments:
+            actionNamespaces:
+                - App\Actions\
+        tags:
+            - phpstan.rules.rule
 ```
 
 **Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the Action file, in the consuming project:

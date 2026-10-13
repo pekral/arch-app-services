@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\PHPStan\Rules;
 
+use Pekral\Arch\PHPStan\Support\ActionClassMatcher;
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
 use PHPStan\Node\MethodReturnStatementsNode;
@@ -14,8 +15,11 @@ use PHPStan\Type\Type;
 use PHPStan\Type\TypeCombinator;
 
 /**
- * Enforces that no method of an ArchAction returns an HTTP response. An Action returns data
+ * Enforces that no method of an Action returns an HTTP response. An Action returns data
  * (a DTO, a model, a scalar); the controller builds the HTTP response from it.
+ *
+ * An Action is a class implementing ArchAction. A project whose Actions do not all implement
+ * ArchAction yet lists the namespaces that hold them in `$actionNamespaces`.
  *
  * Both the declared return type and the type of every returned expression are inspected. A broad
  * declaration (`mixed`, `object`, `\Stringable`) therefore cannot hide a returned response.
@@ -37,8 +41,6 @@ final readonly class NoHttpResponseInActionsRule implements Rule
 
     public const string IDENTIFIER = 'arch.noHttpResponseInAction';
 
-    private const string ARCH_ACTION_INTERFACE = 'Pekral\Arch\Action\ArchAction';
-
     private const string SPATIE_RESPONSABLE_DATA = 'Spatie\LaravelData\Contracts\ResponsableData';
 
     private const array HTTP_RESPONSE_TYPES = [
@@ -48,6 +50,14 @@ final readonly class NoHttpResponseInActionsRule implements Rule
         'Illuminate\Contracts\Routing\ResponseFactory',
         'Inertia\Response',
     ];
+
+    /**
+     * @param list<string> $actionNamespaces Namespace prefixes (e.g. `App\Actions\`) whose classes count as Actions
+     *                                       even when they do not implement ArchAction.
+     */
+    public function __construct(private array $actionNamespaces = [])
+    {
+    }
 
     public function getNodeType(): string
     {
@@ -62,7 +72,7 @@ final readonly class NoHttpResponseInActionsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null || !$classReflection->implementsInterface(self::ARCH_ACTION_INTERFACE)) {
+        if ($classReflection === null || !ActionClassMatcher::isAction($classReflection, $this->actionNamespaces)) {
             return [];
         }
 

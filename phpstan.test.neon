@@ -35,6 +35,9 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\NoHttpResponseInActionsRule
+        arguments:
+            actionNamespaces:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpResponseInActionsRule\Legacy\
         tags:
             - phpstan.rules.rule
     -

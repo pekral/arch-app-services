@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\PHPStan\Rules;
 
 use Pekral\Arch\Action\ArchAction;
+use Pekral\Arch\PHPStan\Support\ActionClassMatcher;
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
 use PHPStan\Node\InClassNode;
@@ -55,10 +56,7 @@ final readonly class ActionsMustImplementArchActionRule implements Rule
             return [];
         }
 
-        $namespace = array_find(
-            $this->actionNamespaces,
-            static fn (string $actionNamespace): bool => str_starts_with($classReflection->getName(), $actionNamespace),
-        );
+        $namespace = ActionClassMatcher::findNamespace($classReflection, $this->actionNamespaces);
 
         if ($namespace === null) {
             return [];

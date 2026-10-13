@@ -39,6 +39,16 @@ test('NoHttpResponseInActionsRule reports an HTTP response returned from an Arch
     }
 });
 
+test('NoHttpResponseInActionsRule treats a class in a configured Action namespace as an Action', function (): void {
+    $errors = PhpstanFixtureRunner::run(__DIR__ . '/../../../tests/fixtures/PHPStan/NoHttpResponseInActionsRule');
+
+    expect($errors['ConfiguredNamespaceActions.php'] ?? [])->toBe([
+        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpResponseInActionsRule\Legacy\LegacyNamespaceResponseAction"'
+        . ' method __invoke() must not return an HTTP response (Illuminate\Http\JsonResponse).'
+        . ' Return the data and build the HTTP response in the controller.',
+    ]);
+});
+
 test('NoHttpResponseInActionsRule reports every violation with the identifier used to ignore it', function (): void {
     $identifiers = PhpstanFixtureRunner::runIdentifiers(__DIR__ . '/../../../tests/fixtures/PHPStan/NoHttpResponseInActionsRule');
 
@@ -47,14 +57,15 @@ test('NoHttpResponseInActionsRule reports every violation with the identifier us
         static fn (string $fixture): bool => str_starts_with($fixture, 'Returns'),
     );
 
-    expect($violatingFixtures)->toHaveCount(14);
+    expect($violatingFixtures)->toHaveCount(14)
+        ->and($identifiers['ConfiguredNamespaceActions.php'] ?? [])->toBe([NoHttpResponseInActionsRule::IDENTIFIER]);
 
     foreach ($violatingFixtures as $fixture) {
         expect($identifiers[$fixture])->toBe([NoHttpResponseInActionsRule::IDENTIFIER]);
     }
 });
 
-test('NoHttpResponseInActionsRule ignores DTOs, scalars, void and classes that are not an ArchAction', function (): void {
+test('NoHttpResponseInActionsRule ignores DTOs, scalars, void and classes outside the Action layer', function (): void {
     $errors = PhpstanFixtureRunner::run(__DIR__ . '/../../../tests/fixtures/PHPStan/NoHttpResponseInActionsRule');
 
     expect($errors)->not->toHaveKey('ValidDtoAction.php')
@@ -62,5 +73,6 @@ test('NoHttpResponseInActionsRule ignores DTOs, scalars, void and classes that a
         ->and($errors)->not->toHaveKey('ValidVoidAction.php')
         ->and($errors)->not->toHaveKey('ValidMixedScalarAction.php')
         ->and($errors)->not->toHaveKey('ValidMixedDtoAction.php')
-        ->and($errors)->not->toHaveKey('NotAnActionController.php');
+        ->and($errors)->not->toHaveKey('NotAnActionController.php')
+        ->and($errors)->not->toHaveKey('OutsideConfiguredNamespaceController.php');
 });
