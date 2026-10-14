@@ -1,9 +1,9 @@
 # <img src="logo.svg" alt="Arch App Services Logo" width="200"/>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
+[![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
+[![Checkers](https://img.shields.io/github/actions/workflow/status/pekral/arch-app-services/checkers.yml?branch=master&label=checkers&style=flat-square)](https://github.com/pekral/arch-app-services/actions/workflows/checkers.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
-[![Tests](https://img.shields.io/github/actions/workflow/status/pekral/arch-app-services/tests.yml?branch=master&label=tests&style=flat-square)](https://github.com/pekral/arch-app-services/actions)
-[![Code Coverage](https://img.shields.io/codecov/c/github/pekral/arch-app-services?style=flat-square)](https://codecov.io/gh/pekral/arch-app-services)
 
 > ⚠️ **This package is currently under active development.** The API may change in future versions. Use with caution in production environments.
 
@@ -20,10 +20,17 @@
 - **Data Validation**: Integrated validation using Laravel's validation system
 - **Data Transfer Objects (DTO)**: Type-safe data objects with attribute-based validation
 - **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
+- **Transactions**: Explicit `transaction()` helper, `#[InTransaction]` attribute with retry attempts, and savepoint-based nested transactions for Actions
+- **Result Pattern**: Type-safe `Result::success()` / `Result::failure()` outcomes as an alternative to exceptions for expected failures
 - **PHPStan Rules**: Custom architecture rules enforcing best practices
 - **Type Safety**: Full PHPDoc type annotations and generics support
-- **Laravel 12+ Ready**: Built for modern Laravel features and conventions
+- **Laravel 12 and 13**: Supports both framework versions
 - **100% Test Coverage**: Comprehensive test suite ensuring reliability
+
+## Requirements
+
+- PHP 8.4+
+- Laravel 12 or 13
 
 ## Installation
 
@@ -91,6 +98,8 @@ This package provides a clean architecture with the following components:
 7. **Data Validator**: Integrated validation using Laravel's validation system
 8. **Data Transfer Objects (DTO)**: Type-safe data objects with attribute-based validation
 9. **Pipes**: Reusable data transformation components
+10. **Transactions**: Atomic execution of multiple writes inside an Action
+11. **Result**: Explicit success / failure outcome of an operation
 
 ## Usage Examples
 
@@ -590,6 +599,96 @@ final class UserController extends Controller
 }
 ```
 
+### Running Actions in a Transaction
+
+The `Transactional` trait wraps several writes in one atomic transaction. Attempts default to `arch.transactions.default_attempts`; an optional connection name targets a non-default connection:
+
+```php
+<?php
+
+namespace App\Actions\User;
+
+use App\DTO\UserPairResultDTO;
+use App\Services\UserModelService;
+use Pekral\Arch\Action\ArchAction;
+use Pekral\Arch\Transaction\Transactional;
+
+final readonly class CreateUserWithTransaction implements ArchAction
+{
+    use Transactional;
+
+    public function __construct(private UserModelService $userModelService)
+    {
+    }
+
+    public function __invoke(array $primaryData, array $secondaryData): UserPairResultDTO
+    {
+        return $this->transaction(fn (): UserPairResultDTO => new UserPairResultDTO(
+            primary: $this->userModelService->create($primaryData),
+            secondary: $this->userModelService->create($secondaryData),
+        ));
+    }
+}
+```
+
+Alternatively, mark `__invoke()` with the `#[InTransaction]` attribute and run the body through the `TransactionAwareAction` trait:
+
+```php
+use Pekral\Arch\Transaction\InTransaction;
+use Pekral\Arch\Transaction\TransactionAwareAction;
+
+final readonly class TransferUserDataAction implements ArchAction
+{
+    use TransactionAwareAction;
+
+    #[InTransaction(attempts: 3)]
+    public function __invoke(User $fromUser, User $toUser, string $newName): User
+    {
+        return $this->executeWithTransactionAttribute(function () use ($fromUser, $toUser, $newName): User {
+            $this->userModelService->updateModel($fromUser, ['name' => 'transferred']);
+            $this->userModelService->updateModel($toUser, ['name' => $newName]);
+
+            return $toUser;
+        });
+    }
+}
+```
+
+For partial rollback inside a larger transaction, the `NestedTransactional` trait provides `savepoint(string $name, Closure $callback, ?string $connection = null)`.
+
+### Returning a Result
+
+`Pekral\Arch\Result\Result` makes expected failures explicit in the return type instead of throwing:
+
+```php
+use Pekral\Arch\Result\Result;
+
+/**
+ * @return \Pekral\Arch\Result\Result<\App\Models\User, \App\Actions\User\Errors\UserError>
+ */
+public function __invoke(array $data): Result
+{
+    $existing = $this->userModelService->findOneByParams(['email' => $data['email']]);
+
+    if ($existing instanceof User) {
+        return Result::failure(UserError::EMAIL_ALREADY_EXISTS);
+    }
+
+    return Result::success($this->userModelService->create($data));
+}
+
+// Caller
+$result = ($createUser)($data);
+
+if ($result->isFailure()) {
+    $error = $result->error();
+}
+
+$user = $result->unwrap();
+```
+
+`map()` and `flatMap()` transform or chain a successful value and pass a failure through untouched. `unwrap()` on a failure and `error()` on a success throw `UnwrapFailure`.
+
 ## Available Methods
 
 ### Repository Methods
@@ -892,6 +991,10 @@ return [
         'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600), // 1 hour default
         'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
     ],
+
+    'transactions' => [
+        'default_attempts' => env('ARCH_TRANSACTION_ATTEMPTS', 1),
+    ],
 ];
 ```
 
@@ -906,6 +1009,9 @@ ARCH_ACTION_LOGGING_ENABLED=true
 ARCH_REPOSITORY_CACHE_ENABLED=true
 ARCH_REPOSITORY_CACHE_TTL=3600
 ARCH_REPOSITORY_CACHE_PREFIX=arch_repo
+
+# Transaction retry attempts (deadlock / transient failure)
+ARCH_TRANSACTION_ATTEMPTS=1
 ```
 
 ## PHPStan Architecture Rules
@@ -925,6 +1031,11 @@ The package includes custom PHPStan rules that enforce architectural best practi
 9. **NoHttpResponseInActionsRule** - Prevents Action methods from returning an HTTP response (`Response`, `JsonResponse`, `View`, `Responsable`, ...). The controller builds the response from the data an Action returns. The optional `actionNamespaces` argument also covers Actions that do not implement `ArchAction` yet
 10. **NoHttpExceptionsInActionsAndDataValidatorsRule** - Prevents an Action and a Data Validator from throwing an HTTP response exception (`NotFoundHttpException`, `abort()`, `abort_if()`, ...). They throw a domain exception; the entry point translates it into an HTTP response
 11. **ActionsMustImplementArchActionRule** - Ensures every class in a configured Actions namespace implements `ArchAction`, so the other Action rules cannot miss it
+12. **ModelNamingSuffixRule** - Ensures classes extending Eloquent `Model` end with `Model` suffix
+13. **OnlyRepositoriesCanQueryDataRule** - Prevents Eloquent query builder methods in Action classes; queries belong to the Repository layer
+14. **ActionInvokeArgumentsRule** - Ensures `ArchAction` instances are invoked without arguments (`$action()`); inputs come through constructor injection
+15. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
+16. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
 
 ### Why These Rules?
 
@@ -950,9 +1061,9 @@ final readonly class GetUsers implements ArchAction
 {
     public function __construct(private UserModelService $service) {}
     
-    public function __invoke(): Collection
+    public function __invoke(): LengthAwarePaginator
     {
-        return $this->service->findByParams(['active' => true]);
+        return $this->service->paginateByParams(['active' => true]);
     }
 }
 ```
@@ -979,6 +1090,7 @@ For detailed documentation about specific features, see:
 - [Data Validation](docs/validation.md) - Integrated validation with DTO support
 - [Model Manager](docs/model-manager.md) - CRUD operations with batch processing
 - [Soft Delete](docs/soft-delete.md) - Soft delete support
+- [DynamoDB Model](docs/dynamodb-model.md) - Experimental DynamoDB support
 - [Coverage Analysis](docs/coverage-analysis.md) - Code coverage information
 
 ## Testing
@@ -986,8 +1098,11 @@ For detailed documentation about specific features, see:
 The package includes comprehensive tests with 100% code coverage:
 
 ```bash
-composer test
-composer coverage
+# Run the test suite
+vendor/bin/pest
+
+# Run tests with the 100% coverage gate
+composer test:coverage
 ```
 
 ## Exception Handling
