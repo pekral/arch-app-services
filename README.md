@@ -1025,7 +1025,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 3. **OnlyModelManagersCanPersistDataRule** - Ensures data persistence operations are only performed in ModelManager or ModelService classes
 4. **NoLaravelHelpersForActionsRule** - Prevents using Laravel helper functions (`app()`, `resolve()`, `make()`) to resolve Action classes. Actions must be injected via constructor
 5. **ServiceNamingConventionRule** - Ensures that all Service classes extending `BaseModelService` end with `ModelService` suffix
-6. **ActionInvokeMethodRule** - Ensures Action classes expose only one public entry point: `__invoke()` (constructor excluded)
+6. **ActionInvokeMethodRule** - Ensures Action classes expose only one public entry point: `__invoke()` (constructor excluded); `__invoke()` may accept arguments
 7. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
 8. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
 9. **NoHttpResponseInActionsRule** - Prevents Action methods from returning an HTTP response (`Response`, `JsonResponse`, `View`, `Responsable`, ...). The controller builds the response from the data an Action returns. The optional `actionNamespaces` argument also covers Actions that do not implement `ArchAction` yet
@@ -1033,9 +1033,8 @@ The package includes custom PHPStan rules that enforce architectural best practi
 11. **ActionsMustImplementArchActionRule** - Ensures every class in a configured Actions namespace implements `ArchAction`, so the other Action rules cannot miss it
 12. **ModelNamingSuffixRule** - Ensures classes extending Eloquent `Model` end with `Model` suffix
 13. **OnlyRepositoriesCanQueryDataRule** - Prevents Eloquent query builder methods in Action classes; queries belong to the Repository layer
-14. **ActionInvokeArgumentsRule** - Ensures `ArchAction` instances are invoked without arguments (`$action()`); inputs come through constructor injection
-15. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
-16. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
+14. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
+15. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
 
 ### Why These Rules?
 
@@ -1121,10 +1120,6 @@ throw ShouldNotHappen::because('This should never happen in normal circumstances
 This package is under active development. Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 **Note**: Since this package is still in development, please check the latest changes before implementing in production environments.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
 
 ## Credits
 
