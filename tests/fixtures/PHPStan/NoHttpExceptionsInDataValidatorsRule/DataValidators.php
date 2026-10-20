@@ -2,12 +2,12 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsAndDataValidatorsRule;
+namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInDataValidatorsRule\Validators;
 
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-// Intentionally throws HTTP exceptions to trigger NoHttpExceptionsInActionsAndDataValidatorsRule.
+// Intentionally throws HTTP exceptions to trigger NoHttpExceptionsInDataValidatorsRule.
 final class VisibilityDataValidator
 {
 

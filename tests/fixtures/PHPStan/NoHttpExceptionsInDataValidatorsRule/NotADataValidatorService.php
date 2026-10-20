@@ -2,12 +2,12 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsAndDataValidatorsRule;
+namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInDataValidatorsRule\Validators;
 
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-// Valid: neither an Action nor a Data Validator, so it may translate failures into HTTP exceptions.
-final class NotAnActionNorValidatorService
+// Valid: not a Data Validator, so it may translate failures into HTTP exceptions.
+final class NotADataValidatorService
 {
 
     public function find(bool $condition): void
