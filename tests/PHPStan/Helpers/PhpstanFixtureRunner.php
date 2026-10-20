@@ -19,12 +19,24 @@ final class PhpstanFixtureRunner
 
     private const string CONFIG = 'phpstan.test.neon';
 
+    private const string DEFAULT_ARGUMENTS_CONFIG = 'phpstan.test.default-arguments.neon';
+
     /**
      * @return array<string, array<string>>
      */
     public static function run(string $fixtureDir): array
     {
-        return self::extractErrors(self::analyse($fixtureDir));
+        return self::extractErrors(self::analyse($fixtureDir, self::CONFIG));
+    }
+
+    /**
+     * The PHPStan errors reported per fixture file when the rules are registered without optional arguments.
+     *
+     * @return array<string, array<string>>
+     */
+    public static function runWithDefaultArguments(string $fixtureDir): array
+    {
+        return self::extractErrors(self::analyse($fixtureDir, self::DEFAULT_ARGUMENTS_CONFIG));
     }
 
     /**
@@ -34,13 +46,13 @@ final class PhpstanFixtureRunner
      */
     public static function runIdentifiers(string $fixtureDir): array
     {
-        return self::extractIdentifiers(self::analyse($fixtureDir));
+        return self::extractIdentifiers(self::analyse($fixtureDir, self::CONFIG));
     }
 
     /**
      * @return DecodedOutput
      */
-    private static function analyse(string $fixtureDir): array
+    private static function analyse(string $fixtureDir, string $config): array
     {
         $projectRoot = realpath(__DIR__ . '/../../../');
         $resolvedDir = realpath($fixtureDir);
@@ -51,7 +63,7 @@ final class PhpstanFixtureRunner
 
         $fixtures = self::getFixturePaths($resolvedDir);
 
-        return self::decodeOutput(self::runPhpstan($projectRoot, $fixtures));
+        return self::decodeOutput(self::runPhpstan($projectRoot, $config, $fixtures));
     }
 
     /**
@@ -73,13 +85,12 @@ final class PhpstanFixtureRunner
     /**
      * @param array<int, string> $fixtures
      */
-    private static function runPhpstan(string $projectRoot, array $fixtures): string
+    private static function runPhpstan(string $projectRoot, string $config, array $fixtures): string
     {
         $binary = $projectRoot . '/' . self::BINARY;
-        $config = $projectRoot . '/' . self::CONFIG;
 
         $process = new Process(
-            [$binary, 'analyse', '--configuration=' . $config, '--error-format=json', '--memory-limit=512M', ...$fixtures],
+            [$binary, 'analyse', '--configuration=' . $projectRoot . '/' . $config, '--error-format=json', '--memory-limit=512M', ...$fixtures],
             timeout: 90,
         );
         $process->run();

@@ -1,0 +1,19 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    tmpDir: build/phpstan-test-default-arguments
+    treatPhpDocTypesAsCertain: false
+
+    bootstrapFiles:
+        - vendor/autoload.php
+
+    scanDirectories:
+        - phpstan
+
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInDataValidatorsRule
+        tags:
+            - phpstan.rules.rule
