@@ -472,7 +472,7 @@ $emailRules = UserValidationRules::emailRules();
 
 **Rationale:** An Action returns data (a DTO, a model, a scalar). The controller owns the HTTP layer and builds the response from that data. An Action that returns a response is coupled to HTTP and cannot be reused from a job, a command, or another Action.
 
-**Layers:** an Action is a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them with the optional `actionNamespaces` argument. A class in one of those namespaces counts as an Action even without `ArchAction`. Without the argument the rule inspects `ArchAction` implementations only. The argument works the same way as in `NoHttpExceptionsInActionsAndDataValidatorsRule`.
+**Layers:** an Action is a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them with the optional `actionNamespaces` argument. A class in one of those namespaces counts as an Action even without `ArchAction`. Without the argument the rule inspects `ArchAction` implementations only. The argument works the same way as in `NoHttpExceptionsInActionsRule`.
 
 **Inspected types:** the rule reads the declared (or PHPDoc) return type of every method regardless of visibility, and the type of every expression the method returns. A broad declaration such as `mixed`, `object`, or `\Stringable` therefore cannot hide a returned response. Nullable and union members are included. A method without a body (abstract or interface) is not inspected.
 
@@ -534,22 +534,20 @@ parameters:
             path: app/Actions/Export/StreamExport.php
 ```
 
-### 10. NoHttpExceptionsInActionsAndDataValidatorsRule
+### 10. NoHttpExceptionsInActionsRule
 
-**Purpose:** Guarantees that an Action and a Data Validator never produce an HTTP response exception.
+**Purpose:** Guarantees that an Action never produces an HTTP response exception.
 
-**Rationale:** An Action and a Data Validator are not HTTP entry points. They signal a failure with a domain exception, and the entry point (controller, exception handler) translates it into an HTTP response. An HTTP exception thrown in these layers couples them to HTTP and changes the response body of every caller.
+**Rationale:** An Action is not an HTTP entry point. It signals a failure with a domain exception, and the entry point (controller, exception handler) translates it into an HTTP response. An HTTP exception thrown in an Action couples it to HTTP and changes the response body of every caller.
 
-**Layers:**
-- **Action** - a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them with the `actionNamespaces` argument.
-- **Data Validator** - a class whose name ends with `DataValidator`.
+**Layer:** an Action is a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them with the optional `actionNamespaces` argument.
 
 **Reported:**
 - `throw` of a Symfony `HttpExceptionInterface` or an Illuminate `HttpResponseException` (or a subclass)
 - `throw_if()` / `throw_unless()` with such an exception as a class-string or as an instance
 - every call of `abort()`, `abort_if()` and `abort_unless()`
 
-**Error identifiers:** `arch.noHttpExceptionInAction`, `arch.noHttpExceptionInDataValidator`
+**Error identifier:** `arch.noHttpExceptionInAction`
 
 **Example violation:**
 
@@ -580,7 +578,7 @@ final readonly class ShowReport implements ArchAction
 ```neon
 services:
     -
-        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsRule
         arguments:
             actionNamespaces:
                 - App\Actions\
@@ -590,7 +588,58 @@ services:
 
 **Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file. A path-scoped entry that no longer matches is reported, so the exception list shrinks as the code is fixed.
 
-### 11. ActionsMustImplementArchActionRule
+### 11. NoHttpExceptionsInDataValidatorsRule
+
+**Purpose:** Guarantees that a Data Validator never produces an HTTP response exception.
+
+**Rationale:** A Data Validator is not an HTTP entry point. It rejects input with a validation or domain exception, and the entry point translates it into an HTTP response.
+
+**Layer:** a Data Validator is a class whose name ends with `DataValidator`. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespace prefixes. Without the argument the rule inspects every class with the suffix.
+
+**Reported:** the same constructs as `NoHttpExceptionsInActionsRule`.
+
+**Error identifier:** `arch.noHttpExceptionInDataValidator`
+
+**Example violation:**
+
+```php
+final class OrderDataValidator
+{
+    public function assertPayable(Order $order): void
+    {
+        abort_if($order->isPaid(), 409); // ❌ HTTP exception in a Data Validator
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final class OrderDataValidator
+{
+    public function assertPayable(Order $order): void
+    {
+        throw_if($order->isPaid(), OrderAlreadyPaidException::class); // ✅ domain exception; the handler renders the 409
+    }
+}
+```
+
+**Configuration:** register the rule, limited to the namespaces of the project (optional):
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInDataValidatorsRule
+        arguments:
+            dataValidatorNamespaces:
+                - App\
+        tags:
+            - phpstan.rules.rule
+```
+
+**Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file.
+
+### 12. ActionsMustImplementArchActionRule
 
 **Purpose:** Guarantees that every class declared in an Actions namespace implements `ArchAction`.
 
@@ -667,7 +716,11 @@ services:
         tags:
             - phpstan.rules.rule
     -
-        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInDataValidatorsRule
         tags:
             - phpstan.rules.rule
 ```

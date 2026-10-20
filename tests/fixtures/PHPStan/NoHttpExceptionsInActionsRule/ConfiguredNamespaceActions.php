@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsAndDataValidatorsRule\Legacy;
+namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsRule\Legacy;
 
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 

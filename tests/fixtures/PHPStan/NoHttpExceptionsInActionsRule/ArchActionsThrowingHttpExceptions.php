@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsAndDataValidatorsRule;
+namespace Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsRule;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -10,7 +10,7 @@ use Pekral\Arch\Action\ArchAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
-// Intentionally throws HTTP exceptions to trigger NoHttpExceptionsInActionsAndDataValidatorsRule.
+// Intentionally throws HTTP exceptions to trigger NoHttpExceptionsInActionsRule.
 final readonly class ThrowIfHttpExceptionAction implements ArchAction
 {
 

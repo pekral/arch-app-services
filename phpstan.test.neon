@@ -45,10 +45,17 @@ services:
         tags:
             - phpstan.rules.rule
     -
-        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsAndDataValidatorsRule
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInActionsRule
         arguments:
             actionNamespaces:
-                - Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsAndDataValidatorsRule\Legacy\
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInActionsRule\Legacy\
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInDataValidatorsRule
+        arguments:
+            dataValidatorNamespaces:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoHttpExceptionsInDataValidatorsRule\Validators\
         tags:
             - phpstan.rules.rule
     -

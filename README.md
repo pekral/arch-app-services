@@ -1029,12 +1029,13 @@ The package includes custom PHPStan rules that enforce architectural best practi
 7. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
 8. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
 9. **NoHttpResponseInActionsRule** - Prevents Action methods from returning an HTTP response (`Response`, `JsonResponse`, `View`, `Responsable`, ...). The controller builds the response from the data an Action returns. The optional `actionNamespaces` argument also covers Actions that do not implement `ArchAction` yet
-10. **NoHttpExceptionsInActionsAndDataValidatorsRule** - Prevents an Action and a Data Validator from throwing an HTTP response exception (`NotFoundHttpException`, `abort()`, `abort_if()`, ...). They throw a domain exception; the entry point translates it into an HTTP response
-11. **ActionsMustImplementArchActionRule** - Ensures every class in a configured Actions namespace implements `ArchAction`, so the other Action rules cannot miss it
-12. **ModelNamingSuffixRule** - Ensures classes extending Eloquent `Model` end with `Model` suffix
-13. **OnlyRepositoriesCanQueryDataRule** - Prevents Eloquent query builder methods in Action classes; queries belong to the Repository layer
-14. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
-15. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
+10. **NoHttpExceptionsInActionsRule** - Prevents an Action from throwing an HTTP response exception (`NotFoundHttpException`, `abort()`, `abort_if()`, ...). It throws a domain exception; the entry point translates it into an HTTP response. The optional `actionNamespaces` argument also covers Actions that do not implement `ArchAction` yet
+11. **NoHttpExceptionsInDataValidatorsRule** - Prevents a Data Validator from throwing an HTTP response exception. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespaces
+12. **ActionsMustImplementArchActionRule** - Ensures every class in a configured Actions namespace implements `ArchAction`, so the other Action rules cannot miss it
+13. **ModelNamingSuffixRule** - Ensures classes extending Eloquent `Model` end with `Model` suffix
+14. **OnlyRepositoriesCanQueryDataRule** - Prevents Eloquent query builder methods in Action classes; queries belong to the Repository layer
+15. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
+16. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
 
 ### Why These Rules?
 
