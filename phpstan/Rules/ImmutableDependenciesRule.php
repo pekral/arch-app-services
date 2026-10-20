@@ -37,7 +37,7 @@ use Spatie\LaravelData\Data;
  *
  * A dependency is an instance property whose type is an object. Properties typed as a DTO
  * (Spatie\LaravelData\Data) or an Eloquent model hold data, not collaborators, and are not dependencies.
- * Static properties are not covered by this rule.
+ * Static properties are left to NoMutableStaticStateRule.
  *
  * @implements \PHPStan\Rules\Rule<\PHPStan\Node\ClassPropertiesNode>
  */

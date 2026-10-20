@@ -1038,6 +1038,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 16. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
 17. **ActionClassModifiersRule** - Ensures every concrete Action class is declared `final readonly`; abstract support classes, interfaces and anonymous classes are not reported
 18. **ImmutableDependenciesRule** - Ensures Actions, Services, Repositories and Model Managers receive dependencies through the constructor into readonly properties; setter injection and reassignment are reported
+19. **NoMutableStaticStateRule** - Forbids static properties (shared mutable state) in Actions, Services, Repositories and Model Managers; constants and static methods stay allowed
 
 ### Why These Rules?
 
