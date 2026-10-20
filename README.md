@@ -1036,6 +1036,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 14. **OnlyRepositoriesCanQueryDataRule** - Prevents Eloquent query builder methods in Action classes; queries belong to the Repository layer
 15. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
 16. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
+17. **ActionClassModifiersRule** - Ensures every concrete Action class is declared `final readonly`; abstract support classes, interfaces and anonymous classes are not reported
 
 ### Why These Rules?
 

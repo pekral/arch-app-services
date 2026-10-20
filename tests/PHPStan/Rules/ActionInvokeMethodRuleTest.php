@@ -4,23 +4,13 @@ declare(strict_types = 1);
 
 use Pekral\Arch\Tests\PHPStan\Helpers\PhpstanFixtureRunner;
 
-test('ActionInvokeMethodRule enforces final, readonly, invoke-only, and explicit return type', function (): void {
+test('ActionInvokeMethodRule enforces invoke-only and explicit return type', function (): void {
     $errors = PhpstanFixtureRunner::run(
         __DIR__ . '/../../../tests/fixtures/PHPStan/ActionInvokeMethodRule',
     );
 
     // Valid action — no rule errors expected
     expect($errors)->not->toHaveKey('ValidFinalReadonlyAction.php');
-
-    // Missing final modifier
-    expect($errors['NotFinalAction.php'] ?? [])->toContain(
-        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\NotFinalAction" must be declared as "final".',
-    );
-
-    // Missing readonly modifier
-    expect($errors['NotReadonlyAction.php'] ?? [])->toContain(
-        'Action class "Pekral\Arch\Tests\Fixtures\PHPStan\ActionInvokeMethodRule\NotReadonlyAction" must be declared as "readonly".',
-    );
 
     // Missing return type on __invoke()
     expect($errors['MissingReturnTypeAction.php'] ?? [])->toContain(
