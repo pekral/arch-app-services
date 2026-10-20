@@ -2,6 +2,13 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [0.5.1] - 2026-10-20
+
+- ⚠️ **Breaking**: `NoHttpExceptionsInActionsAndDataValidatorsRule` is removed. Register `NoHttpExceptionsInActionsRule` and `NoHttpExceptionsInDataValidatorsRule` instead; the identifiers `arch.noHttpExceptionInAction` and `arch.noHttpExceptionInDataValidator` are unchanged, so existing `ignoreErrors` entries keep working (PR #130)
+- ✨ **Added**: `NoHttpExceptionsInDataValidatorsRule` accepts an optional `dataValidatorNamespaces` argument that limits the rule to the listed namespace prefixes (PR #130)
+- 🔧 **Changed**: a class that is both an Action and a Data Validator now gets one error from each rule (PR #130)
+- 📝 **Changed**: README documents transactions, the Result pattern, the new PHPStan rules and `__invoke()` arguments
+
 ## [Unreleased] - 2026-02-14 (PR #67)
 
 
