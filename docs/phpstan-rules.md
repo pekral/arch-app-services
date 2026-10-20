@@ -790,6 +790,55 @@ final class ProcessOrderModelManager extends BaseModelManager
 }
 ```
 
+### 16. NoPublicMutablePropertiesRule
+
+**Purpose:** Forbids public properties that can be modified after construction in Actions, Services, Repositories and Model Managers.
+
+**Rationale:** An architecture object owns its state and its dependencies. A public mutable property turns it into a bag of values any caller can rewrite.
+
+**Error identifier:** `arch.publicMutableProperty`
+
+**Allowed:**
+- `public readonly` properties (a `readonly` class makes every property readonly)
+- public properties with a restricted setter: `public private(set)`, `public protected(set)`
+- non-public mutable state (`private int $processed = 0`)
+
+Static properties are covered by `NoMutableStaticStateRule`. Only the four architecture layers are checked, so DTOs, Eloquent models and other data classes keep their public properties.
+
+**Configuration:** `excludedClasses` excludes further classes, typically value objects. An entry ending with `\` is a namespace prefix; any other entry is a class or interface, and every class that is or implements it is excluded:
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoPublicMutablePropertiesRule
+        arguments:
+            excludedClasses:
+                - App\ValueObjects\
+                - App\Contracts\ValueObject
+        tags:
+            - phpstan.rules.rule
+```
+
+**Example violation:**
+
+```php
+final class CalculatePriceModelManager extends BaseModelManager
+{
+    public float $discount = 0; // ❌ any caller can change it
+}
+```
+
+**Correct approach:**
+
+```php
+final class CalculatePriceModelManager extends BaseModelManager
+{
+    public private(set) int $processed = 0; // ✅ readable, changed only by the class
+
+    public function __construct(public readonly string $currency) {} // ✅ readonly
+}
+```
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -830,6 +879,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\NoMutableStaticStateRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoPublicMutablePropertiesRule
         tags:
             - phpstan.rules.rule
     -

@@ -1039,6 +1039,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 17. **ActionClassModifiersRule** - Ensures every concrete Action class is declared `final readonly`; abstract support classes, interfaces and anonymous classes are not reported
 18. **ImmutableDependenciesRule** - Ensures Actions, Services, Repositories and Model Managers receive dependencies through the constructor into readonly properties; setter injection and reassignment are reported
 19. **NoMutableStaticStateRule** - Forbids static properties (shared mutable state) in Actions, Services, Repositories and Model Managers; constants and static methods stay allowed
+20. **NoPublicMutablePropertiesRule** - Forbids public properties that can change after construction in Actions, Services, Repositories and Model Managers; `public readonly` and `public private(set)` stay allowed. The optional `excludedClasses` argument excludes value objects by class, interface or namespace
 
 ### Why These Rules?
 
