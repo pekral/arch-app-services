@@ -14,9 +14,10 @@ use PHPStan\Rules\RuleError;
 use PHPStan\Rules\RuleErrorBuilder;
 
 /**
- * Enforces that every Action class is declared `final readonly` and exposes
- * exactly one public business entry point — `__invoke()` — with an explicit
- * return type. Constructor is excluded from the public-method count.
+ * Enforces that every Action class exposes exactly one public business entry
+ * point — `__invoke()` — with an explicit return type. Constructor is excluded
+ * from the public-method count. The `final readonly` modifiers are enforced by
+ * ActionClassModifiersRule.
  *
  * @implements \PHPStan\Rules\Rule<\PhpParser\Node\Stmt\Class_>
  */
@@ -51,19 +52,7 @@ final readonly class ActionInvokeMethodRule implements Rule
             return [];
         }
 
-        $errors = [];
-
-        if (!$node->isFinal()) {
-            $errors[] = $this->notFinalError($className);
-        }
-
-        if (!$node->isReadonly()) {
-            $errors[] = $this->notReadonlyError($className);
-        }
-
-        $publicMethodErrors = $this->validatePublicMethods($node, $className);
-
-        return [...$errors, ...$publicMethodErrors];
+        return $this->validatePublicMethods($node, $className);
     }
 
     /**
@@ -165,26 +154,6 @@ final readonly class ActionInvokeMethodRule implements Rule
     private function createError(string $message): RuleError
     {
         return RuleErrorBuilder::message($message)->build();
-    }
-
-    private function notFinalError(string $className): RuleError
-    {
-        return $this->createError(
-            sprintf(
-                'Action class "%s" must be declared as "final".',
-                $className,
-            ),
-        );
-    }
-
-    private function notReadonlyError(string $className): RuleError
-    {
-        return $this->createError(
-            sprintf(
-                'Action class "%s" must be declared as "readonly".',
-                $className,
-            ),
-        );
     }
 
     private function missingInvokeError(string $className): RuleError
