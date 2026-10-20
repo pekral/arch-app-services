@@ -32,6 +32,16 @@ test('NoHttpExceptionsInDataValidatorsRule ignores a Data Validator outside the 
     expect($errors)->not->toHaveKey('OutsideNamespaceDataValidator.php');
 });
 
+test('NoHttpExceptionsInDataValidatorsRule inspects a Data Validator in every namespace without dataValidatorNamespaces', function (): void {
+    $errors = PhpstanFixtureRunner::runWithDefaultArguments(NO_HTTP_EXCEPTIONS_IN_DATA_VALIDATORS_FIXTURES);
+
+    expect($errors['OutsideNamespaceDataValidator.php'] ?? [])->toBe([
+        noHttpExceptionInDataValidatorMessage('Symfony\Component\HttpKernel\Exception\NotFoundHttpException'),
+    ])
+        ->and($errors['DataValidators.php'] ?? [])->toHaveCount(2)
+        ->and($errors)->not->toHaveKey('NotADataValidatorService.php');
+});
+
 test('NoHttpExceptionsInDataValidatorsRule ignores a class that is not a Data Validator', function (): void {
     $errors = PhpstanFixtureRunner::run(NO_HTTP_EXCEPTIONS_IN_DATA_VALIDATORS_FIXTURES);
 
