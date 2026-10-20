@@ -839,6 +839,54 @@ final class CalculatePriceModelManager extends BaseModelManager
 }
 ```
 
+### 17. NoManualArchitectureServiceInstantiationRule
+
+**Purpose:** Forbids constructing an Action, Service, Repository or Model Manager with `new`.
+
+**Rationale:** Architecture classes are resolved by the container through constructor injection, so their own dependencies stay explicit and container-managed. It complements `NoLaravelHelpersForActionsRule`, which forbids resolving Actions through `app()`, `resolve()` and `make()`.
+
+**Error identifier:** `arch.manualArchitectureInstantiation`
+
+**Behavior:**
+- The instantiated class is recognised by type (`ArchAction`, `BaseModelService`, `Repository`, `ModelManager`), never by a name suffix. `new X`, `new static` and `new $className` are all covered.
+- DTOs, value objects, Eloquent models and any other class stay constructible. Anonymous classes are not reported.
+- The package itself constructs none of these classes, so it needs no bootstrap exception.
+- Tests and factories that build these classes by hand are not excluded automatically. Leave them out of the analysed paths, or ignore the identifier for them:
+
+```neon
+parameters:
+    ignoreErrors:
+        -
+            identifier: arch.manualArchitectureInstantiation
+            path: tests/*
+```
+
+**Example violation:**
+
+```php
+final readonly class CreateUserAction implements ArchAction
+{
+    public function __invoke(): void
+    {
+        $users = new UserModelService(new UserModelManager(), new UserRepository()); // ❌
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final readonly class CreateUserAction implements ArchAction
+{
+    public function __construct(private UserModelService $users) {} // ✅ injected
+
+    public function __invoke(): void
+    {
+        $data = new CreateUserDTO(email: 'john@example.com', name: 'John'); // ✅ DTOs stay constructible
+    }
+}
+```
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -883,6 +931,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\NoPublicMutablePropertiesRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoManualArchitectureServiceInstantiationRule
         tags:
             - phpstan.rules.rule
     -
