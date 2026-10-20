@@ -56,6 +56,10 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Pekral\Arch\PHPStan\Rules\NoPublicMutablePropertiesRule
+        tags:
+            - phpstan.rules.rule
+    -
         class: Pekral\Arch\PHPStan\Rules\ModelNamingSuffixRule
         tags:
             - phpstan.rules.rule

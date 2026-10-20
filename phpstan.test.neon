@@ -30,6 +30,14 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Pekral\Arch\PHPStan\Rules\NoPublicMutablePropertiesRule
+        arguments:
+            excludedClasses:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoPublicMutablePropertiesRule\Excluded\
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoPublicMutablePropertiesRule\MutableStateAllowed
+        tags:
+            - phpstan.rules.rule
+    -
         class: Pekral\Arch\PHPStan\Rules\OnlyRepositoriesCanQueryDataRule
         tags:
             - phpstan.rules.rule
