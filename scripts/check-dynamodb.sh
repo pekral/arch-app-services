@@ -7,6 +7,7 @@ DYNAMODB_PORT="${DYNAMODB_PORT:-8021}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
 WAIT_SECONDS="${WAIT_SECONDS:-2}"
 ENDPOINT_URL="http://${DYNAMODB_HOST}:${DYNAMODB_PORT}"
+CONTAINER_NAME="arch-app-services-dynamodb-local"
 
 get_compose_cmd() {
     if command -v docker &> /dev/null && docker compose version &> /dev/null; then
@@ -38,14 +39,14 @@ if [ -z "${CI}" ] && [ -z "${GITHUB_ACTIONS}" ]; then
         exit 1
     fi
 
-    CONTAINER_STATUS=$(docker ps -a --filter "name=dynamodb-local" --format "{{.Status}}" 2>/dev/null || echo "")
-    CONTAINER_ID=$(docker ps -a --filter "name=dynamodb-local" --format "{{.ID}}" 2>/dev/null || echo "")
+    CONTAINER_STATUS=$(docker ps -a --filter "name=^${CONTAINER_NAME}$" --format "{{.Status}}" 2>/dev/null || echo "")
+    CONTAINER_ID=$(docker ps -a --filter "name=^${CONTAINER_NAME}$" --format "{{.ID}}" 2>/dev/null || echo "")
 
     if [ -z "${CONTAINER_STATUS}" ]; then
         echo "🚀 Starting DynamoDB container..."
         ${COMPOSE_CMD} up -d dynamodb-local
     elif echo "${CONTAINER_STATUS}" | grep -q "^Up"; then
-        CONTAINER_PORTS=$(docker port dynamodb-local 2>/dev/null || echo "")
+        CONTAINER_PORTS=$(docker port "${CONTAINER_NAME}" 2>/dev/null || echo "")
         if echo "${CONTAINER_PORTS}" | grep -q "${DYNAMODB_PORT}"; then
             echo "✅ DynamoDB container is already running on port ${DYNAMODB_PORT}"
         else

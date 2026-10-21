@@ -2,7 +2,7 @@ services:
   dynamodb-local:
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
     image: "amazon/dynamodb-local:latest"
-    container_name: dynamodb-local
+    container_name: arch-app-services-dynamodb-local
     ports:
       - "8021:8000"
     volumes:
