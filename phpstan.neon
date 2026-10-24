@@ -103,3 +103,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInDataValidatorsRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\DataValidatorReturnTypeRule
+        tags:
+            - phpstan.rules.rule

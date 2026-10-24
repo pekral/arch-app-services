@@ -887,6 +887,65 @@ final readonly class CreateUserAction implements ArchAction
 }
 ```
 
+### 18. DataValidatorReturnTypeRule
+
+**Purpose:** Restricts every public method of a Data Validator to the native return type `bool` or `void`.
+
+**Rationale:** A Data Validator answers whether input is valid (`bool`) or asserts that it is (`void`, failure signalled by an exception). Returning data turns it into a transformer or loader, which belongs to DataBuilder, a Repository or a Service.
+
+**Layer:** a Data Validator is a class whose name ends with `DataValidator`, recognised the same way as in `NoHttpExceptionsInDataValidatorsRule`. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespace prefixes.
+
+**Error identifier:** `arch.dataValidatorReturnType`
+
+**Behavior:**
+- Only public methods are checked; the constructor and `private` / `protected` helpers may declare any return type.
+- Any other return type is reported, including `?bool`, `true`, `false`, `mixed`, arrays and objects, and so is a missing return type.
+- Thrown exceptions are not restricted by this rule. HTTP response exceptions stay forbidden by `NoHttpExceptionsInDataValidatorsRule`.
+
+**Example violation:**
+
+```php
+final class OrderDataValidator
+{
+    public function validate(array $data): array // ❌ returns data
+    {
+        // ...
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final class OrderDataValidator
+{
+    public function isPayable(Order $order): bool // ✅
+    {
+        return !$order->isPaid();
+    }
+
+    public function assertPayable(Order $order): void // ✅ any domain exception may be thrown
+    {
+        throw_if($order->isPaid(), OrderAlreadyPaidException::class);
+    }
+}
+```
+
+**Configuration:** register the rule, limited to the namespaces of the project (optional):
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\DataValidatorReturnTypeRule
+        arguments:
+            dataValidatorNamespaces:
+                - App\
+        tags:
+            - phpstan.rules.rule
+```
+
+**Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file.
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -955,6 +1014,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\NoHttpExceptionsInDataValidatorsRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\DataValidatorReturnTypeRule
         tags:
             - phpstan.rules.rule
 ```
