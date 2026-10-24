@@ -89,3 +89,10 @@ services:
                 - Pekral\Arch\Tests\Fixtures\PHPStan\ActionsMustImplementArchActionRule\Actions\
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\DataValidatorReturnTypeRule
+        arguments:
+            dataValidatorNamespaces:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\DataValidatorReturnTypeRule\Validators\
+        tags:
+            - phpstan.rules.rule

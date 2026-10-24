@@ -4,11 +4,11 @@ declare(strict_types = 1);
 
 namespace Pekral\Arch\PHPStan\Rules;
 
+use Pekral\Arch\PHPStan\Support\DataValidatorClassMatcher;
 use Pekral\Arch\PHPStan\Support\HttpExceptionDetector;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PHPStan\Analyser\Scope;
-use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
@@ -33,8 +33,6 @@ final readonly class NoHttpExceptionsInDataValidatorsRule implements Rule
 
     public const string IDENTIFIER = 'arch.noHttpExceptionInDataValidator';
 
-    private const string CLASS_SUFFIX = 'DataValidator';
-
     /**
      * @param list<string> $dataValidatorNamespaces Namespace prefixes (e.g. `App\`) the rule is limited to. Empty means
      *                                              every namespace.
@@ -56,7 +54,7 @@ final readonly class NoHttpExceptionsInDataValidatorsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null || !$this->isDataValidator($classReflection)) {
+        if ($classReflection === null || !DataValidatorClassMatcher::isDataValidator($classReflection, $this->dataValidatorNamespaces)) {
             return [];
         }
 
@@ -71,21 +69,6 @@ final readonly class NoHttpExceptionsInDataValidatorsRule implements Rule
                 ->identifier(self::IDENTIFIER)
                 ->build(),
         ];
-    }
-
-    private function isDataValidator(ClassReflection $classReflection): bool
-    {
-        $className = $classReflection->getName();
-
-        if (!str_ends_with($className, self::CLASS_SUFFIX)) {
-            return false;
-        }
-
-        return $this->dataValidatorNamespaces === []
-            || array_any(
-                $this->dataValidatorNamespaces,
-                static fn (string $namespace): bool => str_starts_with($className, $namespace),
-            );
     }
 
 }

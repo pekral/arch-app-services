@@ -1041,6 +1041,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 19. **NoMutableStaticStateRule** - Forbids static properties (shared mutable state) in Actions, Services, Repositories and Model Managers; constants and static methods stay allowed
 20. **NoPublicMutablePropertiesRule** - Forbids public properties that can change after construction in Actions, Services, Repositories and Model Managers; `public readonly` and `public private(set)` stay allowed. The optional `excludedClasses` argument excludes value objects by class, interface or namespace
 21. **NoManualArchitectureServiceInstantiationRule** - Forbids constructing Actions, Services, Repositories and Model Managers with `new`; they must be constructor-injected. DTOs, value objects and models stay constructible
+22. **DataValidatorReturnTypeRule** - Restricts public Data Validator methods to the `bool` or `void` return type; thrown exceptions are not restricted. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespaces
 
 ### Why These Rules?
 

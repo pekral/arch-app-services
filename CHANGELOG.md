@@ -2,6 +2,10 @@
 
 All notable changes to `arch-app-services` will be documented in this file.
 
+## [Unreleased]
+
+- ✨ **Added**: `DataValidatorReturnTypeRule` (`arch.dataValidatorReturnType`) restricts public Data Validator methods to the `bool` or `void` return type; Data Validator detection is shared with `NoHttpExceptionsInDataValidatorsRule` (#138)
+
 ## [0.5.1] - 2026-10-20
 
 - ⚠️ **Breaking**: `NoHttpExceptionsInActionsAndDataValidatorsRule` is removed. Register `NoHttpExceptionsInActionsRule` and `NoHttpExceptionsInDataValidatorsRule` instead; the identifiers `arch.noHttpExceptionInAction` and `arch.noHttpExceptionInDataValidator` are unchanged, so existing `ignoreErrors` entries keep working (PR #130)
