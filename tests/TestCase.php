@@ -17,6 +17,11 @@ abstract class TestCase extends Orchestra
     use LazilyRefreshDatabase;
 
     /**
+     * DynamoDB tables are recreated once per test process (fresh schema) and only emptied before every later test.
+     */
+    private static bool $dynamoDbTablesRecreated = false;
+
+    /**
      * @param \Illuminate\Foundation\Application $app
      */
     protected function getEnvironmentSetUp($app): void
@@ -80,11 +85,15 @@ abstract class TestCase extends Orchestra
             if (str_contains(basename($file), 'dynamodb')) {
                 $migration = require $file;
                 
-                if (method_exists($migration, 'up')) {
+                if (self::$dynamoDbTablesRecreated && method_exists($migration, 'truncate')) {
+                    $migration->truncate();
+                } elseif (method_exists($migration, 'up')) {
                     $migration->up();
                 }
             }
         }
+
+        self::$dynamoDbTablesRecreated = true;
     }
 
     protected function setUp(): void

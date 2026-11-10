@@ -17,6 +17,16 @@ return new class () extends Migration {
         });
     }
 
+    /**
+     * Empties the tables instead of recreating them; repeated table DDL under parallel load makes DynamoDB Local fail.
+     */
+    public function truncate(): void
+    {
+        $this->loadTableDefinitions()->each(function (array $tableConfig): void {
+            $this->truncateDynamoDbTable($tableConfig);
+        });
+    }
+
     protected function loadTableDefinitions(): Collection
     {
         $tablesPath = __DIR__ . '/../dynamodb-tables';
@@ -67,6 +77,40 @@ return new class () extends Migration {
         
         $client->createTable($config);
         $client->waitUntil('TableExists', ['TableName' => $config['TableName']]);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    protected function truncateDynamoDbTable(array $config): void
+    {
+        $client = $this->getDynamoDbClient();
+
+        if (!$this->tableExists($client, $config['TableName'])) {
+            $this->createDynamoDbTable($config);
+
+            return;
+        }
+
+        $keyAttributes = array_column($config['KeySchema'], 'AttributeName');
+        $scanParameters = [
+            'ExpressionAttributeNames' => array_combine(
+                array_map(static fn (int $position): string => '#key' . $position, array_keys($keyAttributes)),
+                $keyAttributes,
+            ),
+            'ProjectionExpression' => implode(', ', array_map(static fn (int $position): string => '#key' . $position, array_keys($keyAttributes))),
+            'TableName' => $config['TableName'],
+        ];
+
+        do {
+            $result = $client->scan($scanParameters);
+
+            foreach ($result['Items'] ?? [] as $itemKey) {
+                $client->deleteItem(['Key' => $itemKey, 'TableName' => $config['TableName']]);
+            }
+
+            $scanParameters['ExclusiveStartKey'] = $result['LastEvaluatedKey'] ?? null;
+        } while ($scanParameters['ExclusiveStartKey'] !== null);
     }
 
     protected function tableExists(DynamoDbClient $client, string $tableName): bool
