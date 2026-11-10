@@ -6,6 +6,8 @@ namespace Pekral\Arch\PHPStan\Rules;
 
 use Illuminate\Database\Eloquent\Model;
 use PhpParser\Node;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
@@ -40,11 +42,11 @@ final readonly class ModelNamingSuffixRule implements Rule
             return [];
         }
 
-        if ($node->extends === null) {
+        if (!$node->extends instanceof Name) {
             return [];
         }
 
-        if ($node->name === null) {
+        if (!$node->name instanceof Identifier) {
             return [];
         }
 

@@ -7,6 +7,7 @@ namespace Pekral\Arch\PHPStan\Rules;
 use PhpParser\Node;
 use PhpParser\Node\Expr\MethodCall;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use PHPStan\Type\ObjectType;
@@ -78,7 +79,7 @@ final class NoEloquentStorageMethodsInActionsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return false;
         }
 

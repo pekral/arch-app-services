@@ -8,6 +8,7 @@ use Pekral\Arch\PHPStan\Support\ActionClassMatcher;
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
 use PHPStan\Node\MethodReturnStatementsNode;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use PHPStan\Type\ObjectType;
@@ -72,7 +73,7 @@ final readonly class NoHttpResponseInActionsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null || !ActionClassMatcher::isAction($classReflection, $this->actionNamespaces)) {
+        if (!$classReflection instanceof ClassReflection || !ActionClassMatcher::isAction($classReflection, $this->actionNamespaces)) {
             return [];
         }
 

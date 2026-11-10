@@ -50,7 +50,7 @@ final class WhereRawBindingsRule implements Rule
 
         $callerType = $this->getCallerType($node, $scope);
 
-        if ($callerType === null || !$this->isQueryBuilderOrModel($callerType)) {
+        if (!$callerType instanceof Type || !$this->isQueryBuilderOrModel($callerType)) {
             return [];
         }
 

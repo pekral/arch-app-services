@@ -9,6 +9,7 @@ use Pekral\Arch\PHPStan\Support\HttpExceptionDetector;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
@@ -53,7 +54,7 @@ final readonly class NoHttpExceptionsInActionsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null || !ActionClassMatcher::isAction($classReflection, $this->actionNamespaces)) {
+        if (!$classReflection instanceof ClassReflection || !ActionClassMatcher::isAction($classReflection, $this->actionNamespaces)) {
             return [];
         }
 

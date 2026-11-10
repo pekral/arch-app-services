@@ -10,6 +10,7 @@ use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleError;
 use PHPStan\Rules\RuleErrorBuilder;
@@ -101,7 +102,7 @@ final class NoLaravelHelpersForActionsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return false;
         }
 

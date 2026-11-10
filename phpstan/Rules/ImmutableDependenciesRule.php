@@ -109,7 +109,7 @@ final readonly class ImmutableDependenciesRule implements Rule
     {
         $type = $property->getNativeType() ?? $property->getPhpDocType();
 
-        if ($type === null) {
+        if (!$type instanceof Type) {
             return false;
         }
 
