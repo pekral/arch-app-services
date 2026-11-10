@@ -6,6 +6,7 @@ use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Collection;
+use Pekral\Arch\Tests\Support\ParallelTestTableName;
 
 return new class () extends Migration {
 
@@ -41,6 +42,8 @@ return new class () extends Migration {
                 $tableConfig = json_decode($content, associative: true, depth: 512, flags: JSON_THROW_ON_ERROR);
 
                 if (is_array($tableConfig) && isset($tableConfig['TableName'])) {
+                    $tableConfig['TableName'] = ParallelTestTableName::resolve($tableConfig['TableName']);
+
                     return $tableConfig;
                 }
 

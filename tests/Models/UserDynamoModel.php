@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\Tests\Models;
 
 use BaoPham\DynamoDb\DynamoDbModel;
+use Pekral\Arch\Tests\Support\ParallelTestTableName;
 
 /**
  * @property string $id
@@ -61,5 +62,15 @@ final class UserDynamoModel extends DynamoDbModel
             'hash' => 'email',
         ],
     ];
+
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+
+        $this->setTable(ParallelTestTableName::resolve($this->table));
+    }
 
 }
