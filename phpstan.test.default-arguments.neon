@@ -25,3 +25,7 @@ services:
         class: Pekral\Arch\PHPStan\Rules\DataValidatorReturnTypeRule
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\JobRoutingOutsideJobRule
+        tags:
+            - phpstan.rules.rule

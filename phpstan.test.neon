@@ -96,3 +96,13 @@ services:
                 - Pekral\Arch\Tests\Fixtures\PHPStan\DataValidatorReturnTypeRule\Validators\
         tags:
             - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\JobRoutingOutsideJobRule
+        arguments:
+            routingMethods:
+                - onConnection
+                - onQueue
+                - onGroup
+                - onTenantGroup
+        tags:
+            - phpstan.rules.rule
