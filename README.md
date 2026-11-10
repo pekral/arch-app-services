@@ -1042,6 +1042,7 @@ The package includes custom PHPStan rules that enforce architectural best practi
 20. **NoPublicMutablePropertiesRule** - Forbids public properties that can change after construction in Actions, Services, Repositories and Model Managers; `public readonly` and `public private(set)` stay allowed. The optional `excludedClasses` argument excludes value objects by class, interface or namespace
 21. **NoManualArchitectureServiceInstantiationRule** - Forbids constructing Actions, Services, Repositories and Model Managers with `new`; they must be constructor-injected. DTOs, value objects and models stay constructible
 22. **DataValidatorReturnTypeRule** - Restricts public Data Validator methods to the `bool` or `void` return type; thrown exceptions are not restricted. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespaces
+23. **JobRoutingOutsideJobRule** - Requires a queued job (`ShouldQueue`) to configure its own connection, queue and message group; routing calls on a `PendingDispatch` or on a job instance outside the job class are reported, `delay()` and other non-routing methods stay allowed. The optional `routingMethods` argument replaces the default `onConnection`, `onQueue`, `onGroup`
 
 ### Why These Rules?
 
