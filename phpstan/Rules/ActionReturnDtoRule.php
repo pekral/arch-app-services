@@ -49,7 +49,7 @@ final readonly class ActionReturnDtoRule implements Rule
 
         $classReflection = $this->resolveActionClassReflection($scope);
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return [];
         }
 
@@ -63,7 +63,7 @@ final readonly class ActionReturnDtoRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return null;
         }
 

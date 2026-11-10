@@ -9,6 +9,7 @@ use PhpParser\Node;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\ClassMethod;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 
@@ -53,7 +54,9 @@ final readonly class DataValidatorReturnTypeRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null || !DataValidatorClassMatcher::isDataValidator($classReflection, $this->dataValidatorNamespaces)) {
+        if (!$classReflection instanceof ClassReflection
+            || !DataValidatorClassMatcher::isDataValidator($classReflection, $this->dataValidatorNamespaces)
+        ) {
             return [];
         }
 

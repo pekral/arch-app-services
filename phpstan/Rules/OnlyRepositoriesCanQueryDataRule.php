@@ -8,6 +8,7 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use PHPStan\Type\ObjectType;
@@ -130,7 +131,7 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
 
         $callerType = $this->getCallerType($node, $scope);
 
-        if ($callerType === null || !$this->isEloquentModelOrBuilder($callerType)) {
+        if (!$callerType instanceof Type || !$this->isEloquentModelOrBuilder($callerType)) {
             return [];
         }
 
@@ -204,7 +205,7 @@ final class OnlyRepositoriesCanQueryDataRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return false;
         }
 

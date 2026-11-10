@@ -5,7 +5,9 @@ declare(strict_types = 1);
 namespace Pekral\Arch\PHPStan\Rules;
 
 use PhpParser\Node;
+use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleError;
 use PHPStan\Rules\RuleErrorBuilder;
@@ -34,13 +36,13 @@ final class ServiceNamingConventionRule implements Rule
             return [];
         }
 
-        if ($node->extends === null) {
+        if (!$node->extends instanceof Name) {
             return [];
         }
 
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return [];
         }
 

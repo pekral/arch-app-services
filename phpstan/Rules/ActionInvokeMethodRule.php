@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Pekral\Arch\PHPStan\Rules;
 
 use PhpParser\Node;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PHPStan\Analyser\Scope;
@@ -61,7 +62,7 @@ final readonly class ActionInvokeMethodRule implements Rule
      */
     private function resolveActionClassName(Class_ $node, Scope $scope): ?string
     {
-        if ($node->name === null) {
+        if (!$node->name instanceof Identifier) {
             return null;
         }
 
@@ -144,7 +145,7 @@ final readonly class ActionInvokeMethodRule implements Rule
 
         $invokeMethod = $this->getInvokeMethod($classNode);
 
-        if ($invokeMethod !== null && $invokeMethod->returnType === null) {
+        if ($invokeMethod instanceof ClassMethod && !$invokeMethod->returnType instanceof Node) {
             return [$this->missingReturnTypeError($className)];
         }
 

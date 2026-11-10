@@ -8,6 +8,7 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use PHPStan\Type\ObjectType;
@@ -61,7 +62,7 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
 
         $callerType = $this->getCallerType($node, $scope);
 
-        if ($callerType === null || !$this->isEloquentModel($callerType)) {
+        if (!$callerType instanceof Type || !$this->isEloquentModel($callerType)) {
             return [];
         }
 
@@ -130,7 +131,7 @@ final class OnlyModelManagersCanPersistDataRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return false;
         }
 

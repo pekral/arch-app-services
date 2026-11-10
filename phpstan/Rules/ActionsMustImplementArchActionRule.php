@@ -9,6 +9,7 @@ use Pekral\Arch\PHPStan\Support\ActionClassMatcher;
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
 use PHPStan\Node\InClassNode;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 
@@ -48,7 +49,7 @@ final readonly class ActionsMustImplementArchActionRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null
+        if (!$classReflection instanceof ClassReflection
             || !$classReflection->isClass()
             || $classReflection->isAnonymous()
             || $classReflection->implementsInterface(ArchAction::class)

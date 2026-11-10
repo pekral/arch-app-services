@@ -26,7 +26,7 @@ final class TestableDynamoDbModelForStaticMethods extends DynamoDbModel
 
     public static function updateOrCreate(array $attributes, array $values = []): Model
     {
-        if (self::$mockUpdateOrCreateResult !== null) {
+        if (self::$mockUpdateOrCreateResult instanceof Model) {
             return self::$mockUpdateOrCreateResult;
         }
 
@@ -35,7 +35,7 @@ final class TestableDynamoDbModelForStaticMethods extends DynamoDbModel
 
     public static function firstOrCreate(array $attributes, array $values = []): Model
     {
-        if (self::$mockFirstOrCreateResult !== null) {
+        if (self::$mockFirstOrCreateResult instanceof Model) {
             return self::$mockFirstOrCreateResult;
         }
 

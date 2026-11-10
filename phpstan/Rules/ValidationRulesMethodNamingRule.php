@@ -38,7 +38,7 @@ final class ValidationRulesMethodNamingRule implements Rule
 
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null) {
+        if (!$classReflection instanceof ClassReflection) {
             return [];
         }
 

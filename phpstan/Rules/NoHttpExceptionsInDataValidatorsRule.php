@@ -9,6 +9,7 @@ use Pekral\Arch\PHPStan\Support\HttpExceptionDetector;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
@@ -54,7 +55,9 @@ final readonly class NoHttpExceptionsInDataValidatorsRule implements Rule
     {
         $classReflection = $scope->getClassReflection();
 
-        if ($classReflection === null || !DataValidatorClassMatcher::isDataValidator($classReflection, $this->dataValidatorNamespaces)) {
+        if (!$classReflection instanceof ClassReflection
+            || !DataValidatorClassMatcher::isDataValidator($classReflection, $this->dataValidatorNamespaces)
+        ) {
             return [];
         }
 
