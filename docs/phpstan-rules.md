@@ -946,6 +946,80 @@ services:
 
 **Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file.
 
+### 19. JobRoutingOutsideJobRule
+
+**Purpose:** Requires a queued job to configure its own queue routing. The connection, the queue and the message group are set inside the job class; a call site only passes data and dispatches.
+
+**Rationale:** Queue routing is a property of the job, not of the caller. With routing in the job, a change of the queue is a change of one line, a new call site cannot forget it (an omitted chain silently sends the job to the default connection, or to a FIFO queue without a message group), and N call sites do not carry N drifting copies of the same chain.
+
+**Layer:** a job is a class that implements `Illuminate\Contracts\Queue\ShouldQueue`. The routing methods are `onConnection`, `onQueue` and `onGroup` by default; the optional `routingMethods` argument replaces the list, so a project can add its own helpers (for example trait methods that derive a message group).
+
+**Error identifier:** `arch.jobRoutingOutsideJob`
+
+**Behavior:**
+- A routing method called on an `Illuminate\Foundation\Bus\PendingDispatch` is reported: `dispatch(new SomeJob())->onConnection(...)`, `SomeJob::dispatch()->onQueue(...)`. This includes a job that dispatches itself (`dispatch(new self(...))->onConnection(...)`).
+- A routing method called on a job instance outside the job's own class is reported: `(new SomeJob())->onConnection(...)`, `$job->onQueue(...)`.
+- A routing method called inside the job class (`$this->onConnection(...)`) and the `$connection` / `$queue` properties declared on the job are allowed.
+- `delay()`, `afterCommit()`, `beforeCommit()`, `chain()` and every other method that is not in `routingMethods` are not restricted; the time of the dispatch belongs to the caller.
+- Routing that depends on the caller's context needs no exception: the caller passes the deciding value (a host, a tenant key, a shard number) to the job constructor and the job derives the routing from it.
+
+**Example violation:**
+
+```php
+final class ImportController
+{
+    public function __invoke(): Response
+    {
+        dispatch(new ImportSubscribersJob($fileUrl, $listId))->onConnection('imports'); // ❌ routing at the call site
+
+        ImportSubscribersJob::dispatch($fileUrl, $listId)->onQueue('imports'); // ❌
+
+        $job = new ImportSubscribersJob($fileUrl, $listId);
+        $job->onGroup('group-1'); // ❌ outside the job class
+
+        // ...
+    }
+}
+```
+
+**Correct approach:**
+
+```php
+final class ImportSubscribersJob implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+
+    public function __construct(private readonly string $fileUrl, private readonly int $listId, string $dbHost)
+    {
+        $this->onConnection(QueueName::IMPORTS->value); // ✅ the job routes itself
+        $this->onGroup(sprintf('%s:%d', $dbHost, $listId % 4)); // ✅ derived from a constructor value
+    }
+}
+
+ImportSubscribersJob::dispatch($fileUrl, $listId, $dbHost); // ✅
+ImportSubscribersJob::dispatch($fileUrl, $listId, $dbHost)->delay(60); // ✅ delay is not routing
+```
+
+**Configuration:** register the rule, optionally with the project's own routing helpers:
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\JobRoutingOutsideJobRule
+        arguments:
+            routingMethods:
+                - onConnection
+                - onQueue
+                - onGroup
+                - onTenantGroup
+        tags:
+            - phpstan.rules.rule
+```
+
+**Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file.
+
 ## Configuration
 
 The rules are configured in `phpstan.neon`:
@@ -1018,6 +1092,10 @@ services:
             - phpstan.rules.rule
     -
         class: Pekral\Arch\PHPStan\Rules\DataValidatorReturnTypeRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Pekral\Arch\PHPStan\Rules\JobRoutingOutsideJobRule
         tags:
             - phpstan.rules.rule
 ```
