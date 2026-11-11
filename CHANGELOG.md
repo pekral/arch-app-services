@@ -4,8 +4,18 @@ All notable changes to `arch-app-services` will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-11
+
+- ✨ **Added**: `ActionClassModifiersRule` requires Actions to be `final readonly` (#132)
+- ✨ **Added**: `ImmutableDependenciesRule` requires constructor-injected dependencies to be immutable (#133)
+- ✨ **Added**: `NoMutableStaticStateRule` forbids mutable static state in architecture layers (#134)
+- ✨ **Added**: `NoPublicMutablePropertiesRule` forbids public mutable properties in architecture layers (#135)
+- ✨ **Added**: `NoManualArchitectureServiceInstantiationRule` forbids manual `new` of architecture services (#136)
 - ✨ **Added**: `DataValidatorReturnTypeRule` (`arch.dataValidatorReturnType`) restricts public Data Validator methods to the `bool` or `void` return type; Data Validator detection is shared with `NoHttpExceptionsInDataValidatorsRule` (#138)
 - ✨ **Added**: `JobRoutingOutsideJobRule` (`arch.jobRoutingOutsideJob`) requires a queued job to configure its own queue routing; `onConnection` / `onQueue` / `onGroup` (configurable via `routingMethods`) on a `PendingDispatch` or on a job instance outside the job class are reported (#140)
+- 🔧 **Changed**: update Composer dependencies (#137)
+- 🔧 **Changed**: the DynamoDB Docker container is renamed to avoid name collisions with other projects
+- 🔧 **Changed**: `composer test:coverage` runs Pest in parallel (#142)
 
 ## [0.5.1] - 2026-10-20
 
