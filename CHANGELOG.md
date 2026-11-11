@@ -4,6 +4,8 @@ All notable changes to `arch-app-services` will be documented in this file.
 
 ## [Unreleased]
 
+- **Changed:** `baopham/dynamodb` is now an optional integration instead of a required runtime dependency. Applications using the DynamoDB Repositories and Model Managers must explicitly install `baopham/dynamodb:^7.1`. The driver remains a development dependency for integration tests; the DynamoDB API is unchanged.
+
 ## [0.5.2] - 2026-11-11
 
 - ✨ **Added**: `ActionClassModifiersRule` requires Actions to be `final readonly` (#132)

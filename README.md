@@ -28,6 +28,14 @@ composer require pekral/arch-app-services
 
 Laravel discovers `ArchServiceProvider` automatically.
 
+DynamoDB support is optional. Applications using the DynamoDB Repositories and Model Managers must also install the driver:
+
+```bash
+composer require "baopham/dynamodb:^7.1"
+```
+
+SQL-only applications do not need this dependency. See [DynamoDB setup](docs/dynamodb-model.md) for models and configuration.
+
 ## Configuration
 
 Defaults are loaded automatically. To customize pagination, repository caching or transaction attempts, publish [the configuration](config/arch.php):

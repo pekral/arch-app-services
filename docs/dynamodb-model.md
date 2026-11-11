@@ -1,16 +1,18 @@
 # DynamoDB Model
 
-The `baopham/dynamodb` package provides DynamoDB integration into Laravel applications with Eloquent-like interface.
+Arch App Services includes optional DynamoDB Repositories and Model Managers backed by `baopham/dynamodb`, which provides an Eloquent-like interface. The driver is not installed automatically with Arch App Services.
 
 ## Installation and Configuration
 
 ### 1. Package Installation
 
-The package is already included in `composer.json`:
+Applications using the DynamoDB integration must install the driver explicitly:
 
-```json
-"baopham/dynamodb": "^6.6"
+```bash
+composer require "baopham/dynamodb:^7.1"
 ```
+
+The Arch App Services repository keeps this driver in `require-dev` so its DynamoDB integration tests still run. Applications using only SQL Repositories and Model Managers do not need it.
 
 ### 2. Configuration
 
