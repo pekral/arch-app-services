@@ -35,9 +35,6 @@ jobs:
           extensions: pcov, dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: pcov
 
-      - name: Install xmllint
-        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
-
       - name: Cache Composer packages
         uses: actions/cache@v6
         with:
@@ -57,7 +54,7 @@ jobs:
         run: composer normalize-check
 
       - name: Lint XML files
-        run: find . -name '*.xml' ! -path './vendor/*' -exec xmllint --noout {} \;
+        run: find . -name '*.xml' ! -path './vendor/*' -exec php scripts/lint-xml.php {} +
 
       - name: Run PHP CodeSniffer
         run: composer phpcs-check
