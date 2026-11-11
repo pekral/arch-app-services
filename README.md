@@ -144,28 +144,147 @@ Each example below is a shortened fragment that the rule **reports**, in the con
 
 ### Actions
 
-| Rule | TL;DR | Example reported |
-| --- | --- | --- |
-| [ActionsMustImplementArchActionRule](phpstan/Rules/ActionsMustImplementArchActionRule.php) | Classes in configured Action namespaces must implement `ArchAction`. Without configured namespaces, this rule reports nothing. | `class CreateUser {}` in a configured `App\Actions\` namespace |
-| [ActionClassModifiersRule](phpstan/Rules/ActionClassModifiersRule.php) | Concrete, named `ArchAction` classes must be `final readonly`. | `final class CreateUser implements ArchAction` without `readonly` |
-| [ActionInvokeMethodRule](phpstan/Rules/ActionInvokeMethodRule.php) | An `ArchAction` must declare only one public method besides its constructor: `__invoke()` with an explicit return type. | `public function execute(): void` instead of `__invoke()` |
-| [ActionInvokeArgumentsRule](phpstan/Rules/ActionInvokeArgumentsRule.php) | Invoke an `ArchAction` without arguments; supply inputs through its constructor. | `$action($data)` instead of `$action()` |
-| [ActionReturnDtoRule](phpstan/Rules/ActionReturnDtoRule.php) | An `ArchAction::__invoke()` must not declare an array return type; use a Spatie Data DTO for structured output. Other non-array results, including `void`, remain allowed. | `public function __invoke(): array` |
-| [NoHttpResponseInActionsRule](phpstan/Rules/NoHttpResponseInActionsRule.php) | Actions return data; controllers build HTTP responses. Checks declared types and returned expressions, including responses hidden behind `mixed`. | `return response()->json($data);` inside an Action |
-| [NoHttpExceptionsInActionsRule](phpstan/Rules/NoHttpExceptionsInActionsRule.php) | Actions must not produce HTTP exceptions or call `abort*()`; throw domain exceptions for the entry point to translate. | `abort(404);` inside an Action |
-| [NoLaravelHelpersForActionsRule](phpstan/Rules/NoLaravelHelpersForActionsRule.php) | Inside an Action, inject other Actions through the constructor instead of resolving them with `app()`, `resolve()` or `make()`. | `app(CreateUser::class)` inside another Action |
-| [NoEloquentStorageMethodsInActionsRule](phpstan/Rules/NoEloquentStorageMethodsInActionsRule.php) | An Action must delegate Eloquent model writes to a Model Manager rather than call storage methods directly. | `$user->save();` inside an Action |
-| [NoDirectDatabaseQueriesInActionsRule](phpstan/Rules/NoDirectDatabaseQueriesInActionsRule.php) | Keep filtering, query-builder operations and builder scopes out of Actions. Unfiltered retrieval alone is allowed by this rule. | `User::query()->where('name', 'test')->get();` inside an Action |
+#### [ActionsMustImplementArchActionRule](phpstan/Rules/ActionsMustImplementArchActionRule.php)
+
+**TL;DR:** Classes in configured Action namespaces must implement `ArchAction`. Without configured namespaces, this rule reports nothing.
+
+**Example reported:** In a configured `App\Actions\` namespace.
+
+```php
+class CreateUser {}
+```
+
+#### [ActionClassModifiersRule](phpstan/Rules/ActionClassModifiersRule.php)
+
+**TL;DR:** Concrete, named `ArchAction` classes must be `final readonly`.
+
+**Example reported:** Without `readonly`.
+
+```php
+final class CreateUser implements ArchAction
+```
+
+#### [ActionInvokeMethodRule](phpstan/Rules/ActionInvokeMethodRule.php)
+
+**TL;DR:** An `ArchAction` must declare only one public method besides its constructor: `__invoke()` with an explicit return type.
+
+**Example reported:** Instead of `__invoke()`.
+
+```php
+public function execute(): void
+```
+
+#### [ActionInvokeArgumentsRule](phpstan/Rules/ActionInvokeArgumentsRule.php)
+
+**TL;DR:** Invoke an `ArchAction` without arguments; supply inputs through its constructor.
+
+**Example reported:**
+
+```php
+$action($data)
+```
+
+**Preferred form:**
+
+```php
+$action()
+```
+
+#### [ActionReturnDtoRule](phpstan/Rules/ActionReturnDtoRule.php)
+
+**TL;DR:** An `ArchAction::__invoke()` must not declare an array return type; use a Spatie Data DTO for structured output. Other non-array results, including `void`, remain allowed.
+
+**Example reported:**
+
+```php
+public function __invoke(): array
+```
+
+#### [NoHttpResponseInActionsRule](phpstan/Rules/NoHttpResponseInActionsRule.php)
+
+**TL;DR:** Actions return data; controllers build HTTP responses. Checks declared types and returned expressions, including responses hidden behind `mixed`.
+
+**Example reported:** Inside an Action.
+
+```php
+return response()->json($data);
+```
+
+#### [NoHttpExceptionsInActionsRule](phpstan/Rules/NoHttpExceptionsInActionsRule.php)
+
+**TL;DR:** Actions must not produce HTTP exceptions or call `abort*()`; throw domain exceptions for the entry point to translate.
+
+**Example reported:** Inside an Action.
+
+```php
+abort(404);
+```
+
+#### [NoLaravelHelpersForActionsRule](phpstan/Rules/NoLaravelHelpersForActionsRule.php)
+
+**TL;DR:** Inside an Action, inject other Actions through the constructor instead of resolving them with `app()`, `resolve()` or `make()`.
+
+**Example reported:** Inside another Action.
+
+```php
+app(CreateUser::class)
+```
+
+#### [NoEloquentStorageMethodsInActionsRule](phpstan/Rules/NoEloquentStorageMethodsInActionsRule.php)
+
+**TL;DR:** An Action must delegate Eloquent model writes to a Model Manager rather than call storage methods directly.
+
+**Example reported:** Inside an Action.
+
+```php
+$user->save();
+```
+
+#### [NoDirectDatabaseQueriesInActionsRule](phpstan/Rules/NoDirectDatabaseQueriesInActionsRule.php)
+
+**TL;DR:** Keep filtering, query-builder operations and builder scopes out of Actions. Unfiltered retrieval alone is allowed by this rule.
+
+**Example reported:** Inside an Action.
+
+```php
+User::query()->where('name', 'test')->get();
+```
+
 
 `ActionInvokeArgumentsRule` is stricter than the runtime API: enabling it requires adapting the argument-based Action example above to constructor-supplied inputs.
 
 ### Data access
 
-| Rule | TL;DR | Example reported |
-| --- | --- | --- |
-| [OnlyRepositoriesCanQueryDataRule](phpstan/Rules/OnlyRepositoriesCanQueryDataRule.php) | Block listed Eloquent read/query methods inside Actions, including unfiltered retrieval. DynamoDB models are exempt. | `User::all();` inside an Action |
-| [OnlyModelManagersCanPersistDataRule](phpstan/Rules/OnlyModelManagersCanPersistDataRule.php) | SQL model persistence belongs in classes extending the SQL `BaseModelManager` or `BaseModelService`. DynamoDB models are exempt. | `$user->save();` inside a controller |
-| [WhereRawBindingsRule](phpstan/Rules/WhereRawBindingsRule.php) | Dynamic `whereRaw()` and `orWhereRaw()` expressions require a bindings argument; plain string literals are allowed. | `$query->whereRaw("price > {$column}");` without bindings |
+#### [OnlyRepositoriesCanQueryDataRule](phpstan/Rules/OnlyRepositoriesCanQueryDataRule.php)
+
+**TL;DR:** Block listed Eloquent read/query methods inside Actions, including unfiltered retrieval. DynamoDB models are exempt.
+
+**Example reported:** Inside an Action.
+
+```php
+User::all();
+```
+
+#### [OnlyModelManagersCanPersistDataRule](phpstan/Rules/OnlyModelManagersCanPersistDataRule.php)
+
+**TL;DR:** SQL model persistence belongs in classes extending the SQL `BaseModelManager` or `BaseModelService`. DynamoDB models are exempt.
+
+**Example reported:** Inside a controller.
+
+```php
+$user->save();
+```
+
+#### [WhereRawBindingsRule](phpstan/Rules/WhereRawBindingsRule.php)
+
+**TL;DR:** Dynamic `whereRaw()` and `orWhereRaw()` expressions require a bindings argument; plain string literals are allowed.
+
+**Example reported:** Without bindings.
+
+```php
+$query->whereRaw("price > {$column}");
+```
+
 
 `OnlyRepositoriesCanQueryDataRule` is stricter than `NoDirectDatabaseQueriesInActionsRule`: it also reports unfiltered reads such as `User::all()` inside Actions. Despite its name, it does not restrict reads in every other class.
 
@@ -173,31 +292,129 @@ Each example below is a shortened fragment that the rule **reports**, in the con
 
 These four rules recognize Actions, Model Services, Repositories and Model Managers by their interfaces or base classes, not by naming alone.
 
-| Rule | TL;DR | Example reported |
-| --- | --- | --- |
-| [ImmutableDependenciesRule](phpstan/Rules/ImmutableDependenciesRule.php) | Object dependencies must be readonly and assigned only in the constructor. DTO and Eloquent model properties are treated as data, not dependencies. | `private PaymentGateway $gateway;` without `readonly` |
-| [NoManualArchitectureServiceInstantiationRule](phpstan/Rules/NoManualArchitectureServiceInstantiationRule.php) | Inject architecture-layer collaborators instead of constructing them with `new`. DTOs, models and anonymous classes remain constructible. | `new UserModelService($manager, $repository)` |
-| [NoMutableStaticStateRule](phpstan/Rules/NoMutableStaticStateRule.php) | Architecture classes must not hold static properties shared across instances and requests. Constants and static methods are allowed. | `private static array $cache = [];` in a Repository |
-| [NoPublicMutablePropertiesRule](phpstan/Rules/NoPublicMutablePropertiesRule.php) | Do not expose mutable public instance properties in architecture classes. Readonly properties and restricted setters are allowed; DTOs and models are outside its scope. | `public int $defaultLimit = 15;` in a Repository |
+#### [ImmutableDependenciesRule](phpstan/Rules/ImmutableDependenciesRule.php)
+
+**TL;DR:** Object dependencies must be readonly and assigned only in the constructor. DTO and Eloquent model properties are treated as data, not dependencies.
+
+**Example reported:** Without `readonly`.
+
+```php
+private PaymentGateway $gateway;
+```
+
+#### [NoManualArchitectureServiceInstantiationRule](phpstan/Rules/NoManualArchitectureServiceInstantiationRule.php)
+
+**TL;DR:** Inject architecture-layer collaborators instead of constructing them with `new`. DTOs, models and anonymous classes remain constructible.
+
+**Example reported:**
+
+```php
+new UserModelService($manager, $repository)
+```
+
+#### [NoMutableStaticStateRule](phpstan/Rules/NoMutableStaticStateRule.php)
+
+**TL;DR:** Architecture classes must not hold static properties shared across instances and requests. Constants and static methods are allowed.
+
+**Example reported:** In a Repository.
+
+```php
+private static array $cache = [];
+```
+
+#### [NoPublicMutablePropertiesRule](phpstan/Rules/NoPublicMutablePropertiesRule.php)
+
+**TL;DR:** Do not expose mutable public instance properties in architecture classes. Readonly properties and restricted setters are allowed; DTOs and models are outside its scope.
+
+**Example reported:** In a Repository.
+
+```php
+public int $defaultLimit = 15;
+```
+
 
 ### Naming and validation rules
 
-| Rule | TL;DR | Example reported |
-| --- | --- | --- |
-| [ModelNamingSuffixRule](phpstan/Rules/ModelNamingSuffixRule.php) | Eloquent model class names must end in `Model`. | `class User extends Model` instead of `UserModel` |
-| [ServiceNamingConventionRule](phpstan/Rules/ServiceNamingConventionRule.php) | Classes directly extending `BaseModelService` must have names ending in `ModelService`. | `class UserService extends BaseModelService` |
-| [ValidationRulesMethodNamingRule](phpstan/Rules/ValidationRulesMethodNamingRule.php) | `ValidationRules` implementations must have no constructor; their methods must be static and end in `Rules`. | `public function email(): array` instead of `public static function emailRules(): array` |
-| [ValidationRulesNoInstantiationRule](phpstan/Rules/ValidationRulesNoInstantiationRule.php) | Call static methods on `ValidationRules` implementations instead of creating instances. | `new UserValidationRules()` |
+#### [ModelNamingSuffixRule](phpstan/Rules/ModelNamingSuffixRule.php)
+
+**TL;DR:** Eloquent model class names must end in `Model`.
+
+**Example reported:** Instead of `UserModel`.
+
+```php
+class User extends Model
+```
+
+#### [ServiceNamingConventionRule](phpstan/Rules/ServiceNamingConventionRule.php)
+
+**TL;DR:** Classes directly extending `BaseModelService` must have names ending in `ModelService`.
+
+**Example reported:**
+
+```php
+class UserService extends BaseModelService
+```
+
+#### [ValidationRulesMethodNamingRule](phpstan/Rules/ValidationRulesMethodNamingRule.php)
+
+**TL;DR:** `ValidationRules` implementations must have no constructor; their methods must be static and end in `Rules`.
+
+**Example reported:**
+
+```php
+public function email(): array
+```
+
+**Preferred form:**
+
+```php
+public static function emailRules(): array
+```
+
+#### [ValidationRulesNoInstantiationRule](phpstan/Rules/ValidationRulesNoInstantiationRule.php)
+
+**TL;DR:** Call static methods on `ValidationRules` implementations instead of creating instances.
+
+**Example reported:**
+
+```php
+new UserValidationRules()
+```
+
 
 ### Data Validators and jobs
 
 Data Validator rules recognize class names ending in `DataValidator`, optionally limited to configured namespaces.
 
-| Rule | TL;DR | Example reported |
-| --- | --- | --- |
-| [DataValidatorReturnTypeRule](phpstan/Rules/DataValidatorReturnTypeRule.php) | Public Data Validator methods must declare native `bool` or `void` return types. Constructors and non-public helpers are excluded. | `public function validate(): array` in a Data Validator |
-| [NoHttpExceptionsInDataValidatorsRule](phpstan/Rules/NoHttpExceptionsInDataValidatorsRule.php) | Data Validators must not produce HTTP exceptions or call `abort*()`; use validation or domain exceptions. | `abort(422);` inside a Data Validator |
-| [JobRoutingOutsideJobRule](phpstan/Rules/JobRoutingOutsideJobRule.php) | Configure queued-job routing inside the job. By default, `onConnection()`, `onQueue()` and `onGroup()` calls on pending dispatches or external job instances are reported. | `ImportSubscribersJob::dispatch($url, $listId, $host)->onQueue('imports');` outside the job |
+#### [DataValidatorReturnTypeRule](phpstan/Rules/DataValidatorReturnTypeRule.php)
+
+**TL;DR:** Public Data Validator methods must declare native `bool` or `void` return types. Constructors and non-public helpers are excluded.
+
+**Example reported:** In a Data Validator.
+
+```php
+public function validate(): array
+```
+
+#### [NoHttpExceptionsInDataValidatorsRule](phpstan/Rules/NoHttpExceptionsInDataValidatorsRule.php)
+
+**TL;DR:** Data Validators must not produce HTTP exceptions or call `abort*()`; use validation or domain exceptions.
+
+**Example reported:** Inside a Data Validator.
+
+```php
+abort(422);
+```
+
+#### [JobRoutingOutsideJobRule](phpstan/Rules/JobRoutingOutsideJobRule.php)
+
+**TL;DR:** Configure queued-job routing inside the job. By default, `onConnection()`, `onQueue()` and `onGroup()` calls on pending dispatches or external job instances are reported.
+
+**Example reported:** Outside the job.
+
+```php
+ImportSubscribersJob::dispatch($url, $listId, $host)->onQueue('imports');
+```
 
 ## Documentation
 
