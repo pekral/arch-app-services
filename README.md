@@ -1,1138 +1,175 @@
-# <img src="logo.svg" alt="Arch App Services Logo" width="200"/>
+<div align="left">
+    <img src="logo.svg" alt="Arch App Services — an arch connecting separate application layers" width="720">
+
+<h1>Give Laravel business logic a clear structure</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Checkers](https://img.shields.io/github/actions/workflow/status/pekral/arch-app-services/checkers.yml?branch=master&label=checkers&style=flat-square)](https://github.com/pekral/arch-app-services/actions/workflows/checkers.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
 
-> ⚠️ **This package is currently under active development.** The API may change in future versions. Use with caution in production environments.
+</div>
 
-**Arch App Services** - Clean architectural abstractions for building scalable Laravel applications
+**Arch App Services** gives Laravel applications single-purpose Actions, Repositories for reads, and Model Managers for writes. Model Services combine the read and write layers; Artisan generators and custom PHPStan rules help keep that structure consistent.
 
-## Features
-
-- **Action Pattern**: Clean, single-purpose classes for business logic
-- **Action Logging**: Robust action execution logging with fallback mechanism
-- **Repository Pattern**: Database query abstraction with pagination support  
-- **Repository Caching**: Automatic caching layer for repository methods with configurable TTL
-- **Model Manager**: CRUD operations with batch processing and duplicate handling capabilities
-- **Data Builder**: Pipeline-based data transformation using Laravel Pipeline
-- **Data Validation**: Integrated validation using Laravel's validation system
-- **Data Transfer Objects (DTO)**: Type-safe data objects with attribute-based validation
-- **Service Layer**: Combines Repository and Model Manager for complete CRUD operations
-- **Transactions**: Explicit `transaction()` helper, `#[InTransaction]` attribute with retry attempts, and savepoint-based nested transactions for Actions
-- **Result Pattern**: Type-safe `Result::success()` / `Result::failure()` outcomes as an alternative to exceptions for expected failures
-- **PHPStan Rules**: Custom architecture rules enforcing best practices
-- **Type Safety**: Full PHPDoc type annotations and generics support
-- **Laravel 12 and 13**: Supports both framework versions
-- **100% Test Coverage**: Comprehensive test suite ensuring reliability
+> [!NOTE]
+> The package is under active development and its API may change between releases. Review the [changelog](CHANGELOG.md) before upgrading.
 
 ## Requirements
 
-- PHP 8.4+
-- Laravel 12 or 13
+- PHP `^8.4` with the SimpleXML extension.
+- Laravel 12 or 13 (`illuminate/*` constraints: `^12.0 || ^13.0`).
 
 ## Installation
-
-You can install the package via composer:
 
 ```bash
 composer require pekral/arch-app-services
 ```
 
-The package will automatically register its service provider.
+Laravel discovers `ArchServiceProvider` automatically.
 
-Optionally, you can publish the configuration file:
+## Configuration
+
+Defaults are loaded automatically. To customize pagination, repository caching or transaction attempts, publish [the configuration](config/arch.php):
 
 ```bash
 php artisan vendor:publish --tag="arch-config"
 ```
 
-You can also publish the stub files for customization:
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `arch.default_items_per_page` | `15` | Repository pagination size |
+| `arch.repository_cache.enabled` | `true` | Enable caching for reads made through `cache()` |
+| `arch.repository_cache.ttl` | `3600` | Cache lifetime in seconds |
+| `arch.repository_cache.prefix` | `arch_repo` | Cache key prefix |
+| `arch.transactions.default_attempts` | `1` | Transaction attempts when none are passed explicitly |
+
+Generator templates can also be published for customization:
 
 ```bash
 php artisan vendor:publish --tag="arch-stubs"
 ```
 
-## Code Generation
+## Quick start
 
-The package provides Artisan commands for generating boilerplate code:
-
-### Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `make:arch-action` | Create a new Action class |
-| `make:arch-service` | Create a complete service stack (Service, Repository, ModelManager) |
-| `make:arch-dto` | Create a new DTO class |
-| `make:arch-validation-rules` | Create a new ValidationRules class |
-
-### Examples
+In a Laravel application with an existing `App\Models\User` model and migrated `users` table, generate its service stack:
 
 ```bash
-# Create an Action class
-php artisan make:arch-action User/CreateUserAction
-
-# Create a complete service stack for User model
 php artisan make:arch-service "App\Models\User"
-
-# Create a DTO class
-php artisan make:arch-dto User/CreateUserDTO
-
-# Create a ValidationRules class
-php artisan make:arch-validation-rules User/UserValidationRules
 ```
 
-For detailed documentation about code generation, see [Code Generation Documentation](docs/code-generation.md).
+This creates `UserModelService`, `UserRepository` and `UserModelManager` in `app/Services/User`. The model must allow mass assignment of the fields you pass to `create()`; the example uses `name`, `email` and `password`.
 
-## Architecture Overview
-
-This package provides a clean architecture with the following components:
-
-1. **Actions**: Single-purpose classes that handle specific business operations
-2. **Action Logging**: Robust logging system with configurable channels and fallback
-3. **Services**: Combine Repository and Model Manager for complete CRUD operations
-4. **Repositories**: Handle read operations with advanced querying capabilities and caching
-5. **Model Managers**: Handle write operations (create, update, delete)
-6. **Data Builder**: Transform data using pipeline pattern
-7. **Data Validator**: Integrated validation using Laravel's validation system
-8. **Data Transfer Objects (DTO)**: Type-safe data objects with attribute-based validation
-9. **Pipes**: Reusable data transformation components
-10. **Transactions**: Atomic execution of multiple writes inside an Action
-11. **Result**: Explicit success / failure outcome of an operation
-
-## Usage Examples
-
-### Creating a Repository
+Resolve the generated service through Laravel's container to write and read a user:
 
 ```php
-<?php
+use App\Services\User\UserModelService;
+use Illuminate\Support\Facades\Hash;
 
-namespace App\Repositories;
+$users = app(UserModelService::class);
 
-use Pekral\Arch\Repository\CacheableRepository;
-use Pekral\Arch\Repository\Mysql\BaseRepository;
-use App\Models\User;
+$user = $users->create([
+    'name' => 'Alex',
+    'email' => 'alex@example.com',
+    'password' => Hash::make('example-password'),
+]);
 
-/**
- * @extends \Pekral\Arch\Repository\Mysql\BaseRepository<\App\Models\User>
- */
-final readonly class UserRepository extends BaseRepository
-{
-    use CacheableRepository;
-
-    protected function getModelClassName(): string
-    {
-        return User::class;
-    }
-}
+$found = $users->getOneByParams(['email' => 'alex@example.com']);
+// $found->id === $user->id
 ```
 
-### Using Fluent Query Interface
+`create()` delegates to the Model Manager; `getOneByParams()` delegates to the Repository and throws `ModelNotFoundException` when no record matches. Use `findOneByParams()` for a nullable result.
 
-The repository provides a fluent interface for building complex queries:
+### Put an operation in an Action
 
-```php
-<?php
-
-namespace App\Repositories;
-
-use Pekral\Arch\Repository\Mysql\BaseRepository;
-use App\Models\User;
-
-final readonly class UserRepository extends BaseRepository
-{
-    protected function getModelClassName(): string
-    {
-        return User::class;
-    }
-    
-    public function findActiveUsers(): Collection
-    {
-        return $this->query()
-            ->where('active', true)
-            ->orderBy('name')
-            ->get();
-    }
-    
-    public function findUsersWithPosts(): Collection
-    {
-        return $this->query()
-            ->whereHas('posts')
-            ->with('posts')
-            ->get();
-    }
-    
-    public function searchUsers(string $term): Collection
-    {
-        return $this->query()
-            ->where(function ($query) use ($term) {
-                $query->where('name', 'like', "%{$term}%")
-                      ->orWhere('email', 'like', "%{$term}%");
-            })
-            ->get();
-    }
-}
-
-// Usage in Actions or Services
-$users = $userRepository->query()
-    ->where('active', true)
-    ->whereIn('role', ['admin', 'moderator'])
-    ->with(['posts', 'profile'])
-    ->orderBy('created_at', 'desc')
-    ->limit(10)
-    ->get();
-```
-
-### Using Repository Caching
-
-The repository provides automatic caching through the `CacheableRepository` trait:
+Save this as `app/Actions/User/UpdateUserName.php`. It follows the package's `final readonly` Action convention and injects the generated service:
 
 ```php
 <?php
 
 namespace App\Actions\User;
 
-use App\Repositories\UserRepository;
 use App\Models\User;
-
-final readonly class GetUserCached
-{
-    public function __construct(private UserRepository $userRepository)
-    {
-    }
-
-    /**
-     * @param array<string, mixed> $filters
-     */
-    public function __invoke(array $filters): User
-    {
-        // Automatically cached for configured TTL
-        return $this->userRepository->cache()->getOneByParams($filters);
-    }
-}
-
-// Clear specific cache entry
-$this->userRepository->cache()->clearCache('getOneByParams', $filters);
-
-// Clear all cache entries (use with caution)
-$this->userRepository->cache()->clearAllCache();
-```
-
-### Creating a Model Manager
-
-```php
-<?php
-
-namespace App\Services;
-
-use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
-use App\Models\User;
-
-/**
- * @extends \Pekral\Arch\ModelManager\Mysql\BaseModelManager<\App\Models\User>
- */
-final class UserModelManager extends BaseModelManager
-{
-    protected function getModelClassName(): string
-    {
-        return User::class;
-    }
-}
-```
-
-### Creating a Service
-
-```php
-<?php
-
-namespace App\Services;
-
-use Pekral\Arch\ModelManager\Mysql\BaseModelManager;
-use Pekral\Arch\Repository\Mysql\BaseRepository;
-use Pekral\Arch\Service\BaseModelService;
-use App\Models\User;
-
-/**
- * @extends \Pekral\Arch\Service\BaseModelService<\App\Models\User>
- */
-final readonly class UserModelService extends BaseModelService
-{
-    public function __construct(
-        private UserModelManager $userModelManager,
-        private UserRepository $userRepository
-    ) {
-    }
-
-    protected function getModelClass(): string
-    {
-        return User::class;
-    }
-
-    protected function getModelManager(): BaseModelManager
-    {
-        return $this->userModelManager;
-    }
-
-    protected function getRepository(): BaseRepository
-    {
-        return $this->userRepository;
-    }
-}
-```
-
-### Bulk Operations with Duplicate Handling
-
-The Model Manager provides powerful bulk operations including duplicate handling:
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use Pekral\Arch\Examples\Services\User\UserModelManager;
-use Pekral\Arch\Tests\Models\User;
-
-final readonly class BulkImportUsers
-{
-    public function __construct(
-        private UserModelManager $userModelManager,
-    ) {
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $userData
-     * @return array{
-     *     total_processed: int,
-     *     created: int,
-     *     ignored: int
-     * }
-     */
-    public function __invoke(array $userData): array
-    {
-        if ($userData === []) {
-            return [
-                'total_processed' => 0,
-                'created' => 0,
-                'ignored' => 0,
-            ];
-        }
-
-        // Prepare data with timestamps
-        $preparedData = $this->prepareUserData($userData);
-
-        // Count existing users before import
-        $existingCount = User::count();
-
-        // Use insertOrIgnore to handle duplicates
-        $processedCount = $this->userModelManager->insertOrIgnore($preparedData);
-
-        // Count users after import
-        $newCount = User::count();
-        $createdCount = $newCount - $existingCount;
-        $ignoredCount = $processedCount - $createdCount;
-
-        return [
-            'total_processed' => $processedCount,
-            'created' => $createdCount,
-            'ignored' => $ignoredCount,
-        ];
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $userData
-     * @return array<int, array<string, mixed>>
-     */
-    private function prepareUserData(array $userData): array
-    {
-        $now = now();
-
-        return array_map(function (array $data) use ($now): array {
-            return array_merge($data, [
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        }, $userData);
-    }
-}
-```
-
-### Creating Actions with Data Transformation and Validation
-
-Actions are single-purpose classes that handle specific business operations. They can use DataBuilder for transformation and DataValidator for validation:
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use Pekral\Arch\DataBuilder\DataBuilder;
-use Pekral\Arch\DataValidation\DataValidator;
-use App\Actions\User\Pipes\LowercaseEmailPipe;
-use App\Actions\User\Pipes\UcFirstNamePipe;
-use App\Services\UserModelService;
-use App\Models\User;
-
-final readonly class CreateUser
-{
-    use DataBuilder;
-    use DataValidator;
-
-    public function __construct(
-        private UserModelService $userModelService,
-        private VerifyUserAction $verifyUserAction,
-    ) {
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    public function __invoke(array $data): User
-    {
-        // Validate input data
-        $this->validate($data, [
-            'email' => 'required|email',
-            'name' => 'required|string',
-        ], []);
-        
-        // Transform data using pipeline
-        $normalizedData = $this->build($data, [
-            'email' => LowercaseEmailPipe::class,
-            'name' => UcFirstNamePipe::class,
-        ]);
-        
-        // Create user
-        $user = $this->userModelService->create($normalizedData);
-        
-        // Send verification email
-        ($this->verifyUserAction)($user);
-        
-        return $user;
-    }
-}
-```
-
-### Using Data Transfer Objects (DTO)
-
-DTOs provide type-safe data objects with attribute-based validation using Spatie Laravel Data:
-
-```php
-<?php
-
-namespace App\DTO;
-
-use Pekral\Arch\DTO\DataTransferObject;
-use Spatie\LaravelData\Attributes\Validation\Email;
-use Spatie\LaravelData\Attributes\Validation\Max;
-use Spatie\LaravelData\Attributes\Validation\Nullable;
-use Spatie\LaravelData\Attributes\Validation\Required;
-use Spatie\LaravelData\Attributes\Validation\Rule;
-
-final class CreateUserDTO extends DataTransferObject
-{
-    public function __construct(
-        #[Email, Required]
-        public string $email,
-        #[Max(255), Required]
-        public string $name,
-        #[Nullable, Rule(new CzechPhoneRule())]
-        public ?string $phone = null,
-    ) {
-    }
-}
-
-// Usage
-$dto = CreateUserDTO::from($request->all());
-$dto = CreateUserDTO::validateAndCreate($data); // With validation
-$array = $dto->toArray();
-```
-
-### Custom Validation Rules for DTO
-
-Create custom validation rules that can be used in DTOs:
-
-```php
-<?php
-
-namespace App\Rules;
-
-use Closure;
-use Illuminate\Contracts\Validation\ValidationRule;
-
-final class CzechPhoneRule implements ValidationRule
-{
-    public function validate(string $attribute, mixed $value, Closure $fail): void
-    {
-        if (!preg_match('/^\+420\d{9}$/', $value)) {
-            $fail('The phone number must be in format +420XXXXXXXXX.');
-        }
-    }
-}
-```
-
-### Sharing Validation Rules Between Request and DTO
-
-Create centralized validation rules that can be used in both Laravel Requests and DTOs:
-
-```php
-<?php
-
-namespace App\Rules;
-
-final class UserValidationRules
-{
-    /**
-     * @return array<string, array<int, mixed>>
-     */
-    public static function rules(): array
-    {
-        return [
-            'email' => ['required', 'email'],
-            'name' => ['required', 'max:255'],
-            'phone' => ['nullable', new CzechPhoneRule()],
-        ];
-    }
-}
-
-// In Laravel Request
-final class CreateUserRequest extends FormRequest
-{
-    public function rules(): array
-    {
-        return UserValidationRules::rules();
-    }
-}
-
-// In DTO
-final class CreateUserDTO extends DataTransferObject
-{
-    public function __construct(
-        #[Rule(UserValidationRules::emailRules())]
-        public string $email,
-        #[Rule(UserValidationRules::nameRules())]
-        public string $name,
-    ) {
-    }
-}
-```
-
-### Creating Data Transformation Pipes
-
-```php
-<?php
-
-namespace App\Actions\User\Pipes;
-
-interface BuilderPipe
-{
-    /**
-     * Transform user data.
-     *
-     * @param array<string, mixed> $data
-     * @param callable(array<string, mixed>): array<string, mixed> $next
-     * @return array<string, mixed>
-     */
-    public function handle(array $data, callable $next): array;
-}
-
-final readonly class LowercaseEmailPipe implements BuilderPipe
-{
-    public function handle(array $data, callable $next): array
-    {
-        if (isset($data['email']) && is_string($data['email'])) {
-            $data['email'] = strtolower($data['email']);
-        }
-
-        return $next($data);
-    }
-}
-
-final readonly class UcFirstNamePipe implements BuilderPipe
-{
-    public function handle(array $data, callable $next): array
-    {
-        if (isset($data['name']) && is_string($data['name'])) {
-            $data['name'] = str($data['name'])->lower()->ucfirst()->value();
-        }
-
-        return $next($data);
-    }
-}
-```
-
-### Using Actions in Controllers
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use App\Actions\User\CreateUser;
-use App\Actions\User\GetUser;
-use App\Actions\User\UpdateUserName;
-use Illuminate\Http\Request;
-
-final class UserController extends Controller
-{
-    public function store(Request $request, CreateUser $createUser)
-    {
-        $user = ($createUser)($request->validated());
-        
-        return response()->json($user, 201);
-    }
-    
-    public function show(Request $request, GetUser $getUser)
-    {
-        $user = ($getUser)($request->only(['email', 'name']));
-        
-        return response()->json($user);
-    }
-    
-    public function updateName(Request $request, UpdateUserName $updateUserName)
-    {
-        $user = User::findOrFail($request->user_id);
-        ($updateUserName)($request->name, $user);
-        
-        return response()->json(['message' => 'Name updated successfully']);
-    }
-}
-```
-
-### Running Actions in a Transaction
-
-The `Transactional` trait wraps several writes in one atomic transaction. Attempts default to `arch.transactions.default_attempts`; an optional connection name targets a non-default connection:
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use App\DTO\UserPairResultDTO;
-use App\Services\UserModelService;
+use App\Services\User\UserModelService;
 use Pekral\Arch\Action\ArchAction;
-use Pekral\Arch\Transaction\Transactional;
 
-final readonly class CreateUserWithTransaction implements ArchAction
+final readonly class UpdateUserName implements ArchAction
 {
-    use Transactional;
-
-    public function __construct(private UserModelService $userModelService)
+    public function __construct(private UserModelService $users)
     {
     }
 
-    public function __invoke(array $primaryData, array $secondaryData): UserPairResultDTO
+    public function __invoke(string $name, User $user): void
     {
-        return $this->transaction(fn (): UserPairResultDTO => new UserPairResultDTO(
-            primary: $this->userModelService->create($primaryData),
-            secondary: $this->userModelService->create($secondaryData),
-        ));
+        $this->users->updateModel($user, ['name' => $name]);
     }
 }
 ```
 
-Alternatively, mark `__invoke()` with the `#[InTransaction]` attribute and run the body through the `TransactionAwareAction` trait:
+Call the Action from a controller or another application entry point after validating and authorizing the request:
 
 ```php
-use Pekral\Arch\Transaction\InTransaction;
-use Pekral\Arch\Transaction\TransactionAwareAction;
+use App\Actions\User\UpdateUserName;
 
-final readonly class TransferUserDataAction implements ArchAction
-{
-    use TransactionAwareAction;
-
-    #[InTransaction(attempts: 3)]
-    public function __invoke(User $fromUser, User $toUser, string $newName): User
-    {
-        return $this->executeWithTransactionAttribute(function () use ($fromUser, $toUser, $newName): User {
-            $this->userModelService->updateModel($fromUser, ['name' => 'transferred']);
-            $this->userModelService->updateModel($toUser, ['name' => $newName]);
-
-            return $toUser;
-        });
-    }
-}
+$updateUserName = app(UpdateUserName::class);
+($updateUserName)('Alex Morgan', $user);
 ```
 
-For partial rollback inside a larger transaction, the `NestedTransactional` trait provides `savepoint(string $name, Closure $callback, ?string $connection = null)`.
-
-### Returning a Result
-
-`Pekral\Arch\Result\Result` makes expected failures explicit in the return type instead of throwing:
-
-```php
-use Pekral\Arch\Result\Result;
-
-/**
- * @return \Pekral\Arch\Result\Result<\App\Models\User, \App\Actions\User\Errors\UserError>
- */
-public function __invoke(array $data): Result
-{
-    $existing = $this->userModelService->findOneByParams(['email' => $data['email']]);
-
-    if ($existing instanceof User) {
-        return Result::failure(UserError::EMAIL_ALREADY_EXISTS);
-    }
-
-    return Result::success($this->userModelService->create($data));
-}
-
-// Caller
-$result = ($createUser)($data);
-
-if ($result->isFailure()) {
-    $error = $result->error();
-}
-
-$user = $result->unwrap();
-```
-
-`map()` and `flatMap()` transform or chain a successful value and pass a failure through untouched. `unwrap()` on a failure and `error()` on a success throw `UnwrapFailure`.
-
-## Available Methods
-
-### Repository Methods
-
-- `paginateByParams(array $params, array $with = [], ?int $itemsPerPage = null, array $orderBy = [], array $groupBy = [])` - Paginate results
-- `getOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - Get one record or throw exception
-- `findOneByParams(Collection|array $params, array $with = [], array $orderBy = [])` - Find one record or return null
-- `countByParams(Collection|array $params, array $groupBy = [])` - Count records
-- `query()` - Start a fluent query builder interface
-- `createQueryBuilder()` - Create a new query builder instance
-- `cache()` - Get cache wrapper for automatic caching
-
-### Repository Caching Methods
-
-- `cache()->paginateByParams(...)` - Cached pagination
-- `cache()->getOneByParams(...)` - Cached single record retrieval
-- `cache()->findOneByParams(...)` - Cached single record find
-- `cache()->countByParams(...)` - Cached count
-- `cache()->clearCache(string $method, array $args)` - Clear specific cache entry
-- `cache()->clearAllCache()` - Clear all cache entries
-
-### Model Manager Methods
-
-- `create(array $data)` - Create single record
-- `update(Model $model, array $data)` - Update existing model
-- `updateOrCreate(array $attributes, array $values = [])` - Update existing record or create a new one if it doesn't exist
-- `getOrCreate(array $attributes, array $values = [])` - Get existing record or create a new one if it doesn't exist
-- `bulkCreate(array $dataArray)` - Bulk create records
-- `insertOrIgnore(array $dataArray)` - Bulk insert records, ignoring duplicates based on unique constraints
-- `bulkUpdate(array $dataArray, string $keyColumn = 'id')` - Bulk update records
-- `rawMassUpdate(array $values, array|string|null $uniqueBy = null)` - Mass update records using CASE WHEN SQL statement (requires MassUpdatable trait)
-- `deleteByParams(array $parameters)` - Delete by parameters
-- `bulkDeleteByParams(array $parameters)` - Batch delete by parameters
-
-### Service Methods (Combines Repository + Model Manager)
-
-**CRUD Operations:**
-- `create(array $data)` - Create with validation
-- `updateModel(Model $model, array $data)` - Update existing model
-- `deleteModel(Model $model)` - Delete model
-- `deleteByParams(array $parameters)` - Delete by parameters
-- `bulkDeleteByParams(array $parameters)` - Batch delete by parameters
-
-**Read Operations:**
-- `findOneByParams(array $parameters, array $with = [], array $orderBy = [])` - Find one or null
-- `getOneByParams(array $parameters, array $with = [], array $orderBy = [])` - Find one or throw exception
-- `paginateByParams(array $parameters = [], array $with = [], ?int $perPage = null, array $orderBy = [], array $groupBy = [])` - Paginate
-- `countByParams(array $parameters, array $groupBy = [])` - Count records
-
-**Bulk Operations:**
-- `bulkCreate(array $data)` - Bulk create records
-- `insertOrIgnore(array $data)` - Bulk insert records, ignoring duplicates
-- `bulkUpdate(array $data, string $keyColumn = 'id')` - Bulk update records
-- `bulkDeleteByParams(array $parameters)` - Batch delete by parameters
-
-## Data Builder Usage
-
-The Data Builder uses Laravel's Pipeline to transform data through a series of pipes. It supports both general pipes (applied to all data) and specific pipes (applied to specific fields).
-
-### Basic Usage
-
-```php
-use Pekral\Arch\DataBuilder\DataBuilder;
-
-final readonly class ProcessUserData
-{
-    public function __construct(private DataBuilder $dataBuilder)
-    {
-    }
-    
-    public function handle(array $userData): array
-    {
-        return $this->dataBuilder->build($userData, [
-            // General pipes (applied to all data)
-            ValidateEmailPipe::class,
-            SanitizeDataPipe::class,
-            
-            // Specific pipes (applied to specific fields)
-            'email' => LowercaseEmailPipe::class,
-            'name' => UcFirstNamePipe::class,
-        ]);
-    }
-}
-```
-
-### Pipe Processing Order
-
-1. **General Pipes**: Applied first to all data
-2. **Specific Pipes**: Applied after general pipes to specific fields
-
-### Using in Actions
-
-```php
-final readonly class CreateUser
-{
-    use DataBuilder;
-    
-    public function __invoke(array $data): User
-    {
-        $dataNormalized = $this->build($data, [
-            'email' => LowercaseEmailPipe::class,
-            'name' => UcFirstNamePipe::class,
-        ]);
-        
-        return $this->userModelService->create($dataNormalized);
-    }
-}
-```
-
-## Data Validator Usage
-
-The Data Validator provides a simple interface for validating data using Laravel's validation system.
-
-### Basic Usage
-
-```php
-use Pekral\Arch\DataValidation\DataValidator;
-
-final readonly class ValidateUserData
-{
-    use DataValidator;
-    
-    public function validateUser(array $data): array
-    {
-        return $this->validate($data, [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:6',
-        ], [
-            'email.required' => 'Email is required.',
-            'email.email' => 'Email must be a valid email address.',
-            'name.required' => 'Name is required.',
-        ]);
-    }
-}
-```
-
-### Using in Actions
-
-```php
-final readonly class CreateUser
-{
-    use DataValidator;
-    
-    public function __invoke(array $data): User
-    {
-        $this->validate($data, [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-        ], []);
-        
-        return $this->userModelService->create($data);
-    }
-}
-```
-
-### Validation Exception Handling
-
-```php
-try {
-    $validatedData = $this->validate($data, $rules, $messages);
-} catch (\Illuminate\Validation\ValidationException $e) {
-    $errors = $e->errors();
-    // Handle validation errors
-}
-```
-
-## Action Logging Usage
-
-The Action Logger provides robust logging for action execution with automatic fallback mechanism. It logs action start, success, and failure events with configurable logging channels.
-
-### Basic Usage
-
-```php
-use Pekral\Arch\Action\ActionLogger;
-
-final readonly class ProcessOrderAction
-{
-    use ActionLogger;
-    
-    public function __invoke(array $orderData): Order
-    {
-        $startTime = microtime(true);
-        
-        $this->logActionStart('ProcessOrder', [
-            'order_id' => $orderData['id'] ?? null,
-            'customer_id' => $orderData['customer_id'] ?? null
-        ]);
-        
-        try {
-            $order = $this->orderService->process($orderData);
-            
-            $this->logActionSuccess('ProcessOrder', [
-                'order_id' => $order->id,
-                'total_amount' => $order->total_amount,
-                'processing_time' => microtime(true) - $startTime
-            ]);
-            
-            return $order;
-        } catch (\Exception $e) {
-            $this->logActionFailure('ProcessOrder', $e->getMessage(), [
-                'order_data' => $orderData,
-                'error_type' => get_class($e),
-                'stack_trace' => $e->getTraceAsString()
-            ]);
-            
-            throw $e;
-        }
-    }
-}
-```
-
-### Available Methods
-
-- `logActionStart(string $action, array $context = [])` - Log action start
-- `logActionSuccess(string $action, array $context = [])` - Log successful completion  
-- `logActionFailure(string $action, string $error, array $context = [])` - Log failure
-
-### Logging Configuration
-
-Configure action logging in your `config/arch.php` file:
-
-```php
-return [
-    // ... other config
-    
-    'action_logging' => [
-        'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
-        'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
-    ],
-];
-```
-
-### Environment Variables
-
-```bash
-# Use specific logging channel for actions
-ARCH_ACTION_LOG_CHANNEL=actions
-
-# Disable action logging
-ARCH_ACTION_LOGGING_ENABLED=false
-```
-
-### Custom Logging Channel
-
-Create a dedicated logging channel in `config/logging.php`:
-
-```php
-'channels' => [
-    'actions' => [
-        'driver' => 'daily',
-        'path' => storage_path('logs/actions.log'),
-        'level' => 'info',
-        'days' => 14,
-    ],
-],
-```
-
-### Fallback Mechanism
-
-If the primary logger fails, ActionLogger automatically falls back to writing detailed error information to `storage/logs/arch.log`:
-
-```
-[2025-01-15 14:30:25] ARCH FALLBACK LOG
-Level: INFO
-Action: ProcessOrder
-Type: start
-Original Message: Action started: ProcessOrder
-Context: {
-    "order_id": 12345,
-    "customer_id": 67890
-}
-Logging Error: Redis connection timeout
-Logging Error File: /app/vendor/predis/Client.php:156
-Stack Trace: #0 /app/vendor/predis/Client.php...
---------------------------------------------------------------------------------
-```
-
-This ensures that **no action execution is interrupted** by logging failures, while still providing complete debugging information.
-
-## Configuration
-
-The package publishes a configuration file with the following options:
-
-```php
-return [
-    'default_items_per_page' => 15,
-    
-    'exceptions' => [
-        'should_not_happen' => \RuntimeException::class,
-    ],
-    
-    'action_logging' => [
-        'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
-        'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
-    ],
-    
-    'repository_cache' => [
-        'enabled' => env('ARCH_REPOSITORY_CACHE_ENABLED', true),
-        'ttl' => env('ARCH_REPOSITORY_CACHE_TTL', 3600), // 1 hour default
-        'prefix' => env('ARCH_REPOSITORY_CACHE_PREFIX', 'arch_repo'),
-    ],
-
-    'transactions' => [
-        'default_attempts' => env('ARCH_TRANSACTION_ATTEMPTS', 1),
-    ],
-];
-```
-
-### Environment Variables
-
-```bash
-# Action logging configuration
-ARCH_ACTION_LOG_CHANNEL=actions
-ARCH_ACTION_LOGGING_ENABLED=true
-
-# Repository caching configuration
-ARCH_REPOSITORY_CACHE_ENABLED=true
-ARCH_REPOSITORY_CACHE_TTL=3600
-ARCH_REPOSITORY_CACHE_PREFIX=arch_repo
-
-# Transaction retry attempts (deadlock / transient failure)
-ARCH_TRANSACTION_ATTEMPTS=1
-```
-
-## PHPStan Architecture Rules
-
-The package includes custom PHPStan rules that enforce architectural best practices:
-
-### Available Rules
-
-1. **NoEloquentStorageMethodsInActionsRule** - Prevents direct Eloquent storage method calls (`save()`, `create()`, `delete()`, etc.) in Action classes
-2. **NoDirectDatabaseQueriesInActionsRule** - Prevents direct database query calls (`where()`, `find()`, `get()`, etc.) in Action classes
-3. **OnlyModelManagersCanPersistDataRule** - Ensures data persistence operations are only performed in ModelManager or ModelService classes
-4. **NoLaravelHelpersForActionsRule** - Prevents using Laravel helper functions (`app()`, `resolve()`, `make()`) to resolve Action classes. Actions must be injected via constructor
-5. **ServiceNamingConventionRule** - Ensures that all Service classes extending `BaseModelService` end with `ModelService` suffix
-6. **ActionInvokeMethodRule** - Ensures Action classes expose only one public entry point: `__invoke()` (constructor excluded); `__invoke()` may accept arguments
-7. **ValidationRulesMethodNamingRule** - Ensures ValidationRules classes have only static methods ending with `Rules` suffix
-8. **ValidationRulesNoInstantiationRule** - Prevents instantiation of ValidationRules classes via `new`
-9. **NoHttpResponseInActionsRule** - Prevents Action methods from returning an HTTP response (`Response`, `JsonResponse`, `View`, `Responsable`, ...). The controller builds the response from the data an Action returns. The optional `actionNamespaces` argument also covers Actions that do not implement `ArchAction` yet
-10. **NoHttpExceptionsInActionsRule** - Prevents an Action from throwing an HTTP response exception (`NotFoundHttpException`, `abort()`, `abort_if()`, ...). It throws a domain exception; the entry point translates it into an HTTP response. The optional `actionNamespaces` argument also covers Actions that do not implement `ArchAction` yet
-11. **NoHttpExceptionsInDataValidatorsRule** - Prevents a Data Validator from throwing an HTTP response exception. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespaces
-12. **ActionsMustImplementArchActionRule** - Ensures every class in a configured Actions namespace implements `ArchAction`, so the other Action rules cannot miss it
-13. **ModelNamingSuffixRule** - Ensures classes extending Eloquent `Model` end with `Model` suffix
-14. **OnlyRepositoriesCanQueryDataRule** - Prevents Eloquent query builder methods in Action classes; queries belong to the Repository layer
-15. **ActionReturnDtoRule** - Prevents `ArchAction::__invoke()` from returning a raw array; structured data must be wrapped in a DTO extending `Spatie\LaravelData\Data`
-16. **WhereRawBindingsRule** - Requires bindings (second argument) for `whereRaw()` calls with a dynamic SQL expression to prevent SQL injection
-17. **ActionClassModifiersRule** - Ensures every concrete Action class is declared `final readonly`; abstract support classes, interfaces and anonymous classes are not reported
-18. **ImmutableDependenciesRule** - Ensures Actions, Services, Repositories and Model Managers receive dependencies through the constructor into readonly properties; setter injection and reassignment are reported
-19. **NoMutableStaticStateRule** - Forbids static properties (shared mutable state) in Actions, Services, Repositories and Model Managers; constants and static methods stay allowed
-20. **NoPublicMutablePropertiesRule** - Forbids public properties that can change after construction in Actions, Services, Repositories and Model Managers; `public readonly` and `public private(set)` stay allowed. The optional `excludedClasses` argument excludes value objects by class, interface or namespace
-21. **NoManualArchitectureServiceInstantiationRule** - Forbids constructing Actions, Services, Repositories and Model Managers with `new`; they must be constructor-injected. DTOs, value objects and models stay constructible
-22. **DataValidatorReturnTypeRule** - Restricts public Data Validator methods to the `bool` or `void` return type; thrown exceptions are not restricted. The optional `dataValidatorNamespaces` argument limits the rule to the listed namespaces
-23. **JobRoutingOutsideJobRule** - Requires a queued job (`ShouldQueue`) to configure its own connection, queue and message group; routing calls on a `PendingDispatch` or on a job instance outside the job class are reported, `delay()` and other non-routing methods stay allowed. The optional `routingMethods` argument replaces the default `onConnection`, `onQueue`, `onGroup`
-
-### Why These Rules?
-
-These rules enforce clean architecture by ensuring:
-- Actions use Repository pattern for data retrieval
-- Actions use ModelManager pattern for data persistence
-- Database operations are properly separated by concerns
-
-### Example Violations
-
-```php
-// ❌ Violation: Direct query in Action
-final readonly class GetUsers implements ArchAction
-{
-    public function __invoke(): Collection
-    {
-        return User::where('active', true)->get(); // PHPStan error!
-    }
-}
-
-// ✅ Correct: Using Repository
-final readonly class GetUsers implements ArchAction
-{
-    public function __construct(private UserModelService $service) {}
-    
-    public function __invoke(): LengthAwarePaginator
-    {
-        return $this->service->paginateByParams(['active' => true]);
-    }
-}
-```
-
-### Running Rules
-
-The rules are automatically enforced when running PHPStan:
-
-```bash
-composer analyse
-```
-
-For detailed documentation about the PHPStan rules, see [PHPStan Rules Documentation](docs/phpstan-rules.md).
+## What it does
+
+| Component | Responsibility |
+| --- | --- |
+| Actions & Model Services | Actions orchestrate an operation through `__invoke()`; Model Services combine reads and writes |
+| Repositories & Model Managers | Query and paginate records; create, update, delete and process records in bulk, with SQL and DynamoDB implementations |
+| Repository caching | Opt in to cached reads through `CacheableRepository::cache()`, with configurable TTL and explicit invalidation |
+| Data objects & validation | Build DTOs on Spatie Laravel Data, validate input and transform data through pipelines |
+| Transactions & Results | Wrap SQL writes with `Transactional`, `#[InTransaction]` helpers or nested savepoints; return explicit success/failure outcomes with `Result` |
+| Architecture rules & generators | Generate Actions, service stacks, DTOs and validation rules; check layer boundaries, immutable dependencies and raw SQL bindings with PHPStan |
+
+The `#[InTransaction]` attribute requires the `TransactionAwareAction` trait and an explicit call to `executeWithTransactionAttribute()` inside the Action. The attribute alone does not wrap execution. See the [transaction example](examples/Actions/User/TransferUserDataAction.php).
+
+PHPStan rules are enabled through your PHPStan configuration; installing the package does not enable them in your application. See [rule registration and configuration](docs/phpstan-rules.md#configuration).
 
 ## Documentation
 
-For detailed documentation about specific features, see:
+| Topic | Guide |
+| --- | --- |
+| Scaffolding | [Artisan commands, options and custom stubs](docs/code-generation.md) |
+| Data access | [Model Managers and bulk writes](docs/model-manager.md) · [Query Builder methods](docs/query-builder-methods.md) · [Soft deletes](docs/soft-delete.md) |
+| Cached reads | [Caching, keys and invalidation](docs/repository-caching.md) |
+| Input and transformation | [DTOs and validation](docs/validation.md) · [Data Builder pipelines](docs/data-builder.md) |
+| DynamoDB | [Models and setup](docs/dynamodb-model.md) |
+| Architecture checks | [PHPStan rules](docs/phpstan-rules.md) |
+| Transactions | [Atomic writes](examples/Actions/User/CreateUserWithTransaction.php) · [Attribute helper](examples/Actions/User/TransferUserDataAction.php) · [Nested savepoints](examples/Actions/User/CreateUserWithNestedTransaction.php) |
+| Expected failures | [Result-based Action](examples/Actions/User/CreateUserWithResult.php) · [Result API](src/Result/Result.php) |
 
-- [Code Generation](docs/code-generation.md) - Artisan commands for generating boilerplate code
-- [PHPStan Rules](docs/phpstan-rules.md) - Custom architecture rules
-- [Repository Caching](docs/repository-caching.md) - Automatic caching layer
-- [Query Builder Methods](docs/query-builder-methods.md) - Custom query builder methods with PHPStorm support
-- [Data Builder](docs/data-builder.md) - Pipeline-based data transformation
-- [Data Validation](docs/validation.md) - Integrated validation with DTO support
-- [Model Manager](docs/model-manager.md) - CRUD operations with batch processing
-- [Soft Delete](docs/soft-delete.md) - Soft delete support
-- [DynamoDB Model](docs/dynamodb-model.md) - Experimental DynamoDB support
-- [Coverage Analysis](docs/coverage-analysis.md) - Code coverage information
+More working patterns are in [`examples/`](examples).
 
-## Testing
+## Development and checks
 
-The package includes comprehensive tests with 100% code coverage:
+Repository development uses PHP 8.5, matching CI. The test suite uses SQLite and DynamoDB Local; `composer test:coverage` starts the local Docker Compose service through the bundled script. Coverage requires PCOV.
 
 ```bash
-# Run the test suite
-vendor/bin/pest
-
-# Run tests with the 100% coverage gate
+composer install
 composer test:coverage
 ```
 
-## Exception Handling
+| Command | Checks |
+| --- | --- |
+| `composer analyse` | PHPStan static analysis |
+| `composer security-audit` | Dependencies against known security advisories |
+| `composer check` | Composer normalization, PHPCS, Pint, Rector dry run, PHPStan, dependency audit and tests with a 100% coverage threshold |
 
-The package provides a custom exception for unexpected situations:
+[Checkers](https://github.com/pekral/arch-app-services/actions/workflows/checkers.yml) runs on pushes and pull requests to `master`/`main`, and weekly.
 
-```php
-use Pekral\Arch\Exceptions\ShouldNotHappen;
+## Changelog
 
-// Throw exception with reason
-throw ShouldNotHappen::because('This should never happen in normal circumstances');
-```
+See [CHANGELOG.md](CHANGELOG.md) for release history and breaking changes.
 
 ## Contributing
 
-This package is under active development. Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-**Note**: Since this package is still in development, please check the latest changes before implementing in production environments.
-
-## Credits
-
-- [Petr Král](https://github.com/pekral)
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report bugs and request features through [GitHub issues](https://github.com/pekral/arch-app-services/issues).
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
+MIT. See [LICENSE](LICENSE).
