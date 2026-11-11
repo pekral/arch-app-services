@@ -1,22 +1,34 @@
-<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
-  <!-- Architecture Icon - Simple layered blocks on the left -->
-  <g transform="translate(10, 15)">
-    <!-- Base layer -->
-    <rect x="0" y="20" width="25" height="4" fill="#ff2d20" opacity="0.3" rx="2"/>
-    <!-- Layer 1 -->
-    <rect x="2" y="16" width="21" height="4" fill="#ff2d20" opacity="0.5" rx="2"/>
-    <!-- Layer 2 -->
-    <rect x="4" y="12" width="17" height="4" fill="#ff2d20" opacity="0.7" rx="2"/>
-    <!-- Layer 3 -->
-    <rect x="6" y="8" width="13" height="4" fill="#ff2d20" opacity="0.9" rx="2"/>
-    <!-- Top layer -->
-    <rect x="8" y="4" width="9" height="4" fill="#ff2d20" rx="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="216" viewBox="0 0 800 216" role="img" aria-labelledby="title description">
+  <title id="title">Arch App Services</title>
+  <desc id="description">A mint arch connects three distinct layers on a dark navy panel, representing Actions, Repositories and Model Managers in a Laravel application.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="800" y2="216" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#142536"/>
+      <stop offset="1" stop-color="#0b1422"/>
+    </linearGradient>
+    <linearGradient id="arch" x1="56" y1="52" x2="152" y2="152" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a7f3d0"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="798" height="214" rx="24" fill="url(#panel)" stroke="#2a4052" stroke-width="2"/>
+  <rect x="28" y="28" width="160" height="160" rx="24" fill="#102331" stroke="#2a4956"/>
+  <path d="M60 131V99a48 48 0 0 1 96 0v32" fill="none" stroke="url(#arch)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M60 112h96M108 112v21" fill="none" stroke="#64dfc8" stroke-width="6" stroke-linecap="round"/>
+  <rect x="47" y="143" width="26" height="18" rx="5" fill="#a7f3d0"/>
+  <rect x="95" y="143" width="26" height="18" rx="5" fill="#64dfc8"/>
+  <rect x="143" y="143" width="26" height="18" rx="5" fill="#2dd4bf"/>
+  <text x="224" y="102" fill="#f1f7fa" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="56" font-weight="700" letter-spacing="-2">arch<tspan fill="#a7f3d0">.</tspan></text>
+  <text x="227" y="138" fill="#d0dfe7" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="23" font-weight="600" letter-spacing="4">APP SERVICES</text>
+  <path d="M612 61v94" stroke="#2a4052" stroke-width="2"/>
+  <g fill="#9db7c6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" font-weight="600" letter-spacing="2">
+    <text x="644" y="80">ACTIONS</text>
+    <text x="644" y="113">READS</text>
+    <text x="644" y="146">WRITES</text>
   </g>
-  
-  <!-- Larach Text on the right -->
-  <text x="60" y="40" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ff2d20">Larach</text>
-  
-  <!-- Decorative accent -->
-  <circle cx="15" cy="15" r="2" fill="#ff2d20" opacity="0.6"/>
-  <circle cx="15" cy="45" r="2" fill="#ff2d20" opacity="0.6"/>
+  <g fill="#64dfc8">
+    <circle cx="629" cy="76" r="3"/>
+    <circle cx="629" cy="109" r="3"/>
+    <circle cx="629" cy="142" r="3"/>
+  </g>
 </svg>
