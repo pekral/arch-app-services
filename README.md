@@ -1,7 +1,7 @@
 <div align="left">
     <img src="logo.svg" alt="Arch App Services — an arch connecting separate application layers" width="720">
 
-<h1>Give Laravel business logic a clear structure</h1>
+<h1>Arch App Services</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/pekral/arch-app-services.svg?style=flat-square)](https://packagist.org/packages/pekral/arch-app-services)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
@@ -38,21 +38,13 @@ SQL-only applications do not need this dependency. See [DynamoDB setup](docs/dyn
 
 ## Configuration
 
-Defaults are loaded automatically. To customize pagination, repository caching or transaction attempts, publish [the configuration](config/arch.php):
+No configuration is required: defaults for pagination, repository caching and transaction attempts load from [`config/arch.php`](config/arch.php). Publish the file to change them:
 
 ```bash
 php artisan vendor:publish --tag="arch-config"
 ```
 
-| Setting | Default | Purpose |
-| --- | --- | --- |
-| `arch.default_items_per_page` | `15` | Repository pagination size |
-| `arch.repository_cache.enabled` | `true` | Enable caching for reads made through `cache()` |
-| `arch.repository_cache.ttl` | `3600` | Cache lifetime in seconds |
-| `arch.repository_cache.prefix` | `arch_repo` | Cache key prefix |
-| `arch.transactions.default_attempts` | `1` | Transaction attempts when none are passed explicitly |
-
-Generator templates can also be published for customization:
+Publish the generator templates to customize generated classes:
 
 ```bash
 php artisan vendor:publish --tag="arch-stubs"
@@ -123,6 +115,8 @@ $updateUserName = app(UpdateUserName::class);
 ($updateUserName)('Alex Morgan', $user);
 ```
 
+This Action takes its inputs as `__invoke()` arguments. The optional `ActionInvokeArgumentsRule` PHPStan rule reports that style; see the [rule summary](docs/phpstan-rules.md#rule-summary) before enabling it.
+
 ## What it does
 
 | Component | Responsibility |
@@ -136,285 +130,7 @@ $updateUserName = app(UpdateUserName::class);
 
 The `#[InTransaction]` attribute requires the `TransactionAwareAction` trait and an explicit call to `executeWithTransactionAttribute()` inside the Action. The attribute alone does not wrap execution. See the [transaction example](examples/Actions/User/TransferUserDataAction.php).
 
-## PHPStan rules
-
-The package ships **24 rules** in the `Pekral\Arch\PHPStan\Rules` namespace. Register the rules you want in your PHPStan configuration; installation alone does not enable them. See [registration and configuration](docs/phpstan-rules.md#configuration).
-
-Each example below is a shortened fragment that the rule **reports**, in the context described by its TL;DR. Rule names link to their implementation.
-
-### Actions
-
-#### [ActionsMustImplementArchActionRule](phpstan/Rules/ActionsMustImplementArchActionRule.php)
-
-**TL;DR:** Classes in configured Action namespaces must implement `ArchAction`. Without configured namespaces, this rule reports nothing.
-
-**Example reported:** In a configured `App\Actions\` namespace.
-
-```php
-class CreateUser {}
-```
-
-#### [ActionClassModifiersRule](phpstan/Rules/ActionClassModifiersRule.php)
-
-**TL;DR:** Concrete, named `ArchAction` classes must be `final readonly`.
-
-**Example reported:** Without `readonly`.
-
-```php
-final class CreateUser implements ArchAction
-```
-
-#### [ActionInvokeMethodRule](phpstan/Rules/ActionInvokeMethodRule.php)
-
-**TL;DR:** An `ArchAction` must declare only one public method besides its constructor: `__invoke()` with an explicit return type.
-
-**Example reported:** Instead of `__invoke()`.
-
-```php
-public function execute(): void
-```
-
-#### [ActionInvokeArgumentsRule](phpstan/Rules/ActionInvokeArgumentsRule.php)
-
-**TL;DR:** Invoke an `ArchAction` without arguments; supply inputs through its constructor.
-
-**Example reported:**
-
-```php
-$action($data)
-```
-
-**Preferred form:**
-
-```php
-$action()
-```
-
-#### [ActionReturnDtoRule](phpstan/Rules/ActionReturnDtoRule.php)
-
-**TL;DR:** An `ArchAction::__invoke()` must not declare an array return type; use a Spatie Data DTO for structured output. Other non-array results, including `void`, remain allowed.
-
-**Example reported:**
-
-```php
-public function __invoke(): array
-```
-
-#### [NoHttpResponseInActionsRule](phpstan/Rules/NoHttpResponseInActionsRule.php)
-
-**TL;DR:** Actions return data; controllers build HTTP responses. Checks declared types and returned expressions, including responses hidden behind `mixed`.
-
-**Example reported:** Inside an Action.
-
-```php
-return response()->json($data);
-```
-
-#### [NoHttpExceptionsInActionsRule](phpstan/Rules/NoHttpExceptionsInActionsRule.php)
-
-**TL;DR:** Actions must not produce HTTP exceptions or call `abort*()`; throw domain exceptions for the entry point to translate.
-
-**Example reported:** Inside an Action.
-
-```php
-abort(404);
-```
-
-#### [NoLaravelHelpersForActionsRule](phpstan/Rules/NoLaravelHelpersForActionsRule.php)
-
-**TL;DR:** Inside an Action, inject other Actions through the constructor instead of resolving them with `app()`, `resolve()` or `make()`.
-
-**Example reported:** Inside another Action.
-
-```php
-app(CreateUser::class)
-```
-
-#### [NoEloquentStorageMethodsInActionsRule](phpstan/Rules/NoEloquentStorageMethodsInActionsRule.php)
-
-**TL;DR:** An Action must delegate Eloquent model writes to a Model Manager rather than call storage methods directly.
-
-**Example reported:** Inside an Action.
-
-```php
-$user->save();
-```
-
-#### [NoDirectDatabaseQueriesInActionsRule](phpstan/Rules/NoDirectDatabaseQueriesInActionsRule.php)
-
-**TL;DR:** Keep filtering, query-builder operations and builder scopes out of Actions. Unfiltered retrieval alone is allowed by this rule.
-
-**Example reported:** Inside an Action.
-
-```php
-User::query()->where('name', 'test')->get();
-```
-
-
-`ActionInvokeArgumentsRule` is stricter than the runtime API: enabling it requires adapting the argument-based Action example above to constructor-supplied inputs.
-
-### Data access
-
-#### [OnlyRepositoriesCanQueryDataRule](phpstan/Rules/OnlyRepositoriesCanQueryDataRule.php)
-
-**TL;DR:** Block listed Eloquent read/query methods inside Actions, including unfiltered retrieval. DynamoDB models are exempt.
-
-**Example reported:** Inside an Action.
-
-```php
-User::all();
-```
-
-#### [OnlyModelManagersCanPersistDataRule](phpstan/Rules/OnlyModelManagersCanPersistDataRule.php)
-
-**TL;DR:** SQL model persistence belongs in classes extending the SQL `BaseModelManager` or `BaseModelService`. DynamoDB models are exempt.
-
-**Example reported:** Inside a controller.
-
-```php
-$user->save();
-```
-
-#### [WhereRawBindingsRule](phpstan/Rules/WhereRawBindingsRule.php)
-
-**TL;DR:** Dynamic `whereRaw()` and `orWhereRaw()` expressions require a bindings argument; plain string literals are allowed.
-
-**Example reported:** Without bindings.
-
-```php
-$query->whereRaw("price > {$column}");
-```
-
-
-`OnlyRepositoriesCanQueryDataRule` is stricter than `NoDirectDatabaseQueriesInActionsRule`: it also reports unfiltered reads such as `User::all()` inside Actions. Despite its name, it does not restrict reads in every other class.
-
-### Dependencies and state
-
-These four rules recognize Actions, Model Services, Repositories and Model Managers by their interfaces or base classes, not by naming alone.
-
-#### [ImmutableDependenciesRule](phpstan/Rules/ImmutableDependenciesRule.php)
-
-**TL;DR:** Object dependencies must be readonly and assigned only in the constructor. DTO and Eloquent model properties are treated as data, not dependencies.
-
-**Example reported:** Without `readonly`.
-
-```php
-private PaymentGateway $gateway;
-```
-
-#### [NoManualArchitectureServiceInstantiationRule](phpstan/Rules/NoManualArchitectureServiceInstantiationRule.php)
-
-**TL;DR:** Inject architecture-layer collaborators instead of constructing them with `new`. DTOs, models and anonymous classes remain constructible.
-
-**Example reported:**
-
-```php
-new UserModelService($manager, $repository)
-```
-
-#### [NoMutableStaticStateRule](phpstan/Rules/NoMutableStaticStateRule.php)
-
-**TL;DR:** Architecture classes must not hold static properties shared across instances and requests. Constants and static methods are allowed.
-
-**Example reported:** In a Repository.
-
-```php
-private static array $cache = [];
-```
-
-#### [NoPublicMutablePropertiesRule](phpstan/Rules/NoPublicMutablePropertiesRule.php)
-
-**TL;DR:** Do not expose mutable public instance properties in architecture classes. Readonly properties and restricted setters are allowed; DTOs and models are outside its scope.
-
-**Example reported:** In a Repository.
-
-```php
-public int $defaultLimit = 15;
-```
-
-
-### Naming and validation rules
-
-#### [ModelNamingSuffixRule](phpstan/Rules/ModelNamingSuffixRule.php)
-
-**TL;DR:** Eloquent model class names must end in `Model`.
-
-**Example reported:** Instead of `UserModel`.
-
-```php
-class User extends Model
-```
-
-#### [ServiceNamingConventionRule](phpstan/Rules/ServiceNamingConventionRule.php)
-
-**TL;DR:** Classes directly extending `BaseModelService` must have names ending in `ModelService`.
-
-**Example reported:**
-
-```php
-class UserService extends BaseModelService
-```
-
-#### [ValidationRulesMethodNamingRule](phpstan/Rules/ValidationRulesMethodNamingRule.php)
-
-**TL;DR:** `ValidationRules` implementations must have no constructor; their methods must be static and end in `Rules`.
-
-**Example reported:**
-
-```php
-public function email(): array
-```
-
-**Preferred form:**
-
-```php
-public static function emailRules(): array
-```
-
-#### [ValidationRulesNoInstantiationRule](phpstan/Rules/ValidationRulesNoInstantiationRule.php)
-
-**TL;DR:** Call static methods on `ValidationRules` implementations instead of creating instances.
-
-**Example reported:**
-
-```php
-new UserValidationRules()
-```
-
-
-### Data Validators and jobs
-
-Data Validator rules recognize class names ending in `DataValidator`, optionally limited to configured namespaces.
-
-#### [DataValidatorReturnTypeRule](phpstan/Rules/DataValidatorReturnTypeRule.php)
-
-**TL;DR:** Public Data Validator methods must declare native `bool` or `void` return types. Constructors and non-public helpers are excluded.
-
-**Example reported:** In a Data Validator.
-
-```php
-public function validate(): array
-```
-
-#### [NoHttpExceptionsInDataValidatorsRule](phpstan/Rules/NoHttpExceptionsInDataValidatorsRule.php)
-
-**TL;DR:** Data Validators must not produce HTTP exceptions or call `abort*()`; use validation or domain exceptions.
-
-**Example reported:** Inside a Data Validator.
-
-```php
-abort(422);
-```
-
-#### [JobRoutingOutsideJobRule](phpstan/Rules/JobRoutingOutsideJobRule.php)
-
-**TL;DR:** Configure queued-job routing inside the job. By default, `onConnection()`, `onQueue()` and `onGroup()` calls on pending dispatches or external job instances are reported.
-
-**Example reported:** Outside the job.
-
-```php
-ImportSubscribersJob::dispatch($url, $listId, $host)->onQueue('imports');
-```
+The package ships 24 PHPStan rules in the `Pekral\Arch\PHPStan\Rules` namespace. Installation alone does not enable them; register the rules you want in your PHPStan configuration. The [rule summary](docs/phpstan-rules.md#rule-summary) lists each rule with a reported example.
 
 ## Documentation
 
@@ -425,13 +141,13 @@ ImportSubscribersJob::dispatch($url, $listId, $host)->onQueue('imports');
 | Cached reads | [Caching, keys and invalidation](docs/repository-caching.md) |
 | Input and transformation | [DTOs and validation](docs/validation.md) · [Data Builder pipelines](docs/data-builder.md) |
 | DynamoDB | [Models and setup](docs/dynamodb-model.md) |
-| Architecture checks | [PHPStan rules](docs/phpstan-rules.md) |
+| Architecture checks | [PHPStan rule summary](docs/phpstan-rules.md#rule-summary) · [Registration](docs/phpstan-rules.md#configuration) |
 | Transactions | [Atomic writes](examples/Actions/User/CreateUserWithTransaction.php) · [Attribute helper](examples/Actions/User/TransferUserDataAction.php) · [Nested savepoints](examples/Actions/User/CreateUserWithNestedTransaction.php) |
 | Expected failures | [Result-based Action](examples/Actions/User/CreateUserWithResult.php) · [Result API](src/Result/Result.php) |
 
 More working patterns are in [`examples/`](examples).
 
-## Development and checks
+## Testing
 
 Repository development uses PHP 8.5, matching CI. The test suite uses SQLite and DynamoDB Local; `composer test:coverage` starts the local Docker Compose service through the bundled script. Coverage requires PCOV.
 
