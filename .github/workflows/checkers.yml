@@ -16,7 +16,7 @@ jobs:
 
     services:
       dynamodb:
-        image: amazon/dynamodb-local:latest
+        image: amazon/dynamodb-local:3.3.2
         ports:
           - 8021:8000
         env:

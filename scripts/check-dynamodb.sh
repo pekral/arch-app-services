@@ -47,10 +47,10 @@ if [ -z "${CI}" ] && [ -z "${GITHUB_ACTIONS}" ]; then
         ${COMPOSE_CMD} up -d dynamodb-local
     elif echo "${CONTAINER_STATUS}" | grep -q "^Up"; then
         CONTAINER_PORTS=$(docker port "${CONTAINER_NAME}" 2>/dev/null || echo "")
-        if echo "${CONTAINER_PORTS}" | grep -q "${DYNAMODB_PORT}"; then
-            echo "✅ DynamoDB container is already running on port ${DYNAMODB_PORT}"
+        if [ "${CONTAINER_PORTS}" = "8000/tcp -> 127.0.0.1:${DYNAMODB_PORT}" ]; then
+            echo "✅ DynamoDB container is already running on 127.0.0.1:${DYNAMODB_PORT}"
         else
-            echo "🔄 Recreating DynamoDB container (port ${DYNAMODB_PORT} not mapped)..."
+            echo "🔄 Recreating DynamoDB container (port ${DYNAMODB_PORT} not bound to 127.0.0.1 only)..."
             docker rm -f "${CONTAINER_ID}" 2>/dev/null || true
             ${COMPOSE_CMD} up -d dynamodb-local
         fi

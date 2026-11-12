@@ -1,10 +1,10 @@
 services:
   dynamodb-local:
     command: "-jar DynamoDBLocal.jar -inMemory"
-    image: "amazon/dynamodb-local:latest"
+    image: "amazon/dynamodb-local:3.3.2"
     container_name: arch-app-services-dynamodb-local
     ports:
-      - "8021:8000"
+      - "127.0.0.1:8021:8000"
     working_dir: /home/dynamodblocal
     environment:
       AWS_ACCESS_KEY_ID: "fakeMyKeyId"
