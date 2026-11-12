@@ -56,7 +56,6 @@ composer security-audit
    - **MUST** use Repository for reads, ModelManager/Service for writes
    - Can use `DataBuilder` trait for data transformation via pipelines
    - Can use `DataValidator` trait for validation
-   - Can use `ActionLogger` trait for execution logging
 
 2. **Services** (`src/Service/`, `examples/Services/`)
    - Extend `BaseModelService<TModel>`
@@ -173,16 +172,12 @@ php artisan vendor:publish --tag="arch-config"
 
 ### Key Settings (`config/arch.php`)
 - `default_items_per_page`: Pagination default (15)
-- `action_logging.enabled`: Enable action execution logging
-- `action_logging.channel`: Log channel for actions
 - `repository_cache.enabled`: Enable repository caching
 - `repository_cache.ttl`: Cache TTL in seconds (3600)
 - `repository_cache.prefix`: Cache key prefix
 
 ### Environment Variables
 ```bash
-ARCH_ACTION_LOG_CHANNEL=actions
-ARCH_ACTION_LOGGING_ENABLED=true
 ARCH_REPOSITORY_CACHE_ENABLED=true
 ARCH_REPOSITORY_CACHE_TTL=3600
 ARCH_REPOSITORY_CACHE_PREFIX=arch_repo

@@ -32,22 +32,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Action Logging
-    |--------------------------------------------------------------------------
-    |
-    | Configure logging for actions. You can specify a custom logging channel
-    | that should be used for action logging. If not specified, the default
-    | Laravel logging stack will be used.
-    |
-    */
-
-    'action_logging' => [
-        'channel' => env('ARCH_ACTION_LOG_CHANNEL', 'stack'),
-        'enabled' => env('ARCH_ACTION_LOGGING_ENABLED', true),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Repository Caching
     |--------------------------------------------------------------------------
     |
