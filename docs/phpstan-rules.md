@@ -4,7 +4,7 @@ This project includes custom PHPStan rules to enforce architectural patterns and
 
 ## Rule summary
 
-The package ships **24 rules** in the `Pekral\Arch\PHPStan\Rules` namespace. Register the rules you want in your PHPStan configuration; installation alone does not enable them. See [Configuration](#configuration).
+The package ships **25 rules** in the `Pekral\Arch\PHPStan\Rules` namespace. Register the rules you want in your PHPStan configuration; installation alone does not enable them. See [Configuration](#configuration).
 
 Each example below is a shortened fragment that the rule **reports**, in the context described by its TL;DR. Rule names link to their implementation.
 
@@ -114,6 +114,19 @@ $user->save();
 
 ```php
 User::query()->where('name', 'test')->get();
+```
+
+#### [NoSimpleLogicActionsRule](../phpstan/Rules/NoSimpleLogicActionsRule.php)
+
+**TL;DR:** An Action whose methods hold no branching, no transaction, no validation or authorization and at most one collaborator is reported; keep that logic inline at its call site.
+
+**Example reported:** A whole Action.
+
+```php
+public function __invoke(): void
+{
+    $this->accountRepository->lazyAllAccounts()->each(static fn (User $account) => dispatch(new DeleteExpiredCoupons($account->name)));
+}
 ```
 
 `ActionInvokeArgumentsRule` is stricter than the runtime API: enabling it requires adapting argument-based Actions such as the `UpdateUserName` example in the [README](../README.md#quick-start) to constructor-supplied inputs.
@@ -1295,6 +1308,77 @@ services:
 ```
 
 **Legitimate exception:** use PHPStan's standard `ignoreErrors` on the identifier, scoped to the file.
+
+### 20. NoSimpleLogicActionsRule
+
+**Purpose:** Reports an Action that holds only simple logic, so the logic stays inline at its call site instead of getting its own class.
+
+**Rationale:** A class that forwards one call behind one caller adds a file, a name and a jump for the reader and returns nothing for them. An Action earns its class when it orchestrates: it branches, wraps a transaction, guards the use case with validation or authorization, or coordinates two or more collaborators.
+
+**Layer:** an Action is a class implementing `ArchAction`. A project whose Actions do not all implement `ArchAction` yet lists the namespaces that hold them in the optional `actionNamespaces` argument, recognised the same way as in `NoHttpExceptionsInActionsRule`.
+
+**Error identifier:** `arch.simpleLogicAction`
+
+**Behavior:** every method of the Action except the constructor is inspected, including closures inside them. The Action is not reported when any of these holds:
+- it branches: `if`, `switch`, `match`, a ternary, `??` / `??=`, `&&` / `||` / `and` / `or`, `while`, `do`, `for`, `try` or `throw`;
+- it runs in a transaction: a call named `transaction()`, `beginTransaction()` or `savepoint()`, or `#[InTransaction]` on a method;
+- it validates or authorizes: a call named `validate()`, `authorize()`, `authorizeForUser()`, `allows()`, `denies()`, `can()` or `cannot()`, any call on the `Gate` or `Validator` facade, or a call on a property whose type is a Data Validator (a class whose name ends with `DataValidator`);
+- it calls two or more collaborators. A collaborator is a property of the Action (`$this->repository->...`, `($this->otherAction)()`), a method the Action inherits or takes from a trait (`$this->build()`), or a class called statically (`Str::upper()`).
+
+These do not count as logic: a `foreach` (a condition inside its body still counts), a private method of the Action itself (its body is inspected instead), a call to `self::` / `static::`, a function call such as `dispatch()`, `new`, and calls on local variables or parameters. An abstract Action and an Action without `__invoke()` are skipped.
+
+**Example violation:**
+
+```php
+final readonly class DispatchExpiredCouponsDeletionAction implements ArchAction
+{
+    public function __construct(private AccountRepository $accountRepository)
+    {
+    }
+
+    public function __invoke(): void // ❌ one collaborator, no branching
+    {
+        $this->accountRepository
+            ->lazyAllAccounts()
+            ->each(static function (User $account): void {
+                dispatch(new DeleteExpiredCouponsForAccount($account->name));
+            });
+    }
+}
+```
+
+**Correct approach:** inline the loop into its only caller and delete the Action.
+
+```php
+final class DeleteExpiredCoupons extends Command
+{
+    public function handle(AccountRepository $accountRepository): void
+    {
+        $accountRepository
+            ->lazyAllAccounts()
+            ->each(static function (User $account): void {
+                dispatch(new DeleteExpiredCouponsForAccount($account->name)); // ✅
+            });
+    }
+}
+```
+
+**Configuration:** register the rule, optionally with the project's own Action namespaces:
+
+```neon
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoSimpleLogicActionsRule
+        arguments:
+            actionNamespaces:
+                - App\Actions\
+        tags:
+            - phpstan.rules.rule
+```
+
+This package does not register the rule in its own `phpstan.neon`: the Actions in `examples/` each demonstrate one package API call on purpose.
+
+**Legitimate exception:** a simple Action that several call sites reuse is silenced with PHPStan's standard `ignoreErrors` on the identifier, scoped to the file.
 
 ## Configuration
 
