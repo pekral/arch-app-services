@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "67f5c9d0e5d28271817228bffa268e5e",
+    "content-hash": "2abb4a2591695572b12cf7b9933dba92",
     "packages": [
         {
             "name": "brick/math",
@@ -9188,6 +9188,94 @@
                 "source": "https://github.com/orchestral/workbench/tree/v11.3.0"
             },
             "time": "2026-09-23T23:52:50+00:00"
+        },
+        {
+            "name": "pekral/ai-olympus",
+            "version": "0.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pekral/ai-olympus.git",
+                "reference": "f17898750ca6cedd92371dfd26816f3384529681"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pekral/ai-olympus/zipball/f17898750ca6cedd92371dfd26816f3384529681",
+                "reference": "f17898750ca6cedd92371dfd26816f3384529681",
+                "shasum": ""
+            },
+            "require": {
+                "composer-plugin-api": "^2.0",
+                "php": "^8.4"
+            },
+            "require-dev": {
+                "composer/composer": "^2.11.1",
+                "ergebnis/composer-normalize": "^2.56.0",
+                "laravel/pint": "^1.32.1",
+                "pekral/phpcs-rules": "dev-master",
+                "pekral/phpstan-rules": "dev-master",
+                "pekral/rector-rules": "^0.7",
+                "pestphp/pest": "^5.3.5",
+                "pestphp/pest-plugin": "^5.0",
+                "pestphp/pest-plugin-type-coverage": "^5.1.0",
+                "phpstan/extension-installer": "^1.4.3",
+                "phpstan/phpstan": "^2.3.5",
+                "phpstan/phpstan-deprecation-rules": "^2.0.5",
+                "phpstan/phpstan-mockery": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.1.1",
+                "rector/rector": "^2.8.4",
+                "roave/security-advisories": "dev-latest",
+                "squizlabs/php_codesniffer": "^4.0.4"
+            },
+            "bin": [
+                "bin/ai-olympus"
+            ],
+            "type": "composer-plugin",
+            "extra": {
+                "class": "Pekral\\AiOlympus\\ComposerPlugin"
+            },
+            "autoload": {
+                "psr-4": {
+                    "Pekral\\AiOlympus\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Petr Král",
+                    "email": "kral.petr.88@gmail.com",
+                    "homepage": "https://pekral.cz",
+                    "role": "lead"
+                }
+            ],
+            "description": "AI Olympus — a Composer plugin for PHP and Laravel projects that installs Claude Code and Codex rules, agent skills, and custom agents",
+            "homepage": "https://pekral.cz",
+            "keywords": [
+                "PHPStan",
+                "ai-agents",
+                "ai-olympus",
+                "claude",
+                "claude-code",
+                "clean-code",
+                "codex",
+                "coding-standards",
+                "composer-plugin",
+                "laravel",
+                "llm",
+                "openai-codex",
+                "pest",
+                "php",
+                "php-ai-olympus",
+                "rules"
+            ],
+            "support": {
+                "docs": "https://github.com/pekral/ai-olympus#readme",
+                "issues": "https://github.com/pekral/ai-olympus/issues",
+                "source": "https://github.com/pekral/ai-olympus"
+            },
+            "time": "2026-11-09T16:24:08+00:00"
         },
         {
             "name": "pekral/cursor-rules",
