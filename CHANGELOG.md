@@ -6,6 +6,7 @@ All notable changes to `arch-app-services` will be documented in this file.
 
 - ✨ **Added**: `NoSimpleLogicActionsRule` (`arch.simpleLogicAction`) reports an Action whose methods hold no branching, no transaction, no validation or authorization and at most one collaborator, so simple logic stays inline at its call site; `actionNamespaces` widens the Action detection (#150)
 - **Changed:** `baopham/dynamodb` is now an optional integration instead of a required runtime dependency. Applications using the DynamoDB Repositories and Model Managers must explicitly install `baopham/dynamodb:^7.1`. The driver remains a development dependency for integration tests; the DynamoDB API is unchanged.
+- **Removed:** the `action_logging` config block (`ARCH_ACTION_LOG_CHANNEL`, `ARCH_ACTION_LOGGING_ENABLED`). Nothing in the package read it, so enabling it never logged anything; a published `config/arch.php` that still carries the block is harmless (#160)
 
 ## [0.5.2] - 2026-11-11
 
