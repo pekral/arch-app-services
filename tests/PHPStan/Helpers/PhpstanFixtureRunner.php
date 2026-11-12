@@ -15,6 +15,8 @@ use Symfony\Component\Process\Process;
 final class PhpstanFixtureRunner
 {
 
+    public const string ISOLATED_RULES_CONFIG = 'phpstan.test.isolated-rules.neon';
+
     private const string BINARY = 'vendor/bin/phpstan';
 
     private const string CONFIG = 'phpstan.test.neon';
@@ -24,9 +26,9 @@ final class PhpstanFixtureRunner
     /**
      * @return array<string, array<string>>
      */
-    public static function run(string $fixtureDir): array
+    public static function run(string $fixtureDir, string $config = self::CONFIG): array
     {
-        return self::extractErrors(self::analyse($fixtureDir, self::CONFIG));
+        return self::extractErrors(self::analyse($fixtureDir, $config));
     }
 
     /**
@@ -44,9 +46,9 @@ final class PhpstanFixtureRunner
      *
      * @return array<string, array<string>>
      */
-    public static function runIdentifiers(string $fixtureDir): array
+    public static function runIdentifiers(string $fixtureDir, string $config = self::CONFIG): array
     {
-        return self::extractIdentifiers(self::analyse($fixtureDir, self::CONFIG));
+        return self::extractIdentifiers(self::analyse($fixtureDir, $config));
     }
 
     /**

@@ -1,0 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    tmpDir: build/phpstan-test-isolated-rules
+    treatPhpDocTypesAsCertain: false
+
+    bootstrapFiles:
+        - vendor/autoload.php
+
+    scanDirectories:
+        - phpstan
+
+services:
+    -
+        class: Pekral\Arch\PHPStan\Rules\NoSimpleLogicActionsRule
+        arguments:
+            actionNamespaces:
+                - Pekral\Arch\Tests\Fixtures\PHPStan\NoSimpleLogicActionsRule\Legacy\
+        tags:
+            - phpstan.rules.rule
