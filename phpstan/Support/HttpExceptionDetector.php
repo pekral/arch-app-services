@@ -25,9 +25,9 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 final class HttpExceptionDetector
 {
 
-    private const array ABORT_FUNCTIONS = ['abort', 'abort_if', 'abort_unless'];
+    public const array ABORT_FUNCTIONS = ['abort', 'abort_if', 'abort_unless'];
 
-    private const array THROW_FUNCTIONS = ['throw_if', 'throw_unless'];
+    public const array THROW_FUNCTIONS = ['throw_if', 'throw_unless'];
 
     /**
      * The HTTP exception class or the abort function the expression produces, or null when it produces none.

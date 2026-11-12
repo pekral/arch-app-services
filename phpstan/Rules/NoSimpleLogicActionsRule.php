@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Pekral\Arch\PHPStan\Support\ActionClassMatcher;
 use Pekral\Arch\PHPStan\Support\DataValidatorClassMatcher;
+use Pekral\Arch\PHPStan\Support\HttpExceptionDetector;
 use Pekral\Arch\Transaction\InTransaction;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
@@ -74,6 +75,14 @@ final readonly class NoSimpleLogicActionsRule implements Rule
         TryCatch::class,
         Throw_::class,
     ];
+
+    private const array BRANCHING_FUNCTIONS = [
+        ...HttpExceptionDetector::ABORT_FUNCTIONS,
+        ...HttpExceptionDetector::THROW_FUNCTIONS,
+        'rescue',
+    ];
+
+    private const array BRANCHING_METHODS = ['when', 'unless'];
 
     private const array GUARD_METHODS = [
         'validate',
@@ -167,7 +176,19 @@ final readonly class NoSimpleLogicActionsRule implements Rule
     {
         return array_any(self::BRANCHING_NODES, static fn (string $nodeClass): bool => $node instanceof $nodeClass)
             || ($node instanceof Attribute && $node->name->toString() === InTransaction::class)
+            || $this->isBranchingCall($node)
             || $this->isGuardCall($node);
+    }
+
+    private function isBranchingCall(Node $node): bool
+    {
+        if ($node instanceof FuncCall) {
+            return $node->name instanceof Name && in_array($node->name->toLowerString(), self::BRANCHING_FUNCTIONS, strict: true);
+        }
+
+        return $this->isMethodCall($node)
+            && $node->name instanceof Identifier
+            && in_array($node->name->toLowerString(), self::BRANCHING_METHODS, strict: true);
     }
 
     private function isGuardCall(Node $node): bool

@@ -1320,7 +1320,7 @@ services:
 **Error identifier:** `arch.simpleLogicAction`
 
 **Behavior:** every method of the Action except the constructor is inspected, including closures inside them. The Action is not reported when any of these holds:
-- it branches: `if`, `switch`, `match`, a ternary, `??` / `??=`, `&&` / `||` / `and` / `or`, `while`, `do`, `for`, `try` or `throw`;
+- it branches: `if`, `switch`, `match`, a ternary, `??` / `??=`, `&&` / `||` / `and` / `or`, `while`, `do`, `for`, `try` or `throw`, a conditional helper (`throw_if()`, `throw_unless()`, `abort()`, `abort_if()`, `abort_unless()`, `rescue()`) or a `when()` / `unless()` method call;
 - it runs in a transaction: a call named `transaction()`, `beginTransaction()` or `savepoint()`, or `#[InTransaction]` on a method;
 - it validates or authorizes: a call named `validate()`, `authorize()`, `authorizeForUser()`, `allows()`, `denies()`, `can()` or `cannot()`, any call on the `Gate` or `Validator` facade, or a call on a property whose type is a Data Validator (a class whose name ends with `DataValidator`);
 - it calls two or more collaborators. A collaborator is a property of the Action (`$this->repository->...`, `($this->otherAction)()`), a method the Action inherits or takes from a trait (`$this->build()`), or a class called statically (`Str::upper()`).
