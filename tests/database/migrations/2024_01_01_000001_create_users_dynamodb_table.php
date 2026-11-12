@@ -10,10 +10,6 @@ use Pekral\Arch\Tests\Support\ParallelTestTableName;
 
 return new class () extends Migration {
 
-    private const int CREATE_TABLE_MAX_ATTEMPTS = 5;
-
-    private const int CREATE_TABLE_BACKOFF_MICROSECONDS = 200_000;
-
     public function up(): void
     {
         $this->loadTableDefinitions()->each(function (array $tableConfig): void {
@@ -79,43 +75,20 @@ return new class () extends Migration {
             $client->waitUntil('TableNotExists', ['TableName' => $config['TableName']]);
         }
         
-        $this->createTableWithRetry($client, $config);
-        $client->waitUntil('TableExists', ['TableName' => $config['TableName']]);
-    }
-
-    /**
-     * DynamoDB Local answers InternalFailure to some of the CreateTable calls that parallel test processes send at the same time.
-     *
-     * @param array<string, mixed> $config
-     */
-    protected function createTableWithRetry(DynamoDbClient $client, array $config): void
-    {
-        for ($attempt = 1; $attempt <= self::CREATE_TABLE_MAX_ATTEMPTS; $attempt++) {
-            if ($this->tableExists($client, $config['TableName'])) {
-                return;
-            }
-
-            try {
-                $client->createTable($config);
-
-                return;
-            } catch (DynamoDbException $e) {
-                $this->rethrowUnlessInternalFailure($e);
-
-                if ($attempt === self::CREATE_TABLE_MAX_ATTEMPTS) {
-                    throw $e;
+        retry(
+            5,
+            function (int $attempt) use ($client, $config): void {
+                if ($attempt > 1 && $this->tableExists($client, $config['TableName'])) {
+                    return;
                 }
 
-                usleep(self::CREATE_TABLE_BACKOFF_MICROSECONDS * $attempt);
-            }
-        }
-    }
+                $client->createTable($config);
+            },
+            static fn (int $attempt): int => 200 * $attempt,
+            static fn (Throwable $exception): bool => $exception instanceof DynamoDbException && $exception->getAwsErrorCode() === 'InternalFailure',
+        );
 
-    protected function rethrowUnlessInternalFailure(DynamoDbException $exception): void
-    {
-        if ($exception->getAwsErrorCode() !== 'InternalFailure') {
-            throw $exception;
-        }
+        $client->waitUntil('TableExists', ['TableName' => $config['TableName']]);
     }
 
     /**
