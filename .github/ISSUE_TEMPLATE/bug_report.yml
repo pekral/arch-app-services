@@ -1,0 +1,83 @@
+name: Bug report
+description: Report a problem with arch-app-services
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill in every field below — the details make the problem reproducible.
+
+        A security vulnerability does not belong here. Report it privately through
+        [Report a vulnerability](https://github.com/pekral/arch-app-services/security/advisories/new).
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Actions
+        - Model Services
+        - Repositories
+        - Model Managers
+        - Repository caching
+        - Data objects, validation or Data Builder
+        - Transactions
+        - Result
+        - PHPStan rules
+        - Artisan generators
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The smallest code that shows the problem — the class you wrote and the call that fails.
+      render: php
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Storage
+      options:
+        - SQL (Eloquent)
+        - DynamoDB
+        - Not related to storage
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Package, PHP and Laravel versions.
+      placeholder: "pekral/arch-app-services 0.5.2, PHP 8.4.3, Laravel 12.x"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Paste any relevant error output, stack trace or PHPStan report. This will be automatically formatted as code.
+      render: shell

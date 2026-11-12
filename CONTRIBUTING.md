@@ -34,7 +34,7 @@ Before submitting a pull request:
 
 If the project maintainer has any additional requirements, you will find them listed here.
 
-- **[PSR-12 Coding Standard](https://www.php-fig.org/psr/psr-12/)** - The easiest way to apply the conventions is to install [PHP CS Fixer](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer).
+- **Follow the project's coding standard** - Code style is enforced by [Laravel Pint](https://laravel.com/docs/pint) (`pint.json`), [PHP CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer) (`ruleset.xml`) and [Rector](https://getrector.com) (`rector.php`). Run `composer fix` to apply all fixes, then `composer check` to run the full quality check (Composer normalize, PHPCS, Pint, Rector dry run, PHPStan, dependency audit, and tests with 100% coverage).
 
 - **Add tests!** - Your patch won't be accepted if it doesn't have tests.
 

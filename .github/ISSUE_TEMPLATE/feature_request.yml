@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest an idea or enhancement for arch-app-services
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Please describe the problem and your proposed solution below.
+        Before you start, consider whether the feature is useful to other users of the package — see
+        [CONTRIBUTING.md](https://github.com/pekral/arch-app-services/blob/master/CONTRIBUTING.md#viability).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the situation or limitation that prompted this request.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen? A short code example of the intended usage helps.
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: Related component
+      description: >-
+        Which part of the package does this relate to — an Action, Repository, Model Manager, Model Service,
+        PHPStan rule, Artisan generator, or something else? Leave blank if it is a new component.
+      placeholder: "e.g. BaseRepository, WhereRawBindingsRule, make:arch-action"
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or workarounds you've considered.

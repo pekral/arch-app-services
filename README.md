@@ -172,6 +172,8 @@ See [CHANGELOG.md](CHANGELOG.md) for release history and breaking changes.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Report bugs and request features through [GitHub issues](https://github.com/pekral/arch-app-services/issues).
 
+Report security vulnerabilities privately as described in the [security policy](.github/SECURITY.md). Everyone taking part is expected to follow the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
