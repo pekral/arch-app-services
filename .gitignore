@@ -6,5 +6,4 @@
 coverage.xml
 /build/
 .DS_Store/
-/docker/dynamodb/shared-local-instance.db
 /.claude/
