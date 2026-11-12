@@ -7,9 +7,17 @@ metadata:
   author: Petr Král (pekral.cz)
 ---
 
-# MySQL Problem Solver
+## Constraints
+- Apply @rules/sql/optimalize.md
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.md`, `@rules/laravel/architecture.md`, `@rules/laravel/filament.md`, and `@rules/laravel/livewire.md`
+- Be practical and direct
+- Prefer investigation over assumptions
+- Do not invent schema, indexes, or runtime behavior
+- Do not recommend index changes without explaining why they help
+- Apply `@rules/sql/optimalize.md` "Performance Non-Regression on Query Changes" — every proposed query rewrite must be at least as fast as the original (ideally faster); a proposal that is slower must carry the documented reason and the remaining optimization options
+- If DB access is unavailable, continue with static analysis and state the limitation clearly
 
-## Purpose
+## Scope
 Investigate real MySQL performance or query design problems in existing applications.
 
 Focus on:
@@ -18,15 +26,21 @@ Focus on:
 - EXPLAIN-based diagnosis when possible
 - safe, justified optimizations
 
-## Constraints
-- Apply @rules/sql.mdc
-- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
-- Be practical and direct
-- Prefer investigation over assumptions
-- Do not invent schema, indexes, or runtime behavior
-- Do not recommend index changes without explaining why they help
-- Apply `@rules/sql/optimalize.mdc` "Performance Non-Regression on Query Changes" — every proposed query rewrite must be at least as fast as the original (ideally faster); a proposal that is slower must carry the documented reason and the remaining optimization options
-- If DB access is unavailable, continue with static analysis and state the limitation clearly
+## Modes
+
+- **Default (no `MODE`)** — investigate a reported problem and answer with the full analysis report below.
+- **`MODE=cr-report`** — the code-review report the `casey` agent writes (`agents/casey.md`, `@skills/code-review/references/specialized-reviews.md` *MySQL report — the `casey` agent*). The review itself never runs this skill inline. In this mode the skill:
+  - runs against a **locally started database only** — never a shared, staging, or production host. With no local database, it analyses statically and says so;
+  - is **read-only** — it never writes a migration, an index, a query, or a configuration change, and never runs a statement that changes data or schema. Plain `EXPLAIN` and `SHOW` only; `EXPLAIN ANALYZE` (MariaDB `ANALYZE`) executes the statement, so run it on a `SELECT` only — never on `INSERT` / `UPDATE` / `DELETE`;
+  - is **diff-scoped** — every item anchors to a `file:line` the diff added or modified; a pre-existing query the diff does not touch is out of scope;
+  - reports **critical items only** — a full scan, `filesort`, or `temporary` on a realistically large table on a hot path, a per-row query in a loop, an N+1 on a list, a DDL that blocks writes during a deploy, or a comparable outage or data-loss risk. A non-critical observation is omitted, never downgraded into the report;
+  - gives each item its evidence (`file:line`, the reconstructed SQL, the `EXPLAIN` baseline when DB access exists, or the stated limitation when it does not) and one proposed optimization held against *Performance Non-Regression on Query Changes* in `@rules/sql/optimalize.md`;
+  - answers `No critical MySQL item in this diff.` when nothing qualifies.
+
+**In a code review this skill owns query performance and its plan, never the shape of a schema feature.** When the CR's schema-feature trigger fires on the same diff (`@skills/code-review/references/specialized-reviews.md` *Specialized Reviews*), `@skills/mysql-patterns/SKILL.md` with `MODE=cr` runs in the review beside this skill's `casey` report and owns whether an upsert is one statement over a backing unique index, whether a JSON path is indexed through a generated column, whether the partition key matches the predicate, whether `sticky` survives a read-after-write path, and whether a concurrent transaction carries a deadlock retry.
+Raise one point per violation: keep index usage, rows examined, `EXPLAIN` shape, and the non-regression gate here, and never restate a schema-shape finding in your own words. The schema-pattern findings stay in the review's `## Database Analysis` section; this skill's items stay in the `casey` report.
+
+The same division holds against the CR's latency lens. When `@skills/latency-critical-systems/SKILL.md` with `MODE=cr` runs over the same diff, it owns **the budget of the path and the freshness of its data** — the stated p50 / p95 / p99 target, the mapped hot path, the staleness window on a cached or broadcast read, and the backpressure that bounds queue depth. This skill keeps the query and its plan, including N+1. The two divide the *dimensions* of a hot-path change, never its lines: a `foreach` issuing a query per row on a queue path carries this skill's query-plan finding, and the latency lens speaks on the same change only when it also leaves the path with no stated budget or no freshness window — a different defect, never this skill's finding restated.
 
 ## Execution
 
@@ -42,21 +56,13 @@ Focus on:
     - DB tools when available
 
 ### 3. Run EXPLAIN
-- If MySQL access is available, run `EXPLAIN`
-- Review:
-    - table
-    - type
-    - possible_keys
-    - key
-    - rows
-    - filtered
-    - Extra
+- If MySQL access is available, run `EXPLAIN` on the query and read its plan.
 
 ### 4. Diagnose the Problem
 Look for:
 - full scans
 - weak join strategy
-- existing index bypassed — query could hit a covering index already in the schema but the column order, a wrapping function, or extra projected columns prevent it. Preferred fix is a query rewrite (column re-ordering, SARGable rewrite, covering projection), not a new index (see `@rules/sql/optimalize.mdc` "Reuse existing indexes first").
+- existing index bypassed — query could hit a covering index already in the schema but the column order, a wrapping function, or extra projected columns prevent it. Preferred fix is a query rewrite (column re-ordering, SARGable rewrite, covering projection), not a new index (see `@rules/sql/optimalize.md` "Reuse existing indexes first").
 - missing or ineffective indexes
 - non-SARGable filters
 - poor sort/group plans
@@ -64,12 +70,11 @@ Look for:
 - N+1 behavior from application code
 - per-row queries inside loops — per-row `update()` / `create()` / `delete()` or single-row reads driven by a `foreach` (distinct from N+1 eager-loading: this is application code intentionally writing or reading row-by-row when a single batch query would suffice)
 - redundant or overlapping indexes
-- charset / collation mismatch between compared or joined columns — the implicit conversion makes the converted side non-SARGable (its index is skipped), and an `ascii` column compared against a non-ASCII value raises `ERROR 1267` instead of returning no rows
-- schema-level causes of a slow plan (see `@rules/sql/optimalize.mdc` "Schema Design"): an oversized primary key copied into every secondary index, an unjustified `VARCHAR(255)` inflating sort buffers and temporary tables, `TIMESTAMP` columns converting per row by session time zone, or `FLOAT` / `DOUBLE` where `DECIMAL` belongs
+- schema changes that block during a deploy — a DDL statement that names no `ALGORITHM` / `LOCK` and may silently fall back to a table copy, or a data backfill executed inside the migration itself instead of a separate chunked command (see `@rules/sql/optimalize.md` "Deploy-safe schema changes")
 
 ### 5. Propose Optimizations
 
-Before recommending any rewrite, capture the **baseline** of the original query (`EXPLAIN` / `EXPLAIN ANALYZE` — `type`, `key`, `rows`, `filtered`, `Extra`, measured latency when DB access is available). Every proposal must then be held against that baseline per `@rules/sql/optimalize.mdc` "Performance Non-Regression on Query Changes":
+Before recommending any rewrite, capture the **baseline** of the original query (`EXPLAIN` / `EXPLAIN ANALYZE` — `type`, `key`, `rows`, `filtered`, `Extra`, measured latency when DB access is available). Every proposal must then be held against that baseline per `@rules/sql/optimalize.md` "Performance Non-Regression on Query Changes":
 
 - The rewritten query must be **equal or better** on rows examined, access `type`, index usage, `filesort` / `temporary` avoidance, and latency.
 - If a proposal is unavoidably **slower** than the original (e.g. a correctness fix that widens the row set), do not present it as a clean win — state **why it is slower**, list the **remaining optimization options** (or state that none exist and why), and the **trade-off that justifies it**.
@@ -80,30 +85,17 @@ Recommend only justified changes, such as:
 - Eloquent/query builder rewrite
 - eager loading change
 - pagination change
-- batching per-row loops into a single bulk operation — ModelManager batch methods (`batchUpdate`, `batchInsert`), `whereIn(...)->delete()` for deletes, or one bulk read keyed in memory for lookups (see `@rules/sql/optimalize.mdc` "Batch over per-row operations")
+- batching per-row loops into a single bulk operation — ModelManager batch methods (`batchUpdate`, `batchInsert`), `whereIn(...)->delete()` for deletes, or one bulk read keyed in memory for lookups (see `@rules/sql/optimalize.md` "Batch over per-row operations")
 - index addition or replacement (only when the existing schema cannot cover the query and EXPLAIN confirms the gap after the rewrite alternative has been ruled out)
 - redundant index removal
-- column type / charset / collation alignment when the mismatch is what blocks the index (`@rules/sql/optimalize.mdc` "Schema Design")
 - splitting one query into smaller ones
+- online schema change for a blocking DDL statement — name `ALGORITHM=INPLACE, LOCK=NONE`, or route the statement through `pt-online-schema-change` / `gh-ost` when it cannot run online, and move any backfill into its own chunked, re-runnable command
 
 Explain trade-offs:
 - write overhead
 - duplicate indexes
 - over-indexing
 - complexity vs benefit
-
-### 6. Assess Deployment Safety of Schema Changes
-
-Run this step whenever the input includes DDL — a migration file, `Schema::create` / `Schema::table` / `Schema::drop*` / `Schema::rename*`, a `DB::statement` carrying DDL, or raw `ALTER TABLE` / `CREATE INDEX`. A statement that is instant on an empty dev database can lock a populated production table, break the release still serving traffic, or fail halfway with no way back, so judge every statement against `@rules/sql/optimalize.mdc` *Deployment Safety of Schema Changes*:
-
-- destructive change (column / table drop or rename, narrowed type, tightened `ENUM`) shipped in the same release as the code that reads the old surface — propose the expand / contract split
-- blocking DDL: the change can only run as `ALGORITHM=COPY`, or an index build states no algorithm / lock mode — propose the explicit `ALGORITHM=INSTANT` / `ALGORITHM=INPLACE, LOCK=NONE` statement, or the `pt-online-schema-change` / `gh-ost` command
-- `down()` missing, empty, or not restoring the prior structure, and structure changes with no `Schema::has*()` guard to survive a replay after a failed deploy
-- a data backfill inside the migration — propose the DDL-only migration plus a chunked, resumable, idempotent command / queued job
-- a new `NOT NULL` / `UNIQUE` / `CHECK` / foreign key on a populated table with no pre-flight — propose the counting query that finds the violating rows, then remediation, then the constraint
-- a foreign key or a newly queried column with no backing index shipped in the same release — propose the exact index DDL
-
-Report each one as a finding with its concrete artifact, the same way step 5 reports an optimization.
 
 ## Laravel-Specific Checks
 When the input is Laravel code, also inspect:
@@ -116,9 +108,12 @@ When the input is Laravel code, also inspect:
 
 ## Terminal Guidance
 When terminal access is available, inspect DB connection details from:
-- `.env`
+- the dispatch or the caller's input
 - `config/database.php`
-- docker/dev setup
+- `.env.example`
+- docker/dev setup (`docker-compose*.yml`)
+
+Never read `.env` or an environment-variable value (`@rules/security/general.md` *Environment values are never read*).
 
 Use MySQL tools when possible for:
 - `SHOW CREATE TABLE`
@@ -129,7 +124,7 @@ If access fails, continue statically and say so.
 
 ## Output Format
 
-Use the template defined in `templates/analysis-report.md`.
+Use the template defined in `templates/analysis-report.md`. In `MODE=cr-report`, use `templates/cr-report.md` instead.
 ---
 
 ## Principles

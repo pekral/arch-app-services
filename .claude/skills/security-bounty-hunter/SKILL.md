@@ -6,17 +6,14 @@ metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# Security Bounty Hunter
-
 ## Constraints
 - Apply `@rules/security/backend.md` and `@rules/security/frontend.md`
-- If the project uses Laravel, also apply `@rules/laravel/laravel.mdc`
-- Stack assumed: Laravel 11 / PHP 8.3, Filament, Livewire, Alpine.js, Blade, MySQL, Redis
+- If the project uses Laravel, also apply `@rules/laravel/laravel.md`
+- Read the stack and its versions (framework, Filament, Livewire, database, cache) from `composer.json` per `@rules/general/general.md` *Project Context*
 - Read-only investigation — never modify, stage, commit, or push code; output is the finding report only
 - Never run an exploit against infrastructure you are not authorized to test; keep PoCs minimal and safe
-- Hard limits: this file stays <= 500 lines and <= 5000 tokens
 
-## Purpose
+## Scope
 Find unknown, exploitable bugs reachable from a real network or user boundary, and write them up to a standard a bounty program will accept. Bias toward "does this actually pay?" over "is this theoretically unsafe?".
 
 How this differs from neighbors:
@@ -63,8 +60,7 @@ Usually low-signal or out of scope unless the program says otherwise:
 ### Triage loop example
 ```bash
 # optional — any one of these, treat output as leads only
-larastan analyse --no-progress
-# or: vendor/bin/phpstan analyse
+vendor/bin/phpstan analyse --no-progress   # Larastan runs as a PHPStan extension
 # or: semgrep --config=auto --severity=ERROR --json
 ```
 Then manually filter: drop tests/demos/fixtures/vendored code and any non-reachable path; keep only findings with a clear network or user-controlled route to a meaningful sink.

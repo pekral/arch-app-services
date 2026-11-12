@@ -1,42 +1,78 @@
 #!/usr/bin/env bash
-# upsert-comment.sh — append-only GitHub issue / PR comment publisher used by
-# CR-track skills. Every invocation POSTs a fresh comment, even when a prior
-# marker-carrying comment exists, so each CR run owns its own self-contained
-# entry instead of editing an earlier one in place. The hidden marker stays in
-# the body so previous comments remain identifiable per actor + namespace, but
-# the lookup-and-PATCH branch was removed by user request — see CHANGELOG.
+# upsert-comment.sh — update-in-place GitHub issue / PR comment publisher used
+# by CR-track skills. Each invocation looks for a comment already carrying this
+# actor's hidden marker on the target and PATCHes the newest match; only when
+# no match exists does it POST a new one. One destination therefore keeps one
+# permanent comment per actor + namespace instead of a growing chain.
+#
+# This reverses the append-only behaviour a previous explicit request
+# introduced (see CHANGELOG). The lookup-and-PATCH branch is restored on a
+# newer explicit request from the same owner; the older CHANGELOG entry stays
+# as history.
 #
 # Usage:
-#   upsert-comment.sh <NUMBER|URL> <BODY_FILE> [<MARKER_KEY>]
-#   <body-producer> | upsert-comment.sh <NUMBER|URL> - [<MARKER_KEY>]
+#   upsert-comment.sh [--create] <NUMBER|URL> <BODY_FILE> [<MARKER_KEY>]
+#   <body-producer> | upsert-comment.sh [--create] <NUMBER|URL> - [<MARKER_KEY>]
 #
 # Inputs:
+#   --create    Optional. Always POST a new comment in the given namespace and
+#               never look up or PATCH an existing one. No packaged workflow
+#               passes it; it stays for project skills. Unlike `agent-note`, the marker namespace stays
+#               unchanged, so a later run without the flag updates the newest
+#               comment as usual.
 #   NUMBER|URL  Bare GitHub issue / PR number (resolved against the current
 #               git remote) or a full github.com URL containing /issues/<N> or
 #               /pull/<N>. The optional `www.` host prefix is tolerated.
 #   BODY_FILE   Path to a file holding the comment body, or `-` to read from
 #               stdin. The body must already be in the target tracker markup
 #               (GitHub Markdown).
-#   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`. CR
-#               wrappers (`code-review-github`, `code-review-jira`, `pr-summary`)
-#               leave it at the default; `process-code-review` passes
-#               `cr-status` so its resolved-items follow-up stays distinguishable
-#               from the CR comment even though every run is now a fresh post.
+#   MARKER_KEY  Optional. Marker namespace, defaults to `cr-comment`. Other
+#               namespaces this package writes: `merge-readiness`,
+#               `test-report`, `mysql-report`, `analysis-plan` (upserted, same
+#               as `cr-comment`),
+#               and `agent-note` — the one namespace that
+#               is create-only (see step 3 below). A project skill may pass its own
+#               namespace; `@rules/code-review/general.md` *Authorship trust*
+#               reads every `<namespace>:actor=` marker as agent output.
 #
 # Behavior:
 #   1. Detect the actor login via `gh api user --jq .login`.
 #   2. Append a hidden marker `<!-- <MARKER_KEY>:actor=<login> -->` to the body
 #      (only when the body does not already carry the marker).
-#   3. POST a new comment via `gh api repos/<nwo>/issues/<N>/comments`. The
-#      script never edits prior comments; every CR run produces a new entry.
+#   3. `agent-note` skips this step entirely and always POSTs (see below). Every
+#      other namespace lists the target's comments and picks the newest one
+#      this actor authored whose body carries that marker. The author filter is
+#      load-bearing: a marker is visible text anyone can copy into their own
+#      comment, so a lookup matching on the marker alone could PATCH a
+#      stranger's comment.
+#   4. Carry every line the operator added to the matched comment into the new
+#      body verbatim (`skills/_shared/carry-operator-lines.php`). The operator
+#      posts under the same account, so a line counts as the operator's when the
+#      previous version's hidden `<!-- <MARKER_KEY>:lines=... -->` fingerprint of
+#      agent-written lines does not know it. Every published body records that
+#      fingerprint. `agent-note` is never rewritten, so it skips this step.
+#   5. When a match exists, PATCH it via
+#      `gh api repos/<nwo>/issues/comments/<id>`; otherwise POST a new comment
+#      via `gh api repos/<nwo>/issues/<N>/comments`.
+#
+# One result is one comment, for every namespace except `agent-note`. A failing
+# lookup publishes nothing and exits 3: without it, a POST could duplicate the
+# comment this actor already owns, and a rerun once the API answers again
+# updates that comment in place. `agent-note` is the deliberate exception:
+# every call POSTs a fresh comment, by design — never a lookup, never a PATCH.
+# It is for a separate agent comment (a runbook, a note) that must never be
+# picked up and overwritten by a later `cr-comment` / `merge-readiness` publish.
 #
 # The marker stays at the bottom of the comment so it survives manual edits
-# at the top. It is rendered by GitHub as an invisible HTML comment.
+# at the top. It is rendered by GitHub as an invisible HTML comment, and it is
+# what the lookup in step 3 matches on, together with the comment's author.
 #
 # Output:
-#   The published comment URL on stdout. `action=created` on stderr for the
-#   calling skill to log in its summary line — the value is always `created`
-#   because the script no longer PATCHes existing comments.
+#   The published comment URL on stdout. `action=updated id=<id>` (an existing
+#   comment was PATCHed) or `action=created id=<id>` (a new one was POSTed) on
+#   stderr, for the calling skill to log in its summary line. On an update,
+#   stderr also carries `carried_lines=<n>` and one `carried: <line>` per carried
+#   operator line; the calling skill states every carried line in its report.
 #
 # Exit codes:
 #   1  usage / argument error
@@ -46,17 +82,23 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Usage: upsert-comment.sh <NUMBER|URL> <BODY_FILE|-> [<MARKER_KEY>]
+Usage: upsert-comment.sh [--create] <NUMBER|URL> <BODY_FILE|-> [<MARKER_KEY>]
 
+  --create    always POST a new comment; never look up or PATCH an existing one
   NUMBER      bare GitHub issue or PR number (resolved against current git remote)
   URL         any github.com URL containing /issues/<N> or /pull/<N>
   BODY_FILE   path to a file containing the comment body, or `-` for stdin
-  MARKER_KEY  optional marker namespace (default: cr-comment).
-              Use `cr-status` from process-code-review so the resolved-items
-              comment keeps its own per-actor identification even though every
-              run is posted as a fresh comment.
+  MARKER_KEY  optional marker namespace (default: cr-comment, the only
+              namespace this package publishes into — one comment per
+              review run, per destination).
 EOF
 }
+
+CREATE_ONLY=0
+if [[ "${1:-}" == "--create" ]]; then
+  CREATE_ONLY=1
+  shift
+fi
 
 if [[ $# -lt 2 || $# -gt 3 || -z "${1:-}" || -z "${2:-}" ]]; then
   usage
@@ -72,7 +114,7 @@ if [[ ! "$MARKER_KEY" =~ ^[a-z][a-z0-9-]*$ ]]; then
   exit 1
 fi
 
-for bin in gh jq; do
+for bin in gh jq php; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "upsert-comment.sh: required tool not found: $bin" >&2
     exit 2
@@ -141,7 +183,10 @@ fi
 # and retry up to three times so a single transient API hiccup does not abort
 # the whole CR comment publish — see issue #519.
 ACTOR_STDERR="$(mktemp)"
-trap 'rm -f "$ACTOR_STDERR"' EXIT
+LOOKUP_STDERR="$(mktemp)"
+NEW_BODY_FILE="$(mktemp)"
+PREVIOUS_BODY_FILE="$(mktemp)"
+trap 'rm -f "$ACTOR_STDERR" "$LOOKUP_STDERR" "$NEW_BODY_FILE" "$PREVIOUS_BODY_FILE"' EXIT
 ACTOR=""
 ACTOR_ERR=""
 for attempt in 1 2 3; do
@@ -165,27 +210,81 @@ fi
 
 MARKER="<!-- ${MARKER_KEY}:actor=${ACTOR} -->"
 
+# Look for a comment this actor already published under the same marker. A
+# failed lookup publishes nothing: a POST without it could duplicate the
+# comment this actor already owns. `--paginate` emits one JSON array per page,
+# so `jq -s 'add // []'` flattens them into a single array before the marker
+# match runs. `agent-note` is the one namespace this skips entirely — it is
+# create-only, so an existing agent-note comment (a runbook, a note the
+# operator asked an agent to leave as its own comment) is never picked up or
+# overwritten. `--create` skips it for the same reason, in any namespace.
+EXISTING_ID=""
+if [[ "$MARKER_KEY" != "agent-note" && "$CREATE_ONLY" -eq 0 ]]; then
+  ALL_COMMENTS=""
+  if ! ALL_COMMENTS="$(gh api "repos/${NWO}/issues/${NUMBER}/comments" --paginate 2>"$LOOKUP_STDERR")"; then
+    echo "upsert-comment.sh: comment lookup failed on ${NWO}#${NUMBER}, nothing was published: $(cat "$LOOKUP_STDERR")" >&2
+    echo "upsert-comment.sh: a POST without the lookup could duplicate a comment this actor already owns; rerun once the API answers" >&2
+    exit 3
+  fi
+
+  if [[ -n "$ALL_COMMENTS" ]]; then
+    EXISTING_ID="$(printf '%s' "$ALL_COMMENTS" \
+      | jq -s 'add // []' \
+      | jq -r --arg marker "$MARKER" --arg actor "$ACTOR" \
+          '[.[] | select((.user.login // "") == $actor) | select(.body // "" | contains($marker))] | sort_by(.created_at) | last | .id // empty' \
+          2>/dev/null || true)"
+  fi
+fi
+
+if [[ "$MARKER_KEY" != "agent-note" ]]; then
+  CARRY_ARGS=(markdown "$MARKER_KEY" "$NEW_BODY_FILE")
+  if [[ "$EXISTING_ID" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$ALL_COMMENTS" \
+      | jq -s 'add // []' \
+      | jq -r --argjson id "$EXISTING_ID" '.[] | select(.id == $id) | .body // ""' > "$PREVIOUS_BODY_FILE"
+    CARRY_ARGS+=("$PREVIOUS_BODY_FILE")
+  fi
+  printf '%s' "$BODY" > "$NEW_BODY_FILE"
+  if ! BODY="$(php "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../_shared/carry-operator-lines.php" "${CARRY_ARGS[@]}")"; then
+    echo "upsert-comment.sh: carrying the operator lines failed on ${NWO}#${NUMBER}, nothing was published" >&2
+    exit 3
+  fi
+fi
+
 if ! grep -Fq "$MARKER" <<<"$BODY"; then
   BODY="${BODY}
 
 ${MARKER}"
 fi
 
-# Always POST a fresh comment. The lookup-and-PATCH branch was removed by user
-# request — every CR run now owns its own self-contained comment so reviewers
-# see one entry per run instead of an edited-in-place history. `gh api` body
-# payloads are built via jq and fed through `--input -` so the body stays a
-# string regardless of its content (a body that happens to be `true` or an
-# integer would otherwise be coerced by `-F` type inference).
-RESPONSE="$(jq -n --arg body "$BODY" '{body:$body}' | gh api \
-  "repos/${NWO}/issues/${NUMBER}/comments" \
-  -X POST \
-  --input - \
-  || true)"
-if [[ -z "$RESPONSE" ]]; then
-  echo "upsert-comment.sh: POST failed on ${NWO}#${NUMBER}" >&2
+# `gh api` body payloads are built via jq and fed through `--input -` so the
+# body stays a string regardless of its content (a body that happens to be
+# `true` or an integer would otherwise be coerced by `-F` type inference).
+if [[ "$EXISTING_ID" =~ ^[0-9]+$ ]]; then
+  ACTION="updated"
+  RESPONSE="$(jq -n --arg body "$BODY" '{body:$body}' | gh api \
+    "repos/${NWO}/issues/comments/${EXISTING_ID}" \
+    -X PATCH \
+    --input - \
+    || true)"
+else
+  ACTION="created"
+  RESPONSE="$(jq -n --arg body "$BODY" '{body:$body}' | gh api \
+    "repos/${NWO}/issues/${NUMBER}/comments" \
+    -X POST \
+    --input - \
+    || true)"
+fi
+
+# A failed request is not always an empty response: `gh api` prints the API's own
+# error JSON on stdout, so emptiness alone would let a 403 or a 422 report
+# `action=updated id=null` and exit 0. The published URL is the evidence the
+# write landed, so it is what the success check reads.
+NEW_URL="$(printf '%s' "$RESPONSE" | jq -r '.html_url // empty' 2>/dev/null || true)"
+if [[ -z "$NEW_URL" ]]; then
+  echo "upsert-comment.sh: ${ACTION} request failed on ${NWO}#${NUMBER}: $(printf '%s' "$RESPONSE" | jq -r '.message // "unknown error"' 2>/dev/null || echo 'unknown error')" >&2
   exit 3
 fi
-printf '%s' "$RESPONSE" | jq -r '.html_url'
+printf '%s\n' "$NEW_URL"
 NEW_ID="$(printf '%s' "$RESPONSE" | jq -r '.id')"
-echo "action=created id=${NEW_ID}" >&2
+echo "action=${ACTION} id=${NEW_ID}" >&2

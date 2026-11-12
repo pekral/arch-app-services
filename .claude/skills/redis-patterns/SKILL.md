@@ -6,14 +6,23 @@ metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# Redis Patterns
-
 ## Constraints
-- Apply `@rules/laravel/laravel.mdc` — use the framework's facades (`Cache`, `RateLimiter`, `Redis`), not a raw client.
-- Apply `@rules/laravel/queue-debouncing.mdc` for queue/job coalescing concerns when Redis backs the queue.
-- Cross-link `@rules/sql/optimalize.mdc` (DB-level caching) — Redis caching sits in front of the query tuning that rule owns; cache the result, do not paper over an unindexed query.
+- Apply `@rules/laravel/laravel.md` — use the framework's facades (`Cache`, `RateLimiter`, `Redis`), not a raw client.
+- Apply `@rules/laravel/queue-debouncing.md` for queue/job coalescing concerns when Redis backs the queue.
+- Cross-link `@rules/sql/optimalize.md` (DB-level caching) — Redis caching sits in front of the query tuning that rule owns; cache the result, do not paper over an unindexed query.
 - `final` classes, `declare(strict_types=1)`, Pest tests (use the `array` cache driver in tests unless asserting Redis-specific behavior).
 - Always set a TTL. Keys without expiry accumulate and cause memory pressure.
+
+## Modes
+
+This skill runs in one of two modes, selected by the caller via `MODE` (default `design`):
+
+- **`design` (default)** — full Redis work: write caching code, add locks and rate limiters, set key and TTL conventions, and change cache, queue, session, or eviction configuration. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a cache, lock, or rate-limit surface)** — **never modify code, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
+Every instruction below that would touch a file or a server — set, add, guard, configure, publish, or any other such verb — is emitted as a written proposal carrying a concrete PHP or configuration snippet, never applied to the project.
+
+> **What this lens owns in a CR:** how a cache, lock, or rate-limit call behaves — TTL presence and length, key naming and collision, stampede protection on a cold or expired rebuild, lock acquisition / ownership / release, rate-limit construction, eviction policy against the store's role, and `KEYS *` or per-command loops where `SCAN` or a pipeline belongs. It **defers the shape of the cached value** — an Eloquent model, a DTO, a Collection of models, or any other object stored where raw data belongs — to `@rules/code-review/core-analysis.md` *Object caching (issue #683)*, and never raises a finding that bullet owns.
+> The lens runs whatever cache store the project configures. **Never raise a finding whose only fix is to adopt Redis**, or a Redis-only feature such as cache tags, `Redis::throttle`, `Redis::funnel`, or a server eviction policy: the store is a project decision, not a defect on the diff.
 
 ## Use when
 - Adding caching, rate limiting, distributed coordination, or pub/sub to a Laravel app.
@@ -28,17 +37,17 @@ Use Laravel facades throughout. Reach for raw `Redis::command(...)` only for str
 
 ```php
 $product = Cache::remember("product:{$id}", now()->addMinutes(10), fn () =>
-    Product::findOrFail($id),
+    Product::findOrFail($id)->toArray(),
 );
 ```
 
-`remember()` is read-through cache-aside: returns the cached value or runs the closure, stores it, and returns it. Use `rememberForever()` only with an explicit invalidation path.
+`remember()` is read-through cache-aside: returns the cached value or runs the closure, stores it, and returns it. Cache the raw shape, never the model; rehydrate in the consumer. Use `rememberForever()` only with an explicit invalidation path.
 
 ### Write-Through (consistency required)
 
 ```php
 $product->update($data);
-Cache::put("product:{$product->id}", $product->fresh(), now()->addMinutes(10));
+Cache::put("product:{$product->id}", $product->fresh()->toArray(), now()->addMinutes(10));
 // Or simply invalidate so the next read repopulates:
 Cache::forget("product:{$product->id}");
 ```
@@ -181,7 +190,7 @@ Pipelines cut latency for bulk ops; transactions add atomicity. Do not loop sing
 
 ## Queues, Sessions & Stores
 
-- **Queues:** set `QUEUE_CONNECTION=redis`. Run **Laravel Horizon** for Redis queues — it gives supervisor config, metrics, and a dashboard. For coalescing bursty jobs see `@rules/laravel/queue-debouncing.mdc`.
+- **Queues:** set `QUEUE_CONNECTION=redis`. Run **Laravel Horizon** for Redis queues — it gives supervisor config, metrics, and a dashboard. For coalescing bursty jobs see `@rules/laravel/queue-debouncing.md`.
 - **Sessions / cache:** `SESSION_DRIVER=redis`, `CACHE_STORE=redis`. Keep sessions/queue on a `noeviction` instance and cache on an `allkeys-lru` instance (or distinct DB indexes) so cache eviction never drops a session or job.
 - Size the predis/phpredis pool and set `socket_timeout` / `read_timeout` so a stalled Redis fails fast instead of hanging requests.
 

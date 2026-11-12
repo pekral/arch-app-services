@@ -7,11 +7,11 @@ metadata:
 ---
 
 ## Constraints
-- Apply `@rules/api/general.mdc` — this skill is the focused review lens for that rule.
-- Apply `@rules/php/core-standards.mdc`
+- Apply `@rules/api/general.md` — this skill is the focused review lens for that rule.
+- Apply `@rules/php/core-standards.md`
 - Apply `@rules/security/backend.md` — for the error-text and authorization-leak surface of API responses (401/403/404 wording, no internal-detail leak).
-- If the current project uses Laravel, also apply `@rules/laravel/architecture.mdc` and `@rules/laravel/laravel.mdc` — validation belongs in FormRequest / Data Validator, controllers stay slim.
-- Apply `@rules/reports/general.mdc` — when the findings are folded into the **GitHub PR comment** by a CR wrapper they stay in canonical English per the rule's *Exception — technical CR findings on the GitHub PR*; a non-technical mirror on a linked issue / JIRA ticket follows the language of the source assignment. HTTP verbs, status codes, header names, and code identifiers stay verbatim regardless of the surrounding prose language.
+- If the current project uses Laravel, also apply `@rules/laravel/architecture.md` and `@rules/laravel/laravel.md` — validation belongs in FormRequest / Data Validator, controllers stay slim.
+- Apply `@rules/reports/general.md` — when the findings are folded into the **GitHub PR comment** by a CR wrapper they stay in canonical English per the rule's *Exception — technical CR findings on the GitHub PR*; a non-technical mirror on a linked issue / JIRA ticket follows the language of the source assignment. A manifest `language.github` overrides both on GitHub (the rule's *Project override — `language.github` in the manifest*). HTTP verbs, status codes, header names, and code identifiers stay verbatim regardless of the surrounding prose language.
 - Output findings only — no praise, no summary of what was checked.
 - **Read-only skill** — never modify code, never stage / commit / push, and never run any git write operation. Switching to the relevant branch and `git pull` to read the latest diff are allowed; mutating the working tree or pushing is not.
 
@@ -23,8 +23,11 @@ metadata:
 ## Scope
 Review only the API surface on the **diff** — never untouched endpoints. Detect the surface from any of: route definitions, controller/`__invoke` request handlers, API Resources / DTOs serialized into responses, FormRequests, `response()` / `abort()` / status-code calls, and `Idempotency-Key` handling. If the diff touches no API surface, return no findings.
 
+**This lens owns the generic HTTP contract of an MPP-gated endpoint, never the protocol behind it.** When the CR's payment trigger fires on the same diff on a project that implements MPP (`@skills/code-review/references/specialized-reviews.md` *Specialized Reviews*), `@skills/machine-payments-protocol/SKILL.md` with `MODE=cr` runs alongside this lens and owns protocol conformance — the challenge and receipt shape on the wire, single-use proof, request and body binding, expiry, no side effect before payment, idempotent settlement, and server-side pricing. This lens keeps status-code choice outside the `402` challenge itself, the response envelope, versioning, and idempotency-key mechanics, and never restates a protocol finding in its own words.
+The two divide the *dimensions* of a payment change, never its lines: a gated endpoint that both settles a replayed receipt a second time and answers a client retry with no `Idempotency-Key` handling carries one protocol finding from the payment lens and one idempotency finding here — a different defect, never this lens's finding restated.
+
 ## Core Checks
-Walk the diff against each pillar of `@rules/api/general.mdc` and raise one finding per match.
+Walk the diff against each pillar of `@rules/api/general.md` and raise one finding per match.
 
 ### 1. Contract & consumer orientation
 - Response leaks internal DB structure — raw column names, surrogate/internal keys, join tables, enum integers, or storage-only fields serialized without a DTO / API Resource boundary.
@@ -32,7 +35,6 @@ Walk the diff against each pillar of `@rules/api/general.mdc` and raise one find
 
 ### 2. Resource-oriented REST
 - Action/verb in the endpoint path (`/getUser`, `/createUser`, `/users/{id}/delete`, `/doPayment`) instead of a resource noun + HTTP method.
-- Singular collection nouns or flat URIs where a sub-resource nesting (`/users/{id}/orders`) reads clearer.
 
 ### 3. HTTP methods & idempotence
 - Method whose side effects violate its contract — `GET` that mutates state, `PUT`/`DELETE` not idempotent on repetition.
@@ -42,7 +44,7 @@ Walk the diff against each pillar of `@rules/api/general.mdc` and raise one find
 - Critical, retry-prone, state-changing operation (payment, transfer, order placement) with no `Idempotency-Key` handling, so a client retry can double-execute.
 
 ### 5. Status codes
-- Imprecise success code — `200` for a creation (`201`), for an async hand-off (`202`), or where `204` (no body) is correct; a body returned alongside `204`; a missing `Location` header on `201`.
+- Imprecise success code — `200` for a creation (`201`), for an async hand-off (`202`), or where `204` (no body) is correct; a body returned alongside `204`.
 - Error code collapsed into a generic one where a narrower code applies (`400`/`401`/`403`/`404`/`409`/`422`/`429`).
 - 401-vs-403 inversion — `401` for an authorization failure or `403` for a missing/invalid credential.
 
@@ -54,41 +56,41 @@ Walk the diff against each pillar of `@rules/api/general.mdc` and raise one find
 
 ## Prioritization
 - Focus on contract defects a consumer would feel: double-charges, wrong status branching, breaking payload shapes, bypassed validation.
-- Deprioritize purely cosmetic naming nits — keep them as **Minor**.
-- Do not propose API features the current scope does not require (YAGNI per `@rules/php/core-standards.mdc`).
+- Do not report purely cosmetic naming nits. The review has no tier below Moderate (`@rules/code-review/general.md` *Minor findings are not detected*).
+- Do not propose API features the current scope does not require (YAGNI per `@rules/php/core-standards.md`).
 
 ## Report
+
+### Real-Code Grounding for Every Finding (issue #97)
+Apply the contract in `@rules/code-review/general.md` *Real-Code Grounding for Every Finding (issue #97)* to every finding — **Critical and Moderate alike; no severity is exempt**. On this skill's surface the context to re-read is the enclosing route / controller / FormRequest / API Resource, plus any Service or DTO the Suggested Fix depends on — a contract claim is grounded only when the real route definition and the real response shape were both read. The requirement holds equally for a standalone run (e.g. a pre-release API design check).
+
+Findings from this skill fold into the core CR's severity buckets; the Assignment-Declared Test-Only Conditions — Exclusion Gate (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*) is applied by `@skills/code-review/SKILL.md`, not here — trust-boundary / authorization findings from Core Check 6 fall under the gate's security carve-out and are never excludable.
+
 Use the severity scale of `@skills/code-review/SKILL.md` so findings fold cleanly into the code review:
 
-- **Critical** / **Moderate** / **Minor** — apply the severity declared in `@rules/api/general.mdc` *CR Severity Rules*.
+- **Critical** / **Moderate** — apply the severity declared in `@rules/api/general.md` *CR Severity Rules*. An entry that rule grades below Moderate is not reported.
 
 Each finding includes:
 - location (`file:line`)
 - risk/impact (the consumer-facing consequence)
-- the cited rule reference (e.g. `@rules/api/general.mdc#Resource-Oriented REST`)
+- the cited rule reference (e.g. `@rules/api/general.md#Resource-Oriented REST`)
 - concrete fix
 
 Each **Critical** and **Moderate** finding additionally includes:
 - **Faulty Example** — minimal endpoint / route / payload snippet that reproduces the issue (redact secrets/PII)
 - **Expected Behavior** — single assertable statement (status code, response shape, idempotent outcome, rejection before side effect)
 - **Test Hint** — one sentence pointing at the test layer (feature/HTTP, integration) and the entry point
-- **Suggested Fix** — minimal corrected snippet that complies with `@rules/api/general.mdc`, `@rules/php/core-standards.mdc`, and on Laravel projects `@rules/laravel/architecture.mdc`. Use `n/a — <reason>` only when a snippet adds nothing over the one-line fix.
-
-Minor findings may omit these fields when no behavior change is implied.
+- **Suggested Fix** — minimal corrected snippet that complies with `@rules/api/general.md`, `@rules/php/core-standards.md`, and on Laravel projects `@rules/laravel/architecture.md`. Use `n/a — <reason>` only when a snippet adds nothing over the one-line fix.
 
 These fields exist so `@skills/process-code-review/SKILL.md` can turn each finding into a reproducer test and apply the fix without re-deriving context.
 
-## Functional cross-check (light — issue #737 carve-out)
-`@rules/code-review/general.mdc` *Two-part CR output — Technical & Functional review* requires every CR wrapper to render a Functional review, normally built by `@skills/assignment-compliance-check/SKILL.md`. `api-review` is a documented carve-out: it does **not** invoke the full `assignment-compliance-check` — running a second full assignment-conformance engine over the same diff would duplicate the wrapper's checklist. Instead, derive a **light** functional verdict from the Core Checks walk already performed above: does the diff's API surface (routes, status codes, payload shapes, idempotency) match what the linked assignment describes for the API contract? Render one line at the end of the returned markdown — `API contract matches assignment: Yes/No` — where `No` cites whichever Core Checks finding above traces to an unmet API requirement (no duplicated detail). When the diff touches no API surface (per Scope), omit the line entirely — there is nothing to cross-check.
-
-**Render target — standalone runs only.** Render the light verdict line only when `api-review` is invoked as a **standalone** review (not wrapped by another CR skill). When invoked **inline** as a sub-lens inside a full CR wrapper (`@skills/code-review/SKILL.md` Specialized Reviews → Always run), the wrapper's own `assignment-compliance-check` already owns the Functional review for that run — suppress the light verdict line entirely so the two-part output carries exactly one functional signal, not a redundant second one that the wrapper would discard.
-
 ## Output Format
-Use the template defined in `templates/review-output.md`, appended with the **Functional cross-check** verdict line above only on a standalone run that touches an API surface; suppress the line on an inline sub-lens invocation per the Render target rule above. Omit any severity section that has no findings; never emit `None.` / `n/a` placeholders.
+Use the template defined in `templates/review-output.md`. Omit any severity section that has no findings; never emit `None.` / `n/a` placeholders.
 
 ## Done when
 - Every API-surface change on the diff has been walked against the six Core Checks.
 - Findings are grouped by severity with the mandatory reproducer fields on every Critical and Moderate item.
+- Every published finding was re-grounded in the real, current file per Real-Code Grounding (issue #97).
 - No code, git, or remote state was modified (read-only).
 
 ## Output Humanization

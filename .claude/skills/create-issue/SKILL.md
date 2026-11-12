@@ -6,13 +6,6 @@ metadata:
   author: Petr Král (pekral.cz)
 ---
 
-# Create Issue
-
-## Purpose
-Create a well-formatted issue while preserving the original content exactly.
-
----
-
 ## Constraints
 - Preserve original text exactly (no rewriting or summarizing)
 - Improve formatting only (headings, lists, spacing)
@@ -34,8 +27,8 @@ Create a well-formatted issue while preserving the original content exactly.
 ### 3. Create Issue
 - Use available CLI tool
 - Set title and formatted description
-- Assign the most relevant existing label (per `@rules/compound-engineering/general.mdc` *Assign the most relevant existing label when creating a tracker issue*)
 - Assign to current user
+- Select and apply the single most relevant existing label per `@rules/compound-engineering/tracker.md` *Label tracker issues, and keep the labels true* (never create a new label; leave the issue unlabeled when none fits)
 
 ### 4. Output
 - Return direct link to created issue

@@ -6,58 +6,31 @@ metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# MySQL Patterns
-
 ## Constraints
-- Apply `@rules/sql/optimalize.mdc` — it already owns indexing, SARGable WHERE, seek/keyset pagination, EXPLAIN, transactions/locking basics, batch-over-per-row, CTE/window/recursive queries, schema basics, DB-level caching, and the **Performance Non-Regression on Query Changes** gate. Do not re-explain those here; defer to it. When a pattern in this skill *changes an existing query* (e.g. swapping `LIKE` for a FULLTEXT match, moving a filter onto a generated column, introducing partition pruning), capture the original query's baseline and confirm the new shape is equal or faster — if it is slower, document the reason and the remaining optimization options per that gate.
-- For diagnosing an existing slow query, use `@skills/mysql-problem-solver/SKILL.md`. This skill is for *designing* features, not investigating regressions.
-- If the project uses Laravel, also apply `@rules/laravel/laravel.mdc` and `@rules/laravel/architecture.mdc`.
+- Apply `@rules/sql/optimalize.md` — it already owns indexing, SARGable WHERE, seek/keyset pagination, EXPLAIN, transactions/locking basics, batch-over-per-row, CTE/window/recursive queries, schema basics, DB-level caching, and the **Performance Non-Regression on Query Changes** gate. Do not re-explain those here; defer to it. When a pattern in this skill *changes an existing query* (e.g. swapping `LIKE` for a FULLTEXT match, moving a filter onto a generated column, introducing partition pruning), capture the original query's baseline and confirm the new shape is equal or faster — if it is slower, document the reason and the remaining optimization options per that gate.
+- For diagnosing an existing slow query, use `@skills/mysql-problem-solver/SKILL.md`. In `MODE=design` this skill designs features rather than investigating regressions; in `MODE=cr` it reviews the shape of those same features on a diff (see *Modes*). Query diagnosis stays with that skill in both modes.
+- If the project uses Laravel, also apply `@rules/laravel/laravel.md` and `@rules/laravel/architecture.md`.
 - Apply `@rules/security/backend.md` — parameterized queries / ORM only, least-privilege DB users, never hardcode credentials.
 - `final` classes, `declare(strict_types=1)`, Pest tests for any data-access code added.
 - Verify the engine/version before using a version-specific feature (`SELECT VERSION();`). MySQL 8 and MariaDB diverge on JSON, `ON DUPLICATE KEY` aliases, and `SKIP LOCKED`.
 
+## Modes
+
+This skill runs in one of two modes, selected by the caller via `MODE` (default `design`):
+
+- **`design` (default)** — full design work: write migrations, add generated columns and indexes, change connection configuration, and apply the patterns below to the project. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches a MySQL schema-feature surface)** — **never modify code, never author a migration or a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, for the CR to fold into its single `## Database Analysis` section.
+Every instruction below that would touch the database, a migration, or configuration — create, add, alter, index, enable, set, or any other such verb — is emitted as a written proposal carrying a concrete SQL / query-builder snippet, never applied to the project.
+
+> **What this lens owns in a CR:** the shape of the schema feature and of the data-access pattern built on it — whether an upsert runs as one statement over a backing unique index, whether a JSON path is indexed through a generated column, whether full-text search replaces a leading-wildcard `LIKE`, whether the partition key matches the predicate the queries filter on, whether read/write splitting keeps `sticky` on a read-after-write path, and whether a concurrent transaction carries a deadlock retry.
+> It **defers the performance of a query and its plan** — index usage, rows examined, `EXPLAIN` shape, `filesort` / `temporary`, and the non-regression gate on a rewritten query — to `@skills/mysql-problem-solver/SKILL.md`, and never raises a finding that skill owns. On a MySQL diff that skill runs in the advisory `casey` report, beside this lens in the review; the two divide the *dimensions* of a DB change, never its lines: a slow query over a new partition carries one performance item in the `casey` report and one partition-shape finding from this lens.
+
 ## Use when
 - Adding upserts, JSON columns, full-text search, generated columns, or partitioning to a Laravel app.
-- Writing a migration that creates a new table and needs the schema standard expressed in Blueprint.
 - Setting up read/write splitting against replicas, or hardening against deadlocks and connection exhaustion.
 - Reviewing a migration that introduces any of the above on a large table.
 
 These topics complement the query-tuning rules; they are not covered there.
-
-## Schema Standard in Laravel Migrations
-
-`@rules/sql/optimalize.mdc` *Schema Design* owns the standard (singular names, `NOT NULL` defaults, `_at` / `_date` suffixes, `DATETIME` over `TIMESTAMP`, adjective booleans, justified `VARCHAR` widths, `DECIMAL` money, `ON DELETE` by relation nature, `CHECK` invariants, `utf8mb4_0900_*`, PK width). This section only maps it onto Blueprint, where several defaults contradict it.
-
-```php
-Schema::create('post', function (Blueprint $table): void {   // singular — Eloquent needs $table = 'post';
-    $table->increments('id');                                // INT UNSIGNED; ->id() would give BIGINT
-    $table->string('slug', 100)->charset('utf8mb4')->collation('utf8mb4_0900_bin');
-    $table->string('meta_title', 160)->default('');          // NOT NULL + domain default
-    $table->boolean('published')->default(false);            // adjective, positive polarity
-    $table->decimal('price', 9, 2);                          // money is never float/double
-    $table->date('invoice_date');                            // calendar day → DATE
-    $table->dateTime('published_at')->nullable();
-    $table->dateTime('created_at');
-    $table->dateTime('updated_at')->useCurrent()->useCurrentOnUpdate();
-    $table->unsignedInteger('author_id');                    // same width as user.id
-    $table->foreign('author_id', 'fk_post_author')           // name the constraint yourself
-        ->references('id')->on('user')
-        ->restrictOnDelete()->cascadeOnUpdate();
-    $table->index(['author_id', 'published_at'], 'idx_post_author_published');
-});
-```
-
-- `$table->timestamps()` emits **`TIMESTAMP`** columns — the 2038 + session-zone trap. Declare `dateTime('created_at')` / `dateTime('updated_at')` explicitly.
-- **Pair the FK width to the PK it references.** `$table->id()` and `$table->foreignId()` are both `BIGINT UNSIGNED`; `increments()` is `INT UNSIGNED`. So `id()` pairs with `foreignId()->constrained()`, and `increments()` pairs with `unsignedInteger()` + `foreign()`. A mixed pair makes MySQL reject the constraint (errno 3780, incompatible column types).
-- `constrained()` / `foreign()` generate a name like `post_author_id_foreign` — pass the constraint name (`constrained(table: 'user', indexName: 'fk_post_author')`, or the second argument of `foreign()`) so the schema keeps the naming the rule requires.
-- FK actions read directly off the relation: `cascadeOnDelete()` (composition), `restrictOnDelete()` (association), `nullOnDelete()` (meaningful detachment).
-- Blueprint has no DSL for `CHECK` constraints, triggers, or `COMMENT` on a magically maintained column — use `DB::statement(...)` and name the constraint after the rule:
-  ```php
-  DB::statement('ALTER TABLE `customer_order` ADD CONSTRAINT `chk_order_shipped_needs_date`
-      CHECK (`status` <> \'shipped\' OR `shipped_at` IS NOT NULL)');
-  ```
-- Set the connection charset/collation and strict mode once in `config/database.php`: `'charset' => 'utf8mb4'`, `'collation' => 'utf8mb4_0900_ai_ci'`, `'strict' => true` (or an explicit `'modes' => [...]` list). MariaDB has no `utf8mb4_0900_*` family — verify with `SELECT VERSION();` before pinning it.
-- An `updated_at` maintained by `ON UPDATE CURRENT_TIMESTAMP` and one maintained by Eloquent are two mechanisms for one column — pick one (`public $timestamps = false;` when the DB owns it) so the row version is not written twice with different values.
 
 ## Upserts
 
@@ -109,7 +82,7 @@ Product::whereJsonContains('attributes->tags', 'sale')->get();
 
 ## Full-Text Search
 
-For natural-language search on TEXT columns, a `FULLTEXT` index beats `LIKE '%term%'` (which is non-SARGable, see `@rules/sql/optimalize.mdc`).
+For natural-language search on TEXT columns, a `FULLTEXT` index beats `LIKE '%term%'` (which is non-SARGable, see `@rules/sql/optimalize.md`).
 
 ```php
 Schema::table('articles', function (Blueprint $table): void {
@@ -197,7 +170,7 @@ DB::transaction(function (): void {
 
 - Keep transactions short, lock rows in a consistent order across code paths, and touch the fewest rows possible.
 - Idempotency matters: the closure runs up to N times, so it must be safe to re-run.
-- See `@rules/sql/optimalize.mdc` for the transaction/locking fundamentals this builds on.
+- See `@rules/sql/optimalize.md` for the transaction/locking fundamentals this builds on.
 
 ## Connection Config & Timeouts
 
@@ -224,9 +197,9 @@ SELECT table_name, data_length, index_length
 
 ## Done when
 - The chosen feature is verified against the actual engine/version.
-- Any pattern that changed an existing query was benchmarked against its baseline and is equal or faster; a slower result carries the documented reason and remaining optimization options (`@rules/sql/optimalize.mdc` "Performance Non-Regression on Query Changes").
+- Any pattern that changed an existing query was benchmarked against its baseline and is equal or faster; a slower result carries the documented reason and remaining optimization options (`@rules/sql/optimalize.md` "Performance Non-Regression on Query Changes").
 - Upserts run as single statements with a backing unique index; concurrent ones are deadlock-retried.
-- JSON / FULLTEXT / partition queries are confirmed to hit the intended index (EXPLAIN — see `@rules/sql/optimalize.mdc`).
+- JSON / FULLTEXT / partition queries are confirmed to hit the intended index (EXPLAIN — see `@rules/sql/optimalize.md`).
 - Read/write splitting keeps `sticky` on for read-after-write paths.
 - Pest tests cover the new data-access paths; no secrets are hardcoded.
 

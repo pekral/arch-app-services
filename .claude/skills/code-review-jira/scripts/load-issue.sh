@@ -5,8 +5,8 @@
 #   load-issue.sh <KEY|URL>
 #
 # Accepts:
-#   - a bare issue key, e.g. ECOMAIL-1234
-#   - a /browse/<KEY> URL, e.g. https://ecomail.atlassian.net/browse/ECOMAIL-1234
+#   - a bare issue key, e.g. ACME-1234
+#   - a /browse/<KEY> URL, e.g. https://your-company.atlassian.net/browse/ACME-1234
 #   - any JIRA URL containing ?selectedIssue=<KEY> (atlOrigin and other query
 #     params are tolerated and ignored)
 #
@@ -14,7 +14,7 @@
 #
 #   {
 #     "key", "url", "summary", "status", "issueType", "priority",
-#     "assignee", "reporter", "creator", "created", "updated",
+#     "assignee", "assigneeAccountId", "reporter", "creator", "created", "updated",
 #     "resolution", "resolutionDate", "dueDate", "environment",
 #     "labels", "components", "fixVersions",
 #     "parent":  { "key", "summary", "status" } | null,
@@ -23,30 +23,53 @@
 #     "timeTracking": { "originalEstimate", "remainingEstimate", "timeSpent", "ratio" },
 #     "descriptionAdf":  <raw ADF or null>,
 #     "descriptionText": "<flattened plain text>",
-#     "descriptionMediaRefs": [ { "adfId", "altText" } ],
+#     "descriptionMediaRefs": [ { "adfId", "altText", "attachmentId" } ],
 #     "issueLinks":  [ { "id", "type", "direction", "verb", "linkedKey", "linkedSummary", "linkedStatus", "linkedType" } ],
 #     "subtasks":    [ { "key", "summary", "status", "type",
-#                        "descriptionText", "descriptionAdf",
-#                        "comments":    [ { "author", "body", "created", "visibility" } ],
+#                        "descriptionText", "descriptionAdf", "descriptionMediaRefs",
+#                        "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "mediaRefs", "created", "visibility" } ],
 #                        "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ] } ],
-#     "comments":    [ { "author", "body", "created", "visibility" } ],
-#     "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ],
+#     "comments":    [ { "id", "author", "authorAccountId", "body", "mentionAccountIds", "mediaRefs", "created", "visibility" } ],
+#     "attachments": [ { "id", "name", "size", "mimeType", "contentUrl", "author", "created" } ],  # "id" is a string
 #     "customFields":  { "customfield_XXXXX": <parsed value>, … },
 #     "devSummary":    { "pullRequestCount", "branchCount", "commitCount", "state", "isStale", "byInstance" } | null,
-#     "pullRequests":  [ { "number", "title", "url", "state", "headRefName", "baseRefName", "isDraft", "mergedAt", "author" } ]
+#     "pullRequests":  [ { "number", "title", "url", "state", "headRefName", "baseRefName", "isDraft", "mergedAt", "author" } ],
+#     "attachmentSite": "<configured *.atlassian.net site>" | null
 #   }
 #
 # Notes:
+#   - A comment `body` is rendered from the ADF document `workitem view` embeds under
+#     `.fields.comment.comments[]`, paired to the `comment list` entry by comment `id`. The list
+#     body is flattened by acli itself and drops mentions, emoji, links, and the text of every list
+#     item, so a decision written as a bullet is missing from it entirely. The flattened list text is
+#     only the fallback for a comment the view did not embed. JIRA may embed fewer comments than
+#     the issue carries (`.fields.comment.total` above the embedded count); the loader says so on
+#     stderr, and the comments past the embedded page keep the flattened text. `id` is the comment
+#     ID, which `delete-owned-comment.sh` and `comment update --id` take.
+#   - The ADF renderer keeps every node a reader needs: a mention as its `@Name`, an emoji as its
+#     text (the character, or the `:shortcode:` when JIRA stores no character), a smart link as its URL, a linked text as `text (url)`, a status or a date as
+#     its value, a list item as `- ` / `1. ` indented two spaces per nesting level, a task as
+#     `- [ ]` / `- [x]`, a rule as `---`, a table as `| cell | cell |` rows, and an expand as its
+#     title followed by its content. The same renderer produces `descriptionText`.
+#   - `authorAccountId` and `mentionAccountIds` carry the JIRA account IDs a rule can compare against
+#     `jira_actor_account_id` without a display-name match: `authorAccountId` is the comment
+#     author's account ID (comment-list `author.accountId`, or the view-embedded one as a
+#     fallback); `mentionAccountIds` is every `mention` node's `attrs.id` found in the comment's ADF
+#     body (deduplicated). A comment carries neither field when acli exposes no `accountId` for it —
+#     a display name or `@Name` text is never a substitute for either.
 #   - `customFields` runs every customfield_* value through a universal Java/Groovy
 #     toString unwrap: any string that starts with `{` and contains `json={…}` is
 #     parsed back into JSON. The leading-`{` anchor keeps the unwrap from firing
 #     on free-text fields that happen to mention `json={…}` in prose. Primitives,
 #     arrays, and already-structured objects pass through unchanged. No
 #     site-specific field IDs are hardcoded.
-#   - `descriptionMediaRefs[]` carries only `adfId` + `altText`. Correlating ADF
-#     media nodes back to entries in `attachments[]` requires an additional
-#     Atlassian Cloud Media API call, which is out of scope for this script;
-#     consumers should join on `attachments[]` themselves when needed.
+#   - A file pasted into the description or a comment is stored as an issue attachment, so it is
+#     in `attachments[]` and `download-attachments.sh` downloads it. Its media node renders in the
+#     text as `[attachment: <filename>]` at the place it was pasted. `descriptionMediaRefs[]` and
+#     each comment's `mediaRefs[]` list those nodes; `attachmentId` joins a node to the
+#     `attachments[]` entry by filename, and is null when the filename is missing or not unique.
+#     `attachmentId` equals that entry's `id`: both are strings, whatever type acli returns.
+#     The ADF `adfId` is a Media API ID, not the attachment ID.
 #   - `devSummary` is a convenience projection derived from
 #     customFields[$JIRA_DEV_SUMMARY_FIELD] (default `customfield_10000`,
 #     overridable via the JIRA_DEV_SUMMARY_FIELD env var). The shape stays
@@ -74,18 +97,164 @@
 #   3  JIRA fetch failed
 set -euo pipefail
 
+PROG="${0##*/}"
+
 usage() {
   cat >&2 <<'EOF'
 Usage: load-issue.sh <KEY|URL>
+       load-issue.sh --self-test
 
-  KEY    bare JIRA work-item key (e.g. ECOMAIL-1234)
+  KEY    bare JIRA work-item key (e.g. ACME-1234)
   URL    /browse/<KEY> URL or any URL with ?selectedIssue=<KEY>
 
 Env:
-  JIRA_SITE                  override the JIRA host (e.g. ecomail.atlassian.net)
+  JIRA_SITE                  override the JIRA host (e.g. your-company.atlassian.net)
   JIRA_DEV_SUMMARY_FIELD     customfield id feeding devSummary (default: customfield_10000)
 EOF
 }
+
+# --- self-test ----------------------------------------------------------
+# Exercises authorAccountId / mentionAccountIds end to end through a stubbed
+# acli (no network access): a comment whose comment-list author carries an
+# accountId, a mention node in its ADF body, and a second comment that falls
+# back to the view-embedded author when the comment-list one carries none.
+SELF_TEST_TMP=""
+cleanup_self_test() {
+  if [[ -n "$SELF_TEST_TMP" ]]; then
+    rm -rf "$SELF_TEST_TMP"
+  fi
+}
+
+self_test() {
+  local tmp stubbin script out err_file rc failures=0
+
+  tmp="$(mktemp -d)"
+  SELF_TEST_TMP="$tmp"
+  trap cleanup_self_test EXIT
+  stubbin="$tmp/bin"
+  mkdir -p "$stubbin"
+  err_file="$tmp/err"
+  script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$PROG"
+
+  cat >"$stubbin/acli" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == "jira" && "$2" == "workitem" && "$3" == "view" ]]; then
+  cat <<'JSON'
+{
+  "fields": {
+    "summary": "Fixture issue",
+    "status": { "name": "In Progress" },
+    "subtasks": [],
+    "comment": {
+      "total": 2,
+      "comments": [
+        {
+          "id": "10001",
+          "author": { "accountId": "acc-view-author-1", "displayName": "Petr Kral" },
+          "body": {
+            "version": 1, "type": "doc",
+            "content": [ { "type": "paragraph", "content": [
+              { "type": "mention", "attrs": { "id": "acc-mentioned", "text": "@Jan Novak" } },
+              { "type": "text", "text": " please review this." }
+            ] } ]
+          },
+          "created": "2026-01-01T00:00:00.000+0000",
+          "visibility": null
+        },
+        {
+          "id": "10002",
+          "author": { "accountId": "acc-view-fallback", "displayName": "External Reporter" },
+          "body": {
+            "version": 1, "type": "doc",
+            "content": [ { "type": "paragraph", "content": [
+              { "type": "text", "text": "No mention here." }
+            ] } ]
+          },
+          "created": "2026-01-02T00:00:00.000+0000",
+          "visibility": null
+        }
+      ]
+    }
+  }
+}
+JSON
+  exit 0
+fi
+if [[ "$1" == "jira" && "$2" == "workitem" && "$3" == "comment" && "$4" == "list" ]]; then
+  cat <<'JSON'
+{
+  "comments": [
+    {
+      "id": "10001",
+      "author": { "accountId": "acc-operator", "displayName": "Petr Kral" },
+      "body": "flattened text mentioning Jan Novak",
+      "created": "2026-01-01T00:00:00.000+0000",
+      "visibility": null
+    },
+    {
+      "id": "10002",
+      "author": { "displayName": "External Reporter" },
+      "body": "No mention here (flattened).",
+      "created": "2026-01-02T00:00:00.000+0000",
+      "visibility": null
+    }
+  ]
+}
+JSON
+  exit 0
+fi
+exit 1
+STUB
+  chmod +x "$stubbin/acli"
+
+  cat >"$stubbin/gh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' '[]'
+STUB
+  chmod +x "$stubbin/gh"
+
+  set +e
+  out="$(PATH="$stubbin:$PATH" "$script" TEST-1 2>"$err_file")"
+  rc=$?
+  set -e
+
+  if [[ "$rc" -ne 0 ]]; then
+    printf 'FAIL  %-60s exit %s (stderr: %s)\n' 'load succeeds against the stubbed acli' "$rc" "$(cat "$err_file")" >&2
+    failures=$((failures + 1))
+  else
+    printf 'ok    %-60s exit 0\n' 'load succeeds against the stubbed acli'
+  fi
+
+  check() {
+    local label="$1" filter="$2" expected="$3" actual
+    actual="$(printf '%s' "$out" | jq -r "$filter" 2>/dev/null || echo '<jq error>')"
+    if [[ "$actual" != "$expected" ]]; then
+      printf 'FAIL  %-60s got %s, expected %s\n' "$label" "$actual" "$expected" >&2
+      failures=$((failures + 1))
+      return
+    fi
+    printf 'ok    %-60s %s\n' "$label" "$actual"
+  }
+
+  check 'comment count' '.comments | length' '2'
+  check 'authorAccountId taken from the comment-list author' '.comments[0].authorAccountId' 'acc-operator'
+  check 'mentionAccountIds extracted from the ADF body' '.comments[0].mentionAccountIds | join(",")' 'acc-mentioned'
+  check 'authorAccountId falls back to the view-embedded author' '.comments[1].authorAccountId' 'acc-view-fallback'
+  check 'mentionAccountIds is empty with no mention node' '.comments[1].mentionAccountIds | length' '0'
+
+  if [[ "$failures" -gt 0 ]]; then
+    echo "load-issue.sh self-test: $failures failure(s)" >&2
+    return 4
+  fi
+  echo 'load-issue.sh self-test: PASS'
+  return 0
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  self_test
+  exit $?
+fi
 
 if [[ $# -ne 1 || -z "${1:-}" ]]; then
   usage
@@ -138,11 +307,8 @@ else
   exit 1
 fi
 
-resolve_host() {
-  if [[ -n "$HOST_FROM_URL" ]]; then
-    printf '%s' "$HOST_FROM_URL"
-    return 0
-  fi
+# The configured site: JIRA_SITE, then the site of the current acli profile.
+resolve_configured_site() {
   if [[ -n "${JIRA_SITE:-}" ]]; then
     printf '%s' "$JIRA_SITE"
     return 0
@@ -153,7 +319,22 @@ resolve_host() {
   fi
 }
 
+resolve_host() {
+  if [[ -n "$HOST_FROM_URL" ]]; then
+    printf '%s' "$HOST_FROM_URL"
+    return 0
+  fi
+  resolve_configured_site
+}
+
 HOST="$(resolve_host || true)"
+# The attachment download host comes only from the configured site, never from the URL argument:
+# the URL can come from untrusted text, and download-attachments.sh sends the API token to this host.
+CONTENT_HOST="$(resolve_configured_site || true)"
+CONTENT_HOST="$(printf '%s' "$CONTENT_HOST" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+if [[ ! "$CONTENT_HOST" =~ ^[a-z0-9][a-z0-9-]*\.atlassian\.net$ ]]; then
+  CONTENT_HOST=""
+fi
 DEV_FIELD="${JIRA_DEV_SUMMARY_FIELD:-customfield_10000}"
 
 VIEW_JSON="$(acli jira workitem view "$KEY" --fields '*all' --json 2>/dev/null || true)"
@@ -162,7 +343,20 @@ if [[ -z "$VIEW_JSON" ]] || ! printf '%s' "$VIEW_JSON" | jq -e . >/dev/null 2>&1
   exit 3
 fi
 
-COMMENTS_JSON="$(acli jira workitem comment list --key "$KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || printf '{"comments": []}')"
+# The issue view can embed fewer comments than the issue carries. Disclose it rather than let a
+# flattened fallback body pass for the full ADF one.
+VIEW_COMMENT_GAP="$(printf '%s' "$VIEW_JSON" | jq -r '((.fields.comment.total // 0) | tonumber? // 0) - ((.fields.comment.comments // []) | length)' 2>/dev/null || true)"
+if [[ "$VIEW_COMMENT_GAP" =~ ^[1-9][0-9]*$ ]]; then
+  echo "load-issue.sh: the issue view embedded $VIEW_COMMENT_GAP fewer comments than $KEY carries; those comments keep the flattened comment-list text" >&2
+fi
+
+# `|| printf` would append the fallback to whatever jq had already written, leaving two JSON
+# documents in one variable and failing `--argjson` below with exit 2 — the load died where it was
+# documented to degrade. Take whatever the pipeline produced, then validate it.
+COMMENTS_JSON="$(acli jira workitem comment list --key "$KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || true)"
+if [[ -z "$COMMENTS_JSON" ]] || ! printf '%s' "$COMMENTS_JSON" | jq -e . >/dev/null 2>&1; then
+  COMMENTS_JSON='{"comments": []}'
+fi
 
 # Fetch the full context of every subtask (description, comments, attachments).
 # The parent issue only embeds a shallow subtask reference, so each subtask is
@@ -178,7 +372,10 @@ if [[ -n "$SUBTASK_KEYS" ]]; then
     if [[ -z "$SUBTASK_VIEW" ]] || ! printf '%s' "$SUBTASK_VIEW" | jq -e . >/dev/null 2>&1; then
       continue
     fi
-    SUBTASK_COMMENTS="$(acli jira workitem comment list --key "$SUBTASK_KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || printf '{"comments": []}')"
+    SUBTASK_COMMENTS="$(acli jira workitem comment list --key "$SUBTASK_KEY" --json --paginate 2>/dev/null | jq -s '{ comments: ([ .[].comments // [] ] | add // []) }' 2>/dev/null || true)"
+    if [[ -z "$SUBTASK_COMMENTS" ]] || ! printf '%s' "$SUBTASK_COMMENTS" | jq -e . >/dev/null 2>&1; then
+      SUBTASK_COMMENTS='{"comments": []}'
+    fi
     SUBTASK_DETAILS="$(jq -c -n \
       --arg key "$SUBTASK_KEY" \
       --argjson acc "$SUBTASK_DETAILS" \
@@ -201,6 +398,7 @@ fi
 jq -n \
   --arg key "$KEY" \
   --arg host "$HOST" \
+  --arg contentHost "$CONTENT_HOST" \
   --arg devField "$DEV_FIELD" \
   --argjson view "$VIEW_JSON" \
   --argjson commentsResp "$COMMENTS_JSON" \
@@ -221,31 +419,134 @@ def unwrapJavaToString:
   else .
   end;
 
-def adfText:
+# `adfInline` renders one inline node. Nothing a reader needs is dropped: a mention keeps its
+# `@Name`, an emoji its text or `:shortcode:`, a smart link its URL, a linked text its target, and a status
+# lozenge or a date its value — the flattened `comment list` text loses exactly these nodes.
+def adfInline:
   if type != "object" then ""
-  elif .type == "text" then (.text // "")
+  elif .type == "text" then
+    (.text // "") as $t
+    | ([(.marks // [])[] | select(.type == "link") | .attrs.href // empty] | first) as $href
+    | if $href != null and $href != $t then $t + " (" + $href + ")" else $t end
   elif .type == "hardBreak" then "\n"
-  elif (.type // "") | IN("paragraph","heading","bulletList","orderedList","listItem","blockquote","codeBlock")
-  then
-    ((.content // []) | map(adfText) | join("")) + "\n"
-  else
-    ((.content // []) | map(adfText) | join(""))
+  elif .type == "mention" then (.attrs.text // "")
+  elif .type == "emoji" then (.attrs.text // .attrs.shortName // "")
+  elif (.type // "") | IN("inlineCard","blockCard","embedCard") then (.attrs.url // "")
+  elif .type == "status" then (.attrs.text // "")
+  elif (.type // "") | IN("media","mediaInline") then "[attachment: " + (.attrs.alt // .attrs.url // "unnamed") + "]"
+  elif .type == "date" then
+    ((.attrs.timestamp // "") | tostring) as $raw
+    | ($raw | tonumber? // null) as $ms
+    | if $ms == null then $raw
+      else (try ($ms / 1000 | floor | strftime("%Y-%m-%d")) catch $raw) end
+  else ((.content // []) | map(adfInline) | join(""))
   end;
 
-def adfMedia:
-  if type != "object" then []
-  elif .type == "media" then
-    [ { adfId: (.attrs.id // null),
-        altText: (.attrs.alt // null) } ]
-  else
-    ((.content // []) | map(adfMedia) | add // [])
+# `adfBlock($indent)` renders one block node as lines. A list item carries its `- ` / `1. ` marker,
+# and a nested list is indented by two spaces per level, so a decision written as a bullet survives.
+def adfBlock($indent):
+  if type != "object" then ""
+  elif (.type // "") | IN("bulletList","orderedList","taskList","decisionList") then
+    .type as $listType
+    | ((.attrs.order // 1) | tonumber? // 1) as $start
+    | (.content // []) | to_entries
+    | map(
+        (if $listType == "orderedList" then (($start + .key) | tostring) + ". "
+         elif $listType == "taskList" then (if .value.attrs.state == "DONE" then "- [x] " else "- [ ] " end)
+         else "- " end) as $marker
+        | .value as $item
+        | ($item.content // []) as $children
+        | if ($item.type // "") | IN("taskItem","decisionItem") then
+            $indent + $marker + ($item | adfInline) + "\n"
+          elif ($children | length) > 0 and ($children[0].type // "") == "paragraph" then
+            $indent + $marker + ($children[0] | adfInline) + "\n"
+            + ($children[1:] | map(adfBlock($indent + "  ")) | join(""))
+          else
+            $indent + $marker + "\n" + ($children | map(adfBlock($indent + "  ")) | join(""))
+          end)
+    | join("")
+  elif .type == "listItem" then ({ type: "bulletList", content: [.] } | adfBlock($indent))
+  elif (.type // "") | IN("paragraph","heading","codeBlock") then $indent + adfInline + "\n"
+  elif .type == "rule" then $indent + "---\n"
+  elif (.type // "") | IN("blockCard","embedCard") then $indent + adfInline + "\n"
+  elif (.type // "") | IN("mediaSingle","mediaGroup") then $indent + ((.content // []) | map(adfInline) | join(" ")) + "\n"
+  elif .type == "table" then
+    (.content // [])
+    | map($indent + "| "
+          + ((.content // [])
+             | map((.content // []) | map(adfBlock("")) | join(" ")
+                   | gsub("\\s*\n\\s*"; " ") | sub("^\\s+"; "") | sub("\\s+$"; ""))
+             | join(" | "))
+          + " |\n")
+    | join("")
+  elif (.type // "") | IN("expand","nestedExpand") then
+    (if (.attrs.title // "") != "" then $indent + .attrs.title + "\n" else "" end)
+    + ((.content // []) | map(adfBlock($indent)) | join(""))
+  elif (.type // "") | IN("text","hardBreak","mention","emoji","inlineCard","status","date","media","mediaInline") then adfInline
+  else ((.content // []) | map(adfBlock($indent)) | join(""))
   end;
+
+def adfText: adfBlock("");
+
+def adfPlain: adfText | gsub("\n\n+"; "\n\n") | sub("\n+$"; "");
+
+# The comment body prefers the ADF document `workitem view` embeds for the same comment `id`. The
+# `comment list` body is the flattening acli does itself, which drops mentions, emoji, and every list item —
+# a decision written as a bullet disappears from it entirely. The flattened text stays the fallback
+# for a comment the view did not embed.
+
+# `attachmentId` is the id of an attachment as a string, or null when it has none. acli returns the id
+# as a number or as a string depending on the endpoint, so `attachments[].id` and the `attachmentId`
+# of a media reference both go through it and a consumer can join them with `==`.
+def attachmentId: if (.id // null) == null then null else (.id | tostring) end;
+
+# `attachmentContentUrl` serves the attachment content through the configured JIRA site. acli can
+# return the URL on an internal Atlassian host (`*.prod.atl-paas.net`) that a client outside Atlassian
+# cannot reach; the path is the same on the site. Only such an internal URL is rewritten, and only to
+# the configured `*.atlassian.net` site; every other URL stays as returned.
+def attachmentContentUrl:
+  (.content // null) as $u
+  | if $u == null or $contentHost == "" then $u
+    else ($u | capture("^https://[a-z0-9.-]+\\.prod\\.atl-paas\\.net(?<path>/rest/api/3/attachment/content/[0-9]+)$")? // null) as $m
+    | if $m == null then $u else "https://" + $contentHost + $m.path end
+    end;
+
+# `mediaRefs($atts)` lists every media node of an ADF document. `attachmentId` joins the node to the
+# issue attachment whose filename equals the `alt` of the node, and stays null when no attachment or more
+# than one attachment carries that filename.
+def mediaRefs($atts):
+  [ .. | objects | select((.type // "") | IN("media","mediaInline"))
+    | (.attrs.alt // null) as $alt
+    | ([$atts[] | select($alt != null and .filename == $alt) | attachmentId]) as $hits
+    | { adfId: (.attrs.id // null),
+        altText: $alt,
+        attachmentId: (if ($hits | length) == 1 then $hits[0] else null end) } ];
+
+def commentOut($viewIdx; $atts):
+  . as $c
+  | (($c.id // "") | tostring) as $id
+  | ($viewIdx[$id] // {}) as $v
+  | {
+      id: (if $id == "" then null else $id end),
+      author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
+      authorAccountId: ($c.author.accountId? // $v.author.accountId? // null),
+      body: (if ($v.body | type) == "object" then ($v.body | adfPlain)
+             elif ($c.body | type) == "object" then ($c.body | adfPlain)
+             else $c.body end),
+      mentionAccountIds: ([($v.body // $c.body) | .. | objects | select(.type == "mention") | .attrs.id? // empty] | unique),
+      mediaRefs: (($v.body // $c.body) as $b | if ($b | type) == "object" then ($b | mediaRefs($atts)) else [] end),
+      created: ($c.created // $v.created // null),
+      visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // $v.visibility // null) end)
+    };
+
+def viewCommentIdx:
+  ((.comment.comments // []) | map({ key: ((.id // "") | tostring), value: { body: .body, created: .created, visibility: (.visibility.value // null), author: .author } }) | from_entries);
 
 ($view.fields // {}) as $f
 | ($f.attachment // []) as $att
 | ($f.subtasks // []) as $sub
 | ($f.issuelinks // []) as $links
-| (($f.comment.comments // []) | map({key: .id, value: {created: .created, visibility: (.visibility.value // null)}}) | from_entries) as $viewCommentIdx
+| ($f | viewCommentIdx) as $viewCommentIdx
 | ($f | to_entries
        | map(select(.key | startswith("customfield_")))
        | map({ key: .key, value: (.value | unwrapJavaToString) })
@@ -257,7 +558,7 @@ def adfMedia:
    end) as $devCached
 | ($f.description // null) as $desc
 | (if $desc == null then "" else ($desc | adfText) end) as $descText
-| (if $desc == null then [] else ($desc | adfMedia) end) as $descMedia
+| (if $desc == null then [] else ($desc | mediaRefs($att)) end) as $descMedia
 | {
     key: $key,
     url: (if $host != "" then "https://" + $host + "/browse/" + $key else null end),
@@ -266,6 +567,7 @@ def adfMedia:
     issueType: ($f.issuetype.name // null),
     priority: ($f.priority.name // null),
     assignee: ($f.assignee.displayName // null),
+    assigneeAccountId: ($f.assignee.accountId // null),
     reporter: ($f.reporter.displayName // null),
     creator: ($f.creator.displayName // null),
     created: ($f.created // null),
@@ -315,35 +617,26 @@ def adfMedia:
           status: ($st.fields.status.name // null),
           type: ($st.fields.issuetype.name // null),
           descriptionAdf: $sdesc,
-          descriptionText: (if $sdesc == null then "" else ($sdesc | adfText | gsub("\n\n+"; "\n\n") | sub("\n+$"; "")) end),
-          comments: (if $d == null then [] else (($d.comments // []) | map(. as $c | {
-            author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
-            body: (if ($c.body | type) == "object" then ($c.body | adfText) else $c.body end),
-            created: ($c.created // null),
-            visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // null) end)
-          })) end),
+          descriptionText: (if $sdesc == null then "" else ($sdesc | adfPlain) end),
+          descriptionMediaRefs: (if $sdesc == null then [] else ($sdesc | mediaRefs($sf.attachment // [])) end),
+          comments: (if $d == null then [] else (($sf | viewCommentIdx) as $subIdx | ($d.comments // []) | map(commentOut($subIdx; $sf.attachment // []))) end),
           attachments: (if $sf == null then [] else (($sf.attachment // []) | map({
-            id: (.id // null),
+            id: attachmentId,
             name: (.filename // null),
             size: (.size // null),
             mimeType: (.mimeType // null),
-            contentUrl: (.content // null),
+            contentUrl: attachmentContentUrl,
             author: (if (.author | type) == "object" then (.author.displayName // null) else .author end),
             created: (.created // null)
           })) end)
         })),
-    comments: ($commentsResp.comments // [] | map(. as $c | {
-      author: (if ($c.author | type) == "object" then ($c.author.displayName // null) else $c.author end),
-      body: (if ($c.body | type) == "object" then ($c.body | adfText) else $c.body end),
-      created: ($c.created // $viewCommentIdx[$c.id].created // null),
-      visibility: (if ($c.visibility | type) == "object" then $c.visibility.value else ($c.visibility // $viewCommentIdx[$c.id].visibility) end)
-    })),
+    comments: ($commentsResp.comments // [] | map(commentOut($viewCommentIdx; $att))),
     attachments: ($att | map({
-      id: (.id // null),
+      id: attachmentId,
       name: (.filename // null),
       size: (.size // null),
       mimeType: (.mimeType // null),
-      contentUrl: (.content // null),
+      contentUrl: attachmentContentUrl,
       author: (if (.author | type) == "object" then (.author.displayName // null) else .author end),
       created: (.created // null)
     })),
@@ -356,6 +649,7 @@ def adfMedia:
       isStale: (($devCached.pullrequest.overall.stateCount // 0) == 0),
       byInstance: ($devCached.pullrequest.byInstanceType // null)
     } end),
+    attachmentSite: (if $contentHost == "" then null else $contentHost end),
     pullRequests: ($prs | map({
       number: .number,
       title: .title,

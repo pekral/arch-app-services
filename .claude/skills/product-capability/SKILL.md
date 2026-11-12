@@ -7,9 +7,8 @@ metadata:
 ---
 
 ## Constraints
-- Apply `@rules/laravel/architecture.mdc` — actors, surfaces, states, and data model must fit the existing layers (Action → ModelService → Repository / ModelManager), not invent new abstractions.
-- Apply `@rules/compound-engineering/general.mdc` — the plan is a durable artifact the next agent reuses, not throwaway prose.
-- Apply `@rules/compound-engineering/general.mdc` *Assign the most relevant existing label when creating a tracker issue* for any tracker issue this plan creates or hands off to `@skills/create-issues-from-text/SKILL.md` to create.
+- Apply `@rules/laravel/architecture.md` — actors, surfaces, states, and data model must fit the existing layers (Action → ModelService → Repository / ModelManager), not invent new abstractions.
+- Apply `@rules/compound-engineering/general.md` — the plan is a durable artifact the next agent reuses, not throwaway prose.
 - Do not invent product truth. Every unknown is an explicit open question, never a silent assumption.
 - Separate user-visible promises from implementation detail. Keep them in distinct sections.
 - Mark each constraint as **fixed policy**, **architectural preference**, or **open question** — never blur the three.
@@ -34,7 +33,7 @@ Walk these four steps in order. Each feeds the next.
    - business rules the capability must obey,
    - scope boundaries (in scope vs explicitly out),
    - invariants that must never break,
-   - trust boundaries and data ownership (who owns and may read/write the data; account scoping per `@rules/laravel/architecture.mdc`),
+   - trust boundaries and data ownership (who owns and may read/write the data; account scoping per `@rules/laravel/architecture.md`),
    - lifecycle and state transitions,
    - rollout / migration requirements.
    Tag every item as fixed policy, architectural preference, or open question.
@@ -48,13 +47,13 @@ Walk these four steps in order. Each feeds the next.
    Keep the contract aligned with the existing architecture; flag any place where it would force a new layer.
 
 4. **Translate into execution readiness + handoff.** Decide the readiness level and route the work:
-   - **Ready to implement** → hand to `@skills/blueprint/SKILL.md` for a multi-PR plan, or to `@skills/create-issues-from-text/SKILL.md` to break it into tracker issues.
-   - **Needs architecture review** → route the data-model / layering questions through `@rules/laravel/architecture.mdc` before planning.
+   - **Ready to implement** → hand to `@skills/create-issues-from-text/SKILL.md` to break it into tracker issues.
+   - **Needs architecture review** → route the data-model / layering questions through `@rules/laravel/architecture.md` before planning.
    - **Needs product clarification** → list the open questions that block a contract; stop until they are answered.
 
 ## Output
 
-Write the plan to a durable file (`PRODUCT.md` at the repo root, or a `docs/` capability doc) so the next agent picks it up — per `@rules/compound-engineering/general.mdc`. State the file path in your reply. Use exactly these sections:
+Write the plan to a durable file (`PRODUCT.md` at the repo root, or a `docs/` capability doc) so the next agent picks it up — per `@rules/compound-engineering/general.md`. State the file path in your reply. Use exactly these sections:
 
 1. **Capability restatement** — user, new ability, outcome change (one paragraph).
 2. **User-visible promises** — what the user is guaranteed to experience. No implementation here.
@@ -62,7 +61,7 @@ Write the plan to a durable file (`PRODUCT.md` at the repo root, or a `docs/` ca
 4. **Implementation contract** — actors, surfaces, states, interfaces, data model (step 3).
 5. **Non-goals** — what this capability explicitly does not cover.
 6. **Open questions** — every unresolved decision that blocks or shapes implementation, with who must answer it.
-7. **Handoff** — the readiness level and the named next step (`blueprint`, `create-issues-from-text`, or architecture review).
+7. **Handoff** — the readiness level and the named next step (`create-issues-from-text` or architecture review).
 
 Fill every section. If a section has nothing, write an explicit note (e.g. `No non-goals identified.`) rather than leaving it blank.
 

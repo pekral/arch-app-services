@@ -2,14 +2,19 @@
 # load-issue.sh — single deterministic entry point for loading GitHub issue or PR context.
 #
 # Usage:
-#   load-issue.sh <NUMBER|URL>
+#   load-issue.sh <URL>
 #
 # Accepts:
-#   - a bare issue/PR number, e.g. 445 (uses the current git remote to resolve the repo)
 #   - a GitHub URL, e.g. https://github.com/<owner>/<repo>/issues/445
 #   - a GitHub URL, e.g. https://github.com/<owner>/<repo>/pull/123
 #   - any GitHub URL containing /issues/<N> or /pull/<N>
 #     (the optional `www.` host prefix is tolerated, e.g. https://www.github.com/...)
+#
+# Bare issue/PR numbers are rejected — always pass the full GitHub URL. A bare
+# number would resolve against the caller's cwd git remote and silently load
+# the wrong repo when run outside the target checkout. An unquoted `#445`-style
+# argument never even reaches the script (the shell drops it as a comment);
+# a quoted "#445" arrives and is rejected by the guard below.
 #
 # Emits one JSON document on stdout with the following stable shape:
 #
@@ -21,10 +26,11 @@
 #     "title", "body", "state", "stateReason",
 #     "author", "assignees", "labels", "milestone",
 #     "createdAt", "updatedAt", "closedAt",
-#     "comments":     [ { "author", "body", "createdAt", "updatedAt", "url" } ],
+#     "comments":     [ { "author", "authorAssociation", "body", "createdAt", "updatedAt", "url" } ],
 #     "reactionsCount": <int>,
 #
 #     # issue-only (null / [] when kind == "pr")
+#     "authorAssociation": <string|null>,
 #     "closingPullRequests": [ { "number", "title", "url", "state" } ],
 #     "subIssues": [ {
 #         "number", "title", "url", "state", "author", "body",
@@ -39,7 +45,7 @@
 #     "additions", "deletions", "changedFiles",
 #     "files":             [ { "path", "additions", "deletions" } ],
 #     "commits":           [ { "oid", "messageHeadline", "authoredDate", "authors" } ],
-#     "reviews":           [ { "author", "state", "body", "submittedAt", "url" } ],
+#     "reviews":           [ { "author", "authorAssociation", "state", "body", "submittedAt", "url" } ],
 #     "reviewRequests":    [ <login> ],
 #     "reviewDecision":    <string|null>,
 #     "statusCheckRollup": [ { "context", "state", "description", "targetUrl" } ],
@@ -50,16 +56,18 @@
 #   - The script is the single deterministic source of GitHub context. Skills must
 #     never call `gh issue view`, `gh pr view`, or `gh api /repos/.../issues/...`
 #     directly: changes to the JSON shape happen here, in one place.
-#   - When the input is a bare number, the repo is resolved from the current
-#     directory's git remote (`origin`). Provide a full URL to load issues/PRs
-#     from any other repo the current `gh` auth can see.
-#   - The kind ("issue" vs "pr") is detected from the URL path when present, and
-#     otherwise inferred by trying `gh issue view` first and falling back to
-#     `gh pr view`. GitHub's REST issue endpoint exposes both numbers, but the
+#   - The full URL is mandatory, so the load never depends on the caller's
+#     working directory or git remote — any issue/PR the current `gh` auth can
+#     see is loadable from anywhere.
+#   - The kind ("issue" vs "pr") is detected from the URL path (/issues/<N> vs
+#     /pull/<N>). GitHub's REST issue endpoint exposes both numbers, but the
 #     `gh` CLI uses different field sets, so the kind drives which command runs.
 #   - `closingPullRequests` (for issues) is sourced from
 #     `closedByPullRequestsReferences` and surfaces the PRs that will close the
 #     issue when merged. `closingIssues` (for PRs) lists issues the PR closes.
+#   - `authorAssociation` (for issues) is the association of the issue's author
+#     with the repository, read by the same GraphQL call as `subIssues`. It is
+#     null when that call fails, so a caller reads null as untrusted.
 #   - `subIssues` (for issues) is sourced from the GraphQL `subIssues` connection
 #     (the `gh` CLI `--json` projection does not expose it). Each entry carries
 #     the sub-issue's full body and comments so the assignment context is
@@ -83,11 +91,11 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Usage: load-issue.sh <NUMBER|URL>
+Usage: load-issue.sh <URL>
 
-  NUMBER  bare GitHub issue or PR number (e.g. 445). Resolved against the
-          current directory's git remote.
-  URL     any github.com URL containing /issues/<N> or /pull/<N>
+  URL  any github.com URL containing /issues/<N> or /pull/<N>
+       (bare issue/PR numbers are rejected — always pass the full GitHub URL,
+       e.g. https://github.com/<owner>/<repo>/issues/1766)
 EOF
 }
 
@@ -122,18 +130,6 @@ extract_from_url() {
   }'
 }
 
-resolve_repo_from_git() {
-  local remote
-  remote="$(git config --get remote.origin.url 2>/dev/null || true)"
-  if [[ -z "$remote" ]]; then
-    return 1
-  fi
-  # Handle both git@github.com:owner/repo(.git) and https://github.com/owner/repo(.git)
-  printf '%s' "$remote" \
-    | sed -E -e 's#^git@github\.com:#https://github.com/#' -e 's#\.git$##' \
-    | sed -nE 's#^https?://github\.com/([^/]+)/([^/]+).*#\1 \2#p'
-}
-
 OWNER=""
 REPO=""
 NUMBER=""
@@ -149,17 +145,11 @@ if [[ "$INPUT" =~ ^https?://(www\.)?github\.com/ ]]; then
   REPO="$(printf '%s' "$parsed"  | awk '{print $2}')"
   NUMBER="$(printf '%s' "$parsed" | awk '{print $3}')"
   KIND="$(printf '%s' "$parsed"   | awk '{print $4}')"
-elif [[ "$INPUT" =~ ^[0-9]+$ ]]; then
-  NUMBER="$INPUT"
-  parsed="$(resolve_repo_from_git || true)"
-  if [[ -z "$parsed" ]]; then
-    echo "load-issue.sh: cannot resolve repo from git remote — pass a full URL instead" >&2
-    exit 1
-  fi
-  OWNER="$(printf '%s' "$parsed" | awk '{print $1}')"
-  REPO="$(printf '%s' "$parsed"  | awk '{print $2}')"
+elif [[ "$INPUT" =~ ^#?[0-9]+$ ]]; then
+  echo "load-issue.sh: bare issue/PR numbers are rejected — always pass the full GitHub URL, e.g. https://github.com/<owner>/<repo>/issues/${INPUT#\#}" >&2
+  exit 1
 else
-  echo "load-issue.sh: argument must be a bare number or a github.com URL: $INPUT" >&2
+  echo "load-issue.sh: argument must be a full github.com issue/PR URL: $INPUT" >&2
   exit 1
 fi
 
@@ -171,29 +161,14 @@ PR_FIELDS="additions,assignees,author,baseRefName,baseRefOid,body,changedFiles,c
 ISSUE_JSON='null'
 PR_JSON='null'
 
-if [[ -z "$KIND" ]]; then
-  # Try PR first, then issue. GitHub shares the issue/PR number space and
-  # `gh issue view <PR-number>` succeeds with the issue-level projection,
-  # which would hide all PR-only fields. `gh pr view` returns non-zero on
-  # non-PR numbers, so it is the correct discriminator.
-  if PR_JSON="$(gh pr view "$NUMBER" --repo "$NWO" --json "$PR_FIELDS" 2>/dev/null)" && [[ -n "$PR_JSON" ]]; then
-    KIND="pr"
-  elif ISSUE_JSON="$(gh issue view "$NUMBER" --repo "$NWO" --json "$ISSUE_FIELDS" 2>/dev/null)" && [[ -n "$ISSUE_JSON" ]]; then
-    KIND="issue"
-  else
-    echo "load-issue.sh: failed to fetch issue or PR #$NUMBER in $NWO" >&2
-    exit 3
-  fi
-fi
-
-if [[ "$KIND" == "issue" && "$ISSUE_JSON" == "null" ]]; then
+if [[ "$KIND" == "issue" ]]; then
   if ! ISSUE_JSON="$(gh issue view "$NUMBER" --repo "$NWO" --json "$ISSUE_FIELDS" 2>/dev/null)" || [[ -z "$ISSUE_JSON" ]]; then
     echo "load-issue.sh: failed to fetch issue #$NUMBER in $NWO" >&2
     exit 3
   fi
 fi
 
-if [[ "$KIND" == "pr" && "$PR_JSON" == "null" ]]; then
+if [[ "$KIND" == "pr" ]]; then
   if ! PR_JSON="$(gh pr view "$NUMBER" --repo "$NWO" --json "$PR_FIELDS" 2>/dev/null)" || [[ -z "$PR_JSON" ]]; then
     echo "load-issue.sh: failed to fetch PR #$NUMBER in $NWO" >&2
     exit 3
@@ -216,8 +191,12 @@ fi
 # PRs and on any GraphQL failure we fall back to an empty array so the script
 # never breaks on a repo without the feature enabled.
 SUBISSUES_JSON='[]'
+ISSUE_ASSOCIATION='null'
 if [[ "$KIND" == "issue" ]]; then
-  SUBISSUES_QUERY='query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issue(number:$n){subIssues(first:50){nodes{number title url state body createdAt updatedAt closedAt author{login} labels(first:50){nodes{name}} comments(first:100){nodes{author{login} body createdAt updatedAt url}}}}}}}'
+  # `$owner` / `$repo` / `$n` are GraphQL variables bound by the `-F` flags below, not shell ones.
+  # The single quotes are what keeps the shell out of them, so expanding here would break the query.
+  # shellcheck disable=SC2016
+  SUBISSUES_QUERY='query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issue(number:$n){authorAssociation subIssues(first:50){nodes{number title url state body createdAt updatedAt closedAt author{login} labels(first:50){nodes{name}} comments(first:100){nodes{author{login} body createdAt updatedAt url}}}}}}}'
   if RAW_SUBISSUES="$(gh api graphql -f query="$SUBISSUES_QUERY" -F owner="$OWNER" -F repo="$REPO" -F n="$NUMBER" 2>/dev/null)" && [[ -n "$RAW_SUBISSUES" ]]; then
     SUBISSUES_JSON="$(printf '%s' "$RAW_SUBISSUES" | jq -c '
       [ (.data.repository.issue.subIssues.nodes // [])[] | {
@@ -239,10 +218,14 @@ if [[ "$KIND" == "issue" ]]; then
             url: (.url // null)
           } ]
         } ]' 2>/dev/null || printf '[]')"
+    ISSUE_ASSOCIATION="$(printf '%s' "$RAW_SUBISSUES" | jq -c '.data.repository.issue.authorAssociation | if type == "string" then . else null end' 2>/dev/null || printf 'null')"
   fi
 fi
 if ! printf '%s' "$SUBISSUES_JSON" | jq -e . >/dev/null 2>&1; then
   SUBISSUES_JSON='[]'
+fi
+if ! printf '%s' "$ISSUE_ASSOCIATION" | jq -e 'type == "string" or . == null' >/dev/null 2>&1; then
+  ISSUE_ASSOCIATION='null'
 fi
 
 jq -n \
@@ -250,13 +233,15 @@ jq -n \
   --arg owner "$OWNER" \
   --arg repo "$REPO" \
   --argjson payload "$PAYLOAD" \
-  --argjson subIssues "$SUBISSUES_JSON" '
+  --argjson subIssues "$SUBISSUES_JSON" \
+  --argjson association "$ISSUE_ASSOCIATION" '
 def total_reactions:
   ([ (.reactionGroups // [])[] | (.users.totalCount // .reactors.totalCount // 0) ] | add) // 0;
 
 def map_comments:
   [ (. // [])[] | {
       author: (.author.login // null),
+      authorAssociation: (.authorAssociation // null),
       body: (.body // ""),
       createdAt: (.createdAt // null),
       updatedAt: (.updatedAt // null),
@@ -276,6 +261,7 @@ def map_commits:
 def map_reviews:
   [ (. // [])[] | {
       author: (.author.login // null),
+      authorAssociation: (.authorAssociation // null),
       state: (.state // null),
       body: (.body // ""),
       submittedAt: (.submittedAt // null),
@@ -284,7 +270,7 @@ def map_reviews:
 def map_status_checks:
   [ (. // [])[] | {
       context: (.context // .name // null),
-      state: (.state // .conclusion // .status // null),
+      state: (.state // (if (.conclusion // "") == "" then .status else .conclusion end) // null),
       description: (.description // null),
       targetUrl: (.targetUrl // .detailsUrl // null)
   } ];
@@ -316,6 +302,7 @@ $payload as $p
     comments: ($p.comments | map_comments),
     reactionsCount: ($p | total_reactions),
 
+    authorAssociation: (if $kind == "issue" then $association else null end),
     closingPullRequests: (if $kind == "issue"
       then ($p.closedByPullRequestsReferences | map_refs)
       else [] end),
@@ -325,7 +312,9 @@ $payload as $p
     headRefName: (if $kind == "pr" then ($p.headRefName // null) else null end),
     baseRefOid:  (if $kind == "pr" then ($p.baseRefOid  // null) else null end),
     headRefOid:  (if $kind == "pr" then ($p.headRefOid  // null) else null end),
-    isDraft:     (if $kind == "pr" then ($p.isDraft     // null) else null end),
+    # No `// null` here: the jq alternative operator treats `false` as empty,
+    # so `$p.isDraft // null` would collapse a non-draft PR `false` to `null`.
+    isDraft:     (if $kind == "pr" then $p.isDraft else null end),
     mergeable:   (if $kind == "pr" then ($p.mergeable   // null) else null end),
     mergeStateStatus: (if $kind == "pr" then ($p.mergeStateStatus // null) else null end),
     mergedAt:    (if $kind == "pr" then ($p.mergedAt    // null) else null end),

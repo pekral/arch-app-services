@@ -1,13 +1,35 @@
 ---
 name: laravel-authorization-review
-description: "Use when reviewing authorization / access control in a Laravel project — find IDOR / broken object-level authorization (BOLA), audit which routes are unprotected, check policy / gate coverage, or sanity-check a new endpoint in a PR. Walks the authorization chain of every HTTP route (middleware → authorize/policy/gate → query scoping → API Resource output), anchors every finding to real `php artisan route:list --json` output plus a cited `file:line`, classifies by confidence, and produces a per-route coverage map. Read-only / advise-only — never edits code."
+description: "Use when reviewing authorization / access control in a Laravel project — find IDOR / broken object-level authorization (BOLA), audit which routes are unprotected, check policy / gate coverage, or sanity-check a new endpoint in a PR. Walks the authorization chain of every HTTP route (middleware → authorize/policy/gate → query scoping → API Resource output), anchors every finding to real `php artisan route:list --json` output plus a cited `file:line`, classifies by evidence, and produces a per-route coverage map. Read-only / advise-only — never edits code."
 license: MIT
 metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# Laravel Authorization Review
+## Constraints
+- Apply `@rules/php/core-standards.md`
+- Apply `@rules/laravel/laravel.md` and `@rules/laravel/architecture.md`
+- Apply `@rules/security/backend.md` — *Database* (authentication & authorization, least privilege) and *Safe Validation & Error Messages* (a 403-vs-404 distinction that confirms a resource exists is itself an authorization-granularity leak)
+- Apply `@rules/code-review/general.md` — map every finding onto the CR severity scale (Critical / Moderate) so this skill plugs into a Laravel CR run
+- **Advise-only.** Reads files and runs one read-only command (`php artisan route:list --json`). Never edits routes, controllers, policies, or any source; emits a report plus fix sketches for a human to apply.
+- Apply `@rules/reports/general.md` — output in English, or in the language the project manifest sets in `language.github` when the findings fold into the GitHub PR comment (*Project override — `language.github` in the manifest*).
 
+---
+
+## Modes
+
+This skill runs in one of two modes, selected by the caller via `MODE` (default `audit`):
+
+- **`audit` (default)** — the full walk below: every application route in the inventory, the per-route coverage map, and the whole report template. Every section behaves as written unless it is explicitly flagged for `MODE=cr`.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches an authorization surface)** — **never modify a route, a controller, a policy, or any other file, never author a test, never stage / commit / push, never run a fixer or a checker, and never chain a follow-up review.** The one command the lens runs stays the read-only `php artisan route:list --json` of step 1. Scope the walk to the routes the PR diff touches — step 1.3's intersection with the changed files is mandatory here, not optional — and return the findings as markdown carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets. Emit every fix as a written snippet, never applied.
+
+> **What this lens owns in a CR:** object-level authorization — whether the record a changed route reads, returns, or writes is scoped to the actor who asked for it (**IDOR / BOLA**), and whether that route's middleware → policy / gate → scoping → Resource-output chain authorizes at all. It reports on the routes the diff touched and never on a pre-existing route it did not.
+> **What it does not render on a CR:** the per-route coverage map and the standalone report header of `templates/report.md`. A CR carries findings, and the coverage map is an audit artifact.
+> **Evidence still governs severity.** A route whose exposure rests on a point the code does not settle is reported at the severity its verified facts support and is never promoted to close the gap — *Evidence & honesty* below is unchanged by this mode. When `route:list` will not boot, the lens runs on the static fallback of step 1.4, reports it as not verified, and moves every structural finding to the open-point class.
+
+---
+
+## Scope
 > SAST tells you where data flows. This tells you where it flows to the **wrong user**.
 
 This skill is the judgment layer for the one category automated scanners structurally
@@ -20,16 +42,6 @@ The skill is trustworthy because every finding traces to a **ground-truth anchor
 `php artisan route:list --json` is the deterministic inventory of every endpoint and
 its merged middleware. If you cannot point to both a real route **and** a cited
 `file:line`, you do not report it.
-
----
-
-## Constraints
-- Apply `@rules/php/core-standards.mdc`
-- Apply `@rules/laravel/laravel.mdc` and `@rules/laravel/architecture.mdc`
-- Apply `@rules/security/backend.md` — *Database* (authentication & authorization, least privilege) and *Safe Validation & Error Messages* (a 403-vs-404 distinction that confirms a resource exists is itself an authorization-granularity leak)
-- Apply `@rules/code-review/general.mdc` — map every finding onto the CR severity scale (Critical / Moderate / Minor) so this skill plugs into a Laravel CR run
-- **Advise-only.** Reads files and runs one read-only command (`php artisan route:list --json`). Never edits routes, controllers, policies, or any source; emits a report plus fix sketches for a human to apply.
-- Output in English
 
 ---
 
@@ -67,7 +79,7 @@ route inventory and a cited controller line, never to a guess about what the cod
    > `can:`** — match the `Authorize:` / class form too, and read any custom middleware
    > class. See `references/auth-patterns.md` §2a.
 3. **Scope the review** to **application routes** — skip framework / vendor / `telescope` / `horizon` / `_ignition` routes unless asked. For a **PR / diff**, intersect the route list with the changed files.
-4. **Fallback when the app won't boot:** parse `routes/*.php` statically + Grep for `Route::` / middleware, **say so explicitly**, and drop every finding one confidence level. Never silently substitute a guess for the real list.
+4. **Fallback when the app won't boot:** parse `routes/*.php` statically + Grep for `Route::` / middleware, **report it as not verified** (`Not verified: route middleware — php artisan route:list did not boot; routes read statically.`), and move every structural finding to the open-point class: the merged route-group middleware is exactly what the static read cannot see. Never silently substitute a guess for the real list.
    > Laravel 11/12 boots `route:list` on defaults even with no `.env` — a missing `.env` is *not* a reliable failure trigger. Real boot failures: a missing PHP extension, or a service provider that hits the DB / cache at boot. If it's a missing extension you can enable, prefer fixing the boot (`php -d extension=gd artisan route:list --json`) over the lossy static fallback. Glob **all** of `routes/*.php` — apps split into `admin.php`, `api.base.php`, etc.
 
 ### 2. The authorization chain — four layers per route
@@ -95,15 +107,25 @@ For each in-scope route, record which layers are present:
 
 ### 3. The IDOR core — object-level authorization (the flagship)
 - **Implicit route-model binding resolves, it does NOT authorize.** `public function update(Post $post)` loads *anyone's* post by id. Without `authorize('update', $post)` or owner-scoping, that's IDOR — the single most common Laravel access-control bug.
-- **`Model::find($request->id)` / `findOrFail($id)`** then mutate / return, with no policy call and no `where('user_id', ...)` / relationship scoping → finding, severity by how clearly the model is user-owned.
-- **Actor-selected target from request input (IDOR on write — the worst case).** When the record to *write* is chosen by an id from the **request body / query** (`User::findOrFail($request->input('user_id'))->update(...)`) with no ownership check, that's a **confirmed cross-account write: High confidence even without route-model binding** — the attacker names the victim directly. Do **not** soften it to "verify".
+- **`Model::find($request->id)` / `findOrFail($id)`** then mutate / return, with no policy call and no `where('user_id', ...)` / relationship scoping → finding, severity by what the model's owner key and relationships verify.
+- **Actor-selected target from request input (IDOR on write — the worst case).** When the record to *write* is chosen by an id from the **request body / query** (`User::findOrFail($request->input('user_id'))->update(...)`) with no ownership check, that's a **confirmed cross-account write: structural evidence even without route-model binding** — the attacker names the victim directly. Do **not** soften it to "verify".
 - **Scoped bindings count:** `Route::scopeBindings()` or a nested resource scoping the child to the parent (`users.posts` resolving `$post` through `$user->posts()`) *is* object scoping — credit it.
 - **Mass-assignment adjacency:** `$model->update($request->all())` where `$fillable` includes an ownership / role key (`user_id`, `team_id`, `is_admin`) is privilege escalation even when the row was scoped — note as a related finding.
 
 To judge "should this be scoped?", look for ownership signals: `user_id` / `team_id` /
 `tenant_id` columns, `belongsTo(User::class)`, a global scope, or the user's relationship
-methods. **If you can't establish the model is owned, the finding is Moderate / Minor and
+methods. **If you can't establish the model is owned, the finding is Moderate and
 phrased as "verify", not asserted as a hole.**
+
+> **Tenancy comes from the project manifest.** Read `tenancy` through
+> `skills/_shared/read-manifest.sh` (`@rules/general/general.md` *Project manifest*).
+> When it is `database`, each tenant owns its own database, and the tenant connection is
+> the tenant boundary. A model on the tenant connection is scoped by that connection, so a
+> missing tenant `where` (`tenant_id`, `account_id`) on it is **not** IDOR — do not report it.
+> A model on a shared connection still needs tenant scoping, and a missing tenant `where`
+> there stays a finding. Owner scoping inside one tenant (one user reading another user's
+> record) does not change: judge it by the ownership signals above. When `tenancy` is
+> absent, tables are shared, and tenant scoping is always required.
 
 > Ownership can be **conditional on edition / config / feature flag** — the same model
 > shared-by-design in one mode and user-owned in another. Say which mode the finding
@@ -115,35 +137,38 @@ For routes returning a `JsonResource` / `ResourceCollection` (or a raw model / `
 - **Field-level:** flag resources exposing ownership / internal fields — `user_id`, `email`, `*_token`, `is_admin`, password hashes, other users' PII — without a per-field guard (`when()`, `mergeWhen()`, conditional on `$request->user()`).
 - **Row-level:** flag a collection endpoint returning records not scoped to the actor (`PostResource::collection(Post::all())`) — IDOR at the list level.
 
-Confidence here is Moderate (field sensitivity is a judgment) — cite the resource
-`file:line` and the exact field.
+This is an open-point finding: the exposed field is verified, and its sensitivity is a business decision the code does not settle. Cite the resource
+`file:line` and the exact field, and put the sensitivity under *Not verified*.
 
 ### 5. False-positive control (first-class, not a footnote)
 A security tool dies from false positives. Before flagging, apply these filters — and
-when in doubt, **lower the confidence, don't drop or inflate the finding**:
-- **Public-by-design routes** — login, register, `password/*`, email verification, landing / public listings, and signature-verified **webhooks** are *meant* to be unauthenticated. See `references/public-by-design.md`. If a route only *looks* public, mark **"assumed public — confirm"**.
+when the code does not settle a point, **report the verified facts with the point under *Not verified*; don't drop or inflate the finding**:
+- **Public-by-design routes** — login, register, `password/*`, email verification, landing / public listings, and signature-verified **webhooks** are *meant* to be unauthenticated. See `references/public-by-design.md`. If a route only *looks* public, mark it **"Not verified: public by design — the owner confirms"**.
 - **Authorization can live in layers you must actually check** — a missing `$this->authorize()` is *not* a finding if a `can:` middleware, `authorizeResource()`, or a FormRequest already covers it. Verify all four layers first.
 - **`FormRequest::authorize()` returning `true`** is only a finding when the route is otherwise unprotected *and* touches owned data; on a public / separately-authorized route it's intentional ("verify intent").
 - **Admin / global contexts** — a route behind an `admin` / role middleware legitimately queries across all users; don't flag those unscoped queries as IDOR.
 
-### 6. Classify each finding (confidence + CR severity)
-One row per finding, most severe wins. Confidence is mandatory and travels with an
-evidence chain. Map onto the CR scale per `@rules/code-review/general.mdc`:
+### 6. Classify each finding (evidence + CR severity)
+One row per finding, most severe wins. The evidence class is mandatory and travels with an
+evidence chain. Map onto the CR scale per `@rules/code-review/general.md`:
 
-| Signal | Confidence | CR severity |
+| Signal | Evidence | CR severity |
 |--------|-----------|-------------|
-| State-changing or owned-data route with **no auth AND no authz AND no scoping** | High — structural | **Critical** |
-| `FormRequest::authorize(){ return true; }` on an otherwise-unprotected owned-data route | High | **Critical** |
-| Cross-account write — record to mutate selected from request **input**, no ownership check, on an authenticated route | High | **Critical** |
-| Route-model binding / `find($id)` on a likely-owned model, no `authorize()` and no owner scoping | Medium | **Moderate** |
-| `Model::all()` / unscoped query, or an API Resource exposing owned / internal fields | Medium / Low | **Moderate / Minor** |
-| No policy for a managed model, ad-hoc inline check instead of a policy, mass-assignment of ownership keys | Low — defense-in-depth | **Minor** |
+| State-changing or owned-data route with **no auth AND no authz AND no scoping** | Structural | **Critical** |
+| `FormRequest::authorize(){ return true; }` on an otherwise-unprotected owned-data route | Structural | **Critical** |
+| Cross-account write — record to mutate selected from request **input**, no ownership check, on an authenticated route | Structural | **Critical** |
+| Route-model binding / `find($id)` with no `authorize()` and no owner scoping, on a model that carries an owner or tenant key, or whose ownership the code does not settle | Open point | **Moderate** |
+| `Model::all()` / unscoped query, or an API Resource exposing owned / internal fields | Open point / Hardening | **Moderate** |
+| No policy for a managed model, ad-hoc inline check instead of a policy, mass-assignment of ownership keys | Hardening — defense-in-depth | **Moderate** |
 | All applicable layers present | — | Covered ✅ |
 
-> **Confidence rule.** *High* = you can point at the missing layer structurally (route +
-> method, no check anywhere in the chain). *Medium* = the gap depends on whether the model
-> is owned / the field is sensitive — state the assumption. *Low* = stylistic /
-> defense-in-depth. Never present Medium / Low as a confirmed vulnerability.
+> **Evidence rule.** *Structural* = you can point at the missing layer structurally (route +
+> method, no check anywhere in the chain). *Open point* = the missing check is verified, and
+> whether it exposes data depends on a fact the code does not settle — whether the model is
+> meant to be shared, whether the field is sensitive. Read the model and its relationships
+> first; what still stays open goes under *Not verified* with the person or step that settles
+> it. *Hardening* = stylistic / defense-in-depth. Never present an open-point or hardening
+> finding as a confirmed vulnerability.
 >
 > **Structurally broken but currently fails-closed.** Some bugs deny by default *today*
 > yet hide a latent leak (e.g. `authorizeResource` mapping `index → viewAny` when the
@@ -155,11 +180,14 @@ evidence chain. Map onto the CR scale per `@rules/code-review/general.mdc`:
 Produce the report using `templates/report.md` as the template:
 1. **Summary** — counts per severity + the 1–2 things to fix today.
 2. **Coverage map** — a table of **every in-scope route** → `auth ✓ · authz ✓ · scoped ✓ · policy ✓` (✓ / ✗ / n/a). Never silently omit a route you reviewed.
-   > The `policy` column is **defense-in-depth, not a pass/fail gate.** When `authz` and `scoped` are satisfied *inline* the route is covered even with `policy ✗` — mark it ✗ and lane it Minor (extract a policy), not Critical.
-3. **Findings by lane**, each row carrying its evidence chain (`route → Controller@method:line → missing layer` + snippet) and confidence: **Critical** (verify & fix now) → **Moderate** (needs judgment, state the assumption) → **Minor** (hardening) → **Covered** (summarized from the map).
+   > The `policy` column is **defense-in-depth**. When `authz` and `scoped` are satisfied *inline*, `policy ✗` is not an exposure, but it is still a **blocking Moderate** (extract a policy) — never Critical, and as a security-lens finding never deferred or excluded.
+3. **Findings by lane**, each row carrying its evidence chain (`route → Controller@method:line → missing layer` + snippet) and evidence class: **Critical** (verify & fix now) → **Moderate** (open point or hardening, with the open point under *Not verified*) → **Covered** (summarized from the map).
 4. For each Critical / Moderate: a **fix sketch** in Laravel idiom (add `authorize()`, scope the query through the relationship, write the policy) — as *advice for the human to apply*, not an edit.
 
 List each route once, in its most-severe lane; the coverage map carries the rest.
+
+### Assignment-declared "test-only" carve-out (issue #17)
+Findings from this skill are **never** eligible for the Assignment-Declared Test-Only Conditions — Exclusion Gate (`@rules/code-review/general.md` *Assignment-Declared Test-Only Conditions — Exclusion Gate (issue #17)*), at **any** severity (Critical/Moderate). A "test-only" declaration on an assignment source may at most annotate a finding here as *"author claims test-only"* — it never removes the finding, never excludes it into `## Excluded per assignment`, and never drops it below the merge gate.
 
 ### 8. Saving the report (optional, on request only)
 By default **output to the conversation only**. You may offer to save to
@@ -169,10 +197,10 @@ write, and only when asked.
 
 ---
 
-## Confidence & honesty
-Separate the two in every report:
-- **Hard facts** — the route inventory, its middleware, which files / methods / policies exist. Cite them.
-- **Judgment** — whether a model is "owned", whether a field is sensitive, the fix sketch. Mark them and state the assumption.
+## Evidence & honesty
+Separate the two in every report (`@rules/general/general.md` *Verified statements only*):
+- **Hard facts** — the route inventory, its middleware, which files / methods / policies exist, the model's owner key and relationships. Cite them.
+- **Open points** — whether a model is meant to be shared, whether a field is sensitive. Never assume an answer: put each one under *Not verified* with the person or step that settles it. The fix sketch is advice and is labelled as advice.
 
 > A clean report means "no broken authorization found in the layers I checked" — **NOT**
 > "this app is secure." This skill does not cover business-logic authorization, indirect
@@ -191,9 +219,9 @@ Eloquent query scoping, API Resource output. Does **NOT** cover (say so when rel
 - ❌ **Treat a code comment as evidence** — cite the structural reality (the missing call, the unscoped query, the route + line), never what a comment claims.
 - ❌ **Flag "missing authorize()" without checking all four layers** — a `can:` middleware, `authorizeResource()`, or FormRequest may already cover it.
 - ❌ **Flag a public-by-design route** (login / register / webhook / landing) for missing auth — consult `references/public-by-design.md`.
-- ❌ **Assert IDOR on a model you haven't shown is owned** — Moderate / Minor "verify", not a confirmed hole.
+- ❌ **Assert IDOR on a model you haven't shown is owned** — a Moderate open point with the ownership under *Not verified*, not a confirmed hole.
 - ❌ **Flag unscoped queries inside an admin / role-gated context** as IDOR — that's expected.
-- ❌ **Present Medium / Low confidence as a confirmed vulnerability.**
+- ❌ **Present an open-point or hardening finding as a confirmed vulnerability.**
 - ❌ **Drop a reviewed route from the coverage map** — show every route you checked, including the covered ones.
 - ❌ **Edit routes, controllers, policies, or any source**, or run state-changing commands.
 
@@ -207,7 +235,7 @@ Eloquent query scoping, API Resource output. Does **NOT** cover (say so when rel
 
 ## Done when
 - The route inventory was obtained (or the static fallback was used and stated), and the review was scoped to application routes / the PR diff.
-- Every finding is anchored to a real route **and** a cited `file:line`, classified by confidence, and mapped to a CR severity.
+- Every finding is anchored to a real route **and** a cited `file:line`, classified by evidence, and mapped to a CR severity.
 - A coverage map lists every in-scope route, including the covered ones.
 - Critical / Moderate findings carry a Laravel-idiom fix sketch — advice only, no code edited.
 

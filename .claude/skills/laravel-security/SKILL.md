@@ -1,22 +1,19 @@
 ---
 name: laravel-security
-description: "Use when building, configuring, or hardening security-sensitive Laravel features — authentication, authorization, Eloquent safety, CSRF/XSS, API security, file uploads, secrets, and production configuration. Provides condensed, copy-ready secure defaults for Laravel 11 / PHP 8.3."
+description: "Use when building, configuring, or hardening security-sensitive Laravel features — authentication, authorization, Eloquent safety, CSRF/XSS, API security, file uploads, secrets, and production configuration. Provides condensed, copy-ready secure defaults for Laravel 12/13 / PHP 8.4/8.5."
 license: MIT
 metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# Laravel Security Best Practices
-
 ## Constraints
 - Apply `@rules/security/backend.md` and `@rules/security/frontend.md`
-- Apply `@rules/php/core-standards.mdc` — `final` classes, `declare(strict_types=1)`, typed signatures
-- If the project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, `@rules/laravel/livewire.mdc`
-- Stack: Laravel 11 / PHP 8.3, Filament, Livewire, Alpine.js, Blade, Tailwind, Pest, Vite, MySQL, Redis
+- Apply `@rules/php/core-standards.md` — `final` classes, `declare(strict_types=1)`, typed signatures
+- If the project uses Laravel, also apply `@rules/laravel/laravel.md`, `@rules/laravel/architecture.md`, `@rules/laravel/filament.md`, `@rules/laravel/livewire.md`
+- Stack: Laravel 12/13 / PHP 8.4/8.5, Filament, Livewire, Alpine.js, Blade, Tailwind, Pest, Vite, MySQL, Redis
 - Never hardcode secrets; never reveal them in output
-- Hard limits: this file stays <= 500 lines and <= 5000 tokens
 
-## Purpose
+## Scope
 Secure-by-default building blocks for security-sensitive Laravel work. Use the matching section, copy the minimal snippet, and verify against the checklist. For an audit of existing code use `@skills/security-review/SKILL.md`.
 
 ## Use when
@@ -149,7 +146,7 @@ final class PostPolicy
 // Blade: @can('update', $post) ... @endcan
 ```
 
-Laravel 11 auto-discovers policies by naming convention; register explicitly only when names differ.
+Laravel auto-discovers policies by naming convention; register explicitly only when names differ.
 
 ### Middleware
 
@@ -161,7 +158,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 });
 ```
 
-For Filament, enforce access via policies and `canAccessPanel()`; for Livewire, re-check authorization inside actions — a mounted component is not an authorization boundary (`@rules/laravel/filament.mdc`, `@rules/laravel/livewire.mdc`).
+For Filament, enforce access via policies and `canAccessPanel()`; for Livewire, re-check authorization inside actions — a mounted component is not an authorization boundary (`@rules/laravel/filament.md`, `@rules/laravel/livewire.md`).
 
 ## Eloquent Security
 
@@ -198,7 +195,7 @@ final class User extends Authenticatable
     protected $casts = [
         'is_admin' => 'boolean',
         'settings' => 'array',
-        'metadata' => 'encrypted:array', // Laravel 11 encrypted cast
+        'metadata' => 'encrypted:array', // encrypted cast
         'password' => 'hashed',          // auto-hash on set
     ];
 
@@ -409,7 +406,7 @@ SecurityLogger::log('role_change', ['target_user' => $targetId, 'new_role' => 'a
 
 ## Laravel Security Audit
 
-When auditing an existing Laravel application (instead of building new features), use `@skills/laravel-security/references/audit-workflow.md`. It covers the 7 audit areas — Authorization/IDOR/BOLA, Authentication, Validation, XSS, File upload, Secrets/configuration, Dependencies — with severity mapping (Critical/High/Medium/Low/Info → CR scale Critical/Moderate/Minor), Grep patterns, and a required regression-test sketch per confirmed finding. The building blocks in this file (Production Configuration, Authentication, Authorization, Eloquent Security, CSRF, XSS Prevention, Input Validation, File Upload Security, Secrets and Dependencies) are the reference fixes the audit workflow links back to.
+When auditing an existing Laravel application (instead of building new features), use `@skills/laravel-security/references/audit-workflow.md`. It covers the 7 audit areas — Authorization/IDOR/BOLA, Authentication, Validation, XSS, File upload, Secrets/configuration, Dependencies — with severity mapping (Critical → Critical; High/Medium/Low → Moderate; Info → not published), Grep patterns, and a required regression-test sketch per confirmed finding. The building blocks in this file (Production Configuration, Authentication, Authorization, Eloquent Security, CSRF, XSS Prevention, Input Validation, File Upload Security, Secrets and Dependencies) are the reference fixes the audit workflow links back to.
 
 ## Done when
 - The relevant secure default is applied and matches the project's existing style
