@@ -13,10 +13,12 @@
 # or any URL containing ?selectedIssue=<KEY>).
 #
 # Output (stdout): a JSON array in chronological order, one object per comment:
-#   [ { "index", "author", "created", "visibility", "body",
-#       "charCount", "lineCount" }, … ]
+#   [ { "index", "id", "author", "created", "visibility", "body",
+#       "mediaRefs", "charCount", "lineCount" }, … ]
 # An issue with no comments yields []. `charCount`/`lineCount` let the caller
-# decide whether to read a comment whole or in chunks.
+# decide whether to read a comment whole or in chunks. `mediaRefs` names the attachments
+# pasted into the comment (see load-issue.sh). `id` is the JIRA comment ID
+# (null when the source carried none), the handle `delete-owned-comment.sh` takes.
 #
 # Exit codes (propagated from load-issue.sh):
 #   1  usage / argument error
@@ -28,7 +30,7 @@ usage() {
   cat >&2 <<'EOF'
 Usage: parse-comments.sh <KEY|URL>
 
-  KEY  JIRA issue key (e.g. ECOMAIL-1234)
+  KEY  JIRA issue key (e.g. ACME-1234)
   URL  /browse/<KEY> URL or any URL containing ?selectedIssue=<KEY>
 EOF
 }
@@ -52,10 +54,12 @@ printf '%s' "$ISSUE_JSON" | jq '
     | to_entries[]
     | {
         index:      .key,
+        id:         .value.id,
         author:     .value.author,
         created:    .value.created,
         visibility: .value.visibility,
         body:       .value.body,
+        mediaRefs:  (.value.mediaRefs // []),
         charCount:  ((.value.body // "") | length),
         lineCount:  ((.value.body // "") | split("\n") | length)
       }

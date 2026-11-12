@@ -6,15 +6,23 @@ metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# PostgreSQL Patterns
-
 ## Constraints
-- Apply `@rules/sql/optimalize.mdc` — it already owns indexing fundamentals, SARGable WHERE, seek/keyset pagination, EXPLAIN, transactions/locking basics, and batch-over-per-row. Do not re-explain those; defer to it. Note it is written for MySQL — translate engine-specific syntax (`EXPLAIN ANALYZE`, plan flags) to Postgres equivalents here.
+- Apply `@rules/sql/optimalize.md` — it already owns indexing fundamentals, SARGable WHERE, seek/keyset pagination, EXPLAIN, transactions/locking basics, and batch-over-per-row. Do not re-explain those; defer to it. Note it is written for MySQL — translate engine-specific syntax (`EXPLAIN ANALYZE`, plan flags) to Postgres equivalents here.
+- **Its schema-design block is MySQL-only — do not defer to it on Postgres.** Everything in that rule from `## Schema Design` through `## When to Break These Rules` is scoped to MySQL 8.0.16+ on InnoDB, and several of its mandates are not a syntax translation but the opposite advice on Postgres: `TIMESTAMP` is banned there (a 32-bit type with a 2038 limit) while both Postgres timestamp types are 64-bit and carry no such limit — so the MySQL prohibition does not transfer, and the type to reach for here is `timestamptz` per **Data Type Discipline** below, never plain `timestamp`. `UNSIGNED` does not exist at all, and neither does `utf8mb4` or its collation family.
+The engine-neutral half — naming discipline, nullability semantics, `CHECK` as invariant-not-policy, foreign-key actions, explicit constraint names, `numeric` over float for money — still applies; take that, and use **Data Type Discipline** below plus the sections in this skill for the rest.
 - This skill is the Postgres counterpart to `@skills/mysql-patterns/SKILL.md`. It is for *designing* features. For diagnosing an existing slow query, the closest fit is `@skills/mysql-problem-solver/SKILL.md` (apply its method; substitute Postgres EXPLAIN/`pg_stat_statements`).
-- If the project uses Laravel, also apply `@rules/laravel/laravel.mdc` and `@rules/laravel/architecture.mdc`.
+- If the project uses Laravel, also apply `@rules/laravel/laravel.md` and `@rules/laravel/architecture.md`.
 - Apply `@rules/security/backend.md` — parameterized queries / Eloquent only, least-privilege DB users, never hardcode credentials.
 - `final` classes, `declare(strict_types=1)`, Pest tests for any data-access code added.
 - Confirm the major version (`SELECT version();`) before using version-specific features — `MERGE` (15+), covering `INCLUDE` indexes (11+), and `NULLS NOT DISTINCT` (15+) are not in older servers.
+
+## Modes
+
+This skill runs in one of two modes, selected by the caller via `MODE` (default `design`):
+
+- **`design` (default)** — full design work: write migrations, add indexes, change column types, and set connection configuration. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the reviewed project's database engine resolves to `pgsql`)** — **never modify code, never author a migration or a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, for the CR to fold into its single `## Database Analysis` section.
+Every instruction below that would touch the database, a migration, or configuration — create, add, alter, index, enable, set, or any other such verb — is emitted as a written proposal carrying a concrete SQL / query-builder snippet, never applied to the project.
 
 ## Use when
 - Adding jsonb columns, GIN/BRIN/partial/covering indexes, or full-text search to a Laravel app on Postgres.
@@ -68,6 +76,8 @@ ON CONFLICT (sku) DO UPDATE SET price = EXCLUDED.price;
 - `updateOrCreate()` is per-row, fires events, and is race-prone unless a unique index backs the match columns; wrap concurrent use in a transaction retry.
 
 ## Indexing Beyond B-tree
+
+> **`MODE=cr`:** this section carries the deploy-safety answer `@rules/code-review/core-analysis.md` *Deploy-safe schema changes (issue #20)* redirects a PostgreSQL project to. Raise a blocking index build on a populated table as a finding whose **Suggested Fix** is `CREATE INDEX CONCURRENTLY` with the migration's wrapping transaction disabled (`public $withinTransaction = false;`) — never `ALGORITHM=INPLACE, LOCK=NONE`, `pt-online-schema-change`, or `gh-ost`, none of which PostgreSQL parses or supports. Name the reversal too: a failed `CONCURRENTLY` build leaves an invalid index behind, so `down()` drops that index explicitly.
 
 B-tree (the default) covers equality/range. Reach for these when the access pattern differs:
 
@@ -146,7 +156,7 @@ SELECT * FROM orders WHERE id > :last_id ORDER BY id LIMIT 20;
 ```
 
 - The cursor columns must match the `ORDER BY` and be backed by an index (composite for multi-column sorts, including a unique tiebreaker).
-- See seek-pagination guidance in `@rules/sql/optimalize.mdc`; this is its Postgres-native form.
+- See seek-pagination guidance in `@rules/sql/optimalize.md`; this is its Postgres-native form.
 
 ## Row-Level Security (multi-tenancy)
 
@@ -160,7 +170,8 @@ CREATE POLICY tenant_isolation ON invoices
 
 ```php
 // Set the session variable per request before any tenant query.
-DB::statement('SET app.tenant_id = ?', [$tenantId]);
+// SET takes no bind parameters; set_config() does.
+DB::select("SELECT set_config('app.tenant_id', ?, false)", [(string) $tenantId]);
 ```
 
 - Wrap the auth check in a subquery / `SELECT` of `current_setting(...)` so the planner caches it once per query rather than re-evaluating per row.

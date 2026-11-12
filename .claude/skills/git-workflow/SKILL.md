@@ -1,13 +1,13 @@
 ---
 name: git-workflow
-description: "Use when choosing a Git branching strategy or handling merge vs rebase, conflicts, stashing, undoing mistakes, and release tagging — complementing the commit/PR conventions in the git rules."
+description: "Use when choosing a Git branching strategy or handling merge vs rebase, conflicts, undoing mistakes, and release tagging — complementing the commit/PR conventions in the git rules."
 license: MIT
 metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
 ## Constraints
-- Commit, PR, and merge conventions live in `@rules/git/general.mdc` — English `type(scope)` commits, lowercase, no trailing period, no push to `main`, small focused commits, `Closes #` issue linking, English PR titles, rebase-and-merge, `gh` CLI. This skill does NOT restate them.
+- Commit, PR, and merge conventions live in `@rules/git/general.md` — English `type(scope)` commits with a plain-words subject that ends with the tracker reference, lowercase type and scope, no trailing period, no push to `main`, `Closes #` issue linking, English PR titles, rebase-and-merge, `gh` CLI. This skill does NOT restate them.
 - Branch cleanup is owned by `@skills/cleanup-local-branches/SKILL.md`. Defer to it; do not duplicate.
 - PR merging is owned by `@skills/merge-github-pr/SKILL.md`. Defer to it; do not duplicate.
 - This skill covers only the complementary gaps below.
@@ -16,7 +16,6 @@ metadata:
 - Choosing or changing a branching strategy.
 - Deciding merge vs rebase for a specific situation.
 - Resolving a merge conflict.
-- Stashing work in progress.
 - Undoing a mistake (bad commit, wrong reset, accidental change).
 - Cutting a release and tagging a version.
 
@@ -37,7 +36,7 @@ Everyone integrates into `main` via very short-lived branches (1–2 days). Inco
 | Trunk-based | 5+ experienced | multiple/day | high-velocity teams using feature flags |
 | GitFlow | 10+ | scheduled | enterprise, regulated industries |
 
-Default to GitHub Flow unless the team has a concrete reason for another model. It aligns with the rebase-and-merge + short-focused-branches conventions in `@rules/git/general.mdc`.
+Default to GitHub Flow unless the team has a concrete reason for another model. It aligns with the rebase-and-merge + short-focused-branches conventions in `@rules/git/general.md`.
 
 ## Merge vs rebase mechanics
 
@@ -52,9 +51,9 @@ Use when preserving exact history matters or several people worked on the branch
 ```bash
 git checkout feature/user-auth
 git fetch origin
-git rebase origin/main         # replays your commits on top of main
+git rebase "origin/$DEFAULT_BRANCH"   # replays your commits on top of the default branch
 ```
-Use to update your local branch with the latest `main` before opening or refreshing a PR. Keeps history linear.
+Use to update your local branch with the latest default branch before opening or refreshing a PR. Keeps history linear. Resolve `DEFAULT_BRANCH` as in *Pull policy* below; never hardcode `origin/main`.
 
 ```bash
 # only if you are the sole contributor on the branch
@@ -63,7 +62,7 @@ git push --force-with-lease origin feature/user-auth
 Always `--force-with-lease`, never plain `--force`.
 
 ### Pull policy: sync a side branch before pulling it
-`@rules/git/general.mdc` *Pull Policy* requires every non-default branch to be rebased onto the latest default branch so it always carries the newest default-branch history. The default branch is `main` on some repos and `master` on others — resolve it instead of hardcoding `origin/main` (which does not exist on a `master`-default repo and makes the command fail). Order matters: take the branch's own remote **first**, then rebase the default branch in, then force-push — do not pull again afterwards.
+`@rules/git/general.md` *Pull Policy* requires every non-default branch to be rebased onto the latest default branch so it always carries the newest default-branch history. The default branch is `main` on some repos and `master` on others — resolve it instead of hardcoding `origin/main` (which does not exist on a `master`-default repo and makes the command fail). Order matters: take the branch's own remote **first**, then rebase the default branch in, then force-push — do not pull again afterwards.
 ```bash
 DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')"
 git checkout feature/user-auth
@@ -71,8 +70,15 @@ git fetch origin
 git pull --rebase                     # 1) take the branch's own remote first
 git rebase "origin/$DEFAULT_BRANCH"   # 2) bring the latest default branch in
 # resolve conflicts if any, then: git rebase --continue
-git rebase --exec 'composer check' "origin/$DEFAULT_BRANCH"   # 3) verify every commit, not just the tip
-git push --force-with-lease           # 4) publish; do NOT git pull again — it would undo the rebase
+git push --force-with-lease           # 3) publish; do NOT git pull again — it would undo the rebase
+```
+The rebase in step 2 replayed every commit onto a different base, so the head commit now has a tree that was never gated. That is caught at the merge boundary: `@rules/git/general.md` *The merged head is green; intermediate commits are not gated* runs the project's gate on the new head before the merge, and a reshaped branch never inherits an earlier verdict.
+The one exception is a rebase that only moved the base and brought in changes unrelated to the branch, per `@skills/resolve-issue/references/quality-gates.md` *Rebase that moves the head — analyse the incoming changes first*. Replaying the whole range with `git rebase --exec '<the project gate>' <base>` is available when a bisectable history is wanted. `<the project gate>` is the project's gate command, discovered per `@skills/resolve-issue/references/quality-gates.md`.
+
+Run that replay only when you actually want a bisectable history — it executes the whole gate once per commit, which is the cost the single end-of-work gate exists to avoid:
+
+```bash
+git rebase --exec '<the project gate>' "origin/$DEFAULT_BRANCH"   # optional; stops on the first commit that fails
 ```
 If the rebase changed `composer.lock` (the default branch updated dependencies), reinstall before continuing so the installed packages match the new lockfile:
 ```bash
@@ -80,56 +86,47 @@ composer install                      # run only when composer.lock actually cha
 ```
 The default branch itself is exempt — pull it directly with `git pull`. Read-only review skills are exempt too: they `git pull` only to read the diff and never rebase.
 
-### Verify a rewritten range commit by commit
-`@rules/git/general.mdc` *Git Rules* (*Every commit is green*) requires every commit in the branch to pass the project's gate **on its own**, so that each one cherry-picks onto the default branch and deploys without errors. A rebase, squash, split, or reorder replays every commit onto a new base, so a green tip proves nothing about the commits underneath it — a conflict resolved in the wrong commit or a dependency that moved leaves an intermediate commit red while `HEAD` builds fine.
-
-**The `--exec` command must not modify the working tree.** Pass the *checking* half of the gate (`composer check`), never the fix-and-check `composer build`: its `@fix` step rewrites tracked files, and an exec that exits 0 but leaves the tree dirty stops the rebase with `execution succeeded … but left changes to the index and/or the working tree`. That is a git plumbing error, not a verdict — the operator loses the signal about which commit is actually red. Run the fixers before you start the replay, not inside it.
-
-`--exec` runs the gate after each replayed commit and stops at the first failure:
-```bash
-git rebase --exec 'composer check' "origin/$DEFAULT_BRANCH"   # replay + verify each commit
-# on a stop: fix the working tree, then
-git add -A && git commit --amend --no-edit                    # repair THIS commit in place
-git rebase --continue                                         # carry on down the range
-```
-Repair the failing commit **in place** — never `git rebase --skip` past it and never append a repair commit at the tip: a repair at the tip leaves the broken commit permanently unshippable and re-creates the scattered-concern violation the reshape was meant to fix. When a commit cannot be made green alone, fold it into the commit it depends on (`git rebase -i`, mark it `fixup`) instead of publishing a red step.
-
-Use `git rebase --exec 'vendor/bin/pest tests'` (or whatever faster subset the project actually defines — check `composer.json` `scripts` rather than assuming a `composer test` exists) while iterating, but run the full gate once before the force-push. A command that is not defined exits non-zero, and a non-zero exec stops the replay at the first commit — reporting a red history on a green range.
-
 ### Never rebase shared/public history
 Do NOT rebase a branch that has been pushed and that others may have based work on, nor any protected branch (`main`, `develop`), nor already-merged history. Rebase rewrites commits and breaks everyone downstream. For published branches, fix forward with `git revert` instead.
 
 ## Conflict resolution
+
+A conflict is a question about **intent**, not a formatting problem. Both sides compiled and passed review on their own branch; the merge is where you decide what the combined codebase should mean. Resolve it in this order — the commands are the last step, not the first.
+
+**1. See the current state.** `git status` lists the conflicted files; `git log --merge -p <file>` shows only the commits that touched the conflicting hunks from both sides.
+
+**2. Find the primary source of each side.** Read the commit message, the PR, and the linked issue for both branches. A hunk you cannot explain is a hunk you cannot resolve — you can only guess, and a guess here silently reverts someone's work.
+
+**3. Resolve each hunk.** Preserve both intents wherever they are compatible. Where they genuinely conflict, keep the one matching the merge's stated goal and record the trade-off in the merge commit body. **Never invent new behaviour in a conflict resolution** — a merge commit is the worst place to introduce a change nobody reviewed, because reviewers read the diff against each parent and a third behaviour appears in neither.
+
+**4. Run the tests covering the conflicted code.** Use the project's own test command, discovered per `@skills/resolve-issue/references/quality-gates.md`. A conflict resolved to something that compiles is not the same as one resolved correctly; the tests are what tell the two apart. The full gate runs once at the merge boundary (see *Hooks* below).
+
+**5. Finish.** Stage and continue (`git commit` for a merge, `git rebase --continue` for a rebase, repeating until every commit is replayed).
+
 ```bash
-# 1. Trigger the conflict (or hit it during rebase/merge)
-git status                       # lists conflicted files
+git status                       # 1. which files conflict
+git log --merge -p path/to/file  # 2. the commits behind this hunk
 
-# 2. Resolve each file. Conflict markers:
+# 3. Edit each file. Markers:
 #    <<<<<<< HEAD ... ======= ... >>>>>>> feature/user-auth
-#    Edit to the correct result and delete all three markers.
+#    Delete all three markers — a committed marker breaks the file silently.
 
-# Accept one whole side when appropriate:
+# Accept one whole side ONLY when you have established that side is complete:
 git checkout --ours  path/to/file    # keep current branch version
 git checkout --theirs path/to/file   # keep incoming version
 
-# 3. Stage and finish
-git add path/to/file
-git commit            # for merge
-# or
-git rebase --continue # for rebase
-# bail out entirely:  git merge --abort  /  git rebase --abort
+git add path/to/file             # 4. after the covering tests pass
+git commit                       # 5. merge
+git rebase --continue            #    or rebase, until all commits are replayed
 ```
-Prevention: keep branches small and short-lived, rebase onto `main` frequently, and coordinate before touching shared files. After resolving, re-run the project checks (see below) before continuing.
 
-## Stash workflow
-```bash
-git stash push -m "wip: user auth"   # shelve tracked changes
-git stash push -u -m "wip"           # include untracked files
-git stash list
-git stash pop                        # apply newest and drop it
-git stash apply stash@{2}            # apply a specific stash, keep it
-git stash drop stash@{0}
-```
+**`--ours` / `--theirs` discard a whole file.** They are a shortcut for "that side's version is already correct in full", which you must have verified. During a **rebase** the two are inverted relative to a merge — `--ours` is the branch being rebased onto, `--theirs` is your own work — so reaching for them from muscle memory mid-rebase is how a branch loses its own changes.
+
+**Aborting is a decision, not an escape.** `git merge --abort` / `git rebase --abort` are correct when the merge itself was wrong (wrong base, wrong branch, or a scope you now know needs splitting). They are not a way out of a conflict that is merely hard — abandoning the resolution leaves the same conflict for the next person with less context than you have now. Abort deliberately, and say why.
+
+Prevention: keep branches small and short-lived, rebase onto the default branch frequently, and coordinate before touching shared files.
+
+Adapted from [mattpocock/skills — resolving-merge-conflicts](https://github.com/mattpocock/skills/blob/main/skills/engineering/resolving-merge-conflicts/SKILL.md).
 
 ## Undoing mistakes
 ```bash
@@ -166,7 +163,7 @@ git tag -d v1.2.0 && git push origin --delete v1.2.0   # remove a tag
 # Draft release notes from the commit range
 git log v1.1.0..v1.2.0 --oneline --no-merges
 ```
-Conventional `type(scope)` subjects from `@rules/git/general.mdc` make this changelog range readable.
+Conventional `type(scope)` subjects from `@rules/git/general.md` make this changelog range readable.
 
 ## Laravel .gitignore essentials
 ```gitignore
@@ -182,10 +179,10 @@ Conventional `type(scope)` subjects from `@rules/git/general.mdc` make this chan
 Never commit `.env`, the `vendor/` or `node_modules/` trees, the Vite build output in `/public/build`, or generated keys.
 
 ## Hooks
-If you wire a pre-commit or pre-push hook, run the project's own checks (the `composer build` / Composer scripts and the Pest suite), not ad-hoc tooling. The hook should fail the commit on any error, mirroring CI.
+A pre-commit or pre-push hook must **not** run the project's full gate — that gate runs once at the end of the work (`@skills/resolve-issue/references/quality-gates.md` *Gate placement — deferred to the merge boundary*), and a hook repeating it per push is exactly the cost that placement removes. A hook that runs only the tests covering the change is fine; use the project's own test command rather than ad-hoc tooling.
 
 ## Defer to
-- `@rules/git/general.mdc` — commit, PR, and merge conventions.
+- `@rules/git/general.md` — commit, PR, and merge conventions.
 - `@skills/cleanup-local-branches/SKILL.md` — deleting stale local branches.
 - `@skills/merge-github-pr/SKILL.md` — merging a ready PR.
 
@@ -193,7 +190,6 @@ If you wire a pre-commit or pre-push hook, run the project's own checks (the `co
 - A branching strategy is chosen with a stated reason.
 - Merge vs rebase is applied correctly and no shared/public history was rebased.
 - A non-default branch was synced (own remote pulled, then the resolved default branch rebased in, then force-pushed — never hardcoding `origin/main`), and `composer install` was re-run whenever that rebase changed `composer.lock`.
-- Every commit of a rewritten range was verified green with `git rebase --exec`, and any failing commit was repaired in place rather than by a repair commit at the tip.
 - Conflicts are resolved with markers removed and project checks re-run.
 - Any undo used the right tool for whether the commit was pushed.
 - Releases are tagged with annotated semver tags pushed to origin.

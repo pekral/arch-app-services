@@ -96,6 +96,9 @@
     }
   },
   "scripts": {
+    "post-update-cmd": [
+      "vendor/bin/ai-olympus install --force"
+    ],
     "analyse": [
       "echo \"🔍 Running PHPStan static analysis...\"",
       "vendor/bin/phpstan analyse --memory-limit=2G"

@@ -7,7 +7,7 @@ metadata:
 ---
 
 ## Constraints
-- If the current project uses Laravel, also apply `@rules/laravel/laravel.mdc`, `@rules/laravel/architecture.mdc`, `@rules/laravel/filament.mdc`, and `@rules/laravel/livewire.mdc`
+- If the current project uses Laravel, also apply `@rules/laravel/laravel.md`, `@rules/laravel/architecture.md`, `@rules/laravel/filament.md`, and `@rules/laravel/livewire.md`
 
 ---
 
@@ -49,11 +49,11 @@ The skill can work with:
 
 - Telescope URL (preferred)
 - request UUID / entry UUID
-- environment access (local, staging, production read-only)
-- DB credentials for Telescope storage
+- a local development or test instance only (`@rules/security/general.md` *Production is never touched*)
+- DB connection details for the local Telescope storage, from the dispatch or the committed development setup — never production credentials and never a value read from `.env`
 - logs or screenshots exported from Telescope
 
-The skill should proceed with whatever is available and not block on perfect input.
+The skill should proceed with whatever is available and not block on perfect input. A Telescope URL on production or on an unknown host stops steps 2 and 3: never open its Telescope UI and never query its database. Analyse only the data a person exported from Telescope.
 
 ---
 
@@ -116,11 +116,11 @@ For every recommendation include:
 
 - what to change
 - why it helps
-- expected impact (latency, DB load, memory, throughput)
+- measured baseline (the Telescope duration, query count, or memory this change targets)
 - implementation risk or side effects
 - verification plan (how to measure after change)
 
-When a recommendation **changes or refactors a query**, apply `@rules/sql/optimalize.mdc` "Performance Non-Regression on Query Changes": capture the query's current cost from the Telescope evidence (duration, rows, repeated executions) as the baseline, and require the changed query to be equal or faster. If the proposed change would be slower than the observed original, do not present it as an improvement — state why it is slower, list the remaining optimization options (or that none exist and why), and the trade-off that justifies it.
+When a recommendation **changes or refactors a query**, apply `@rules/sql/optimalize.md` "Performance Non-Regression on Query Changes": capture the query's current cost from the Telescope evidence (duration, rows, repeated executions) as the baseline, and require the changed query to be equal or faster. If the proposed change would be slower than the observed original, do not present it as an improvement — state why it is slower, list the remaining optimization options (or that none exist and why), and the trade-off that justifies it.
 
 Keep suggestions scoped to observed telemetry, not hypothetical architecture rewrites.
 
@@ -138,7 +138,7 @@ The skill must:
 
 - prefer evidence from Telescope data over assumptions
 - match UI request with DB request whenever possible
-- clearly separate confirmed findings from hypotheses
+- report confirmed findings only, and list every unconfirmed point under *Not verified* with the step that settles it (`@rules/general/general.md` *Verified statements only*)
 - avoid recommending changes without measurable validation
 - keep output concise and implementation-oriented
 
@@ -166,9 +166,6 @@ A good result from this skill should:
 - detect meaningful performance or reliability issues
 - provide prioritized, testable optimization actions
 - document limitations when runtime access is incomplete
-
-**After completing the tasks**
-- If according to @skills/test-like-human/SKILL.md the changes can be tested, do it!
 
 ## Output Humanization
 - Use [blader/humanizer](https://github.com/blader/humanizer) for all skill outputs to keep the text natural and human-friendly.

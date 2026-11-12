@@ -6,20 +6,31 @@ metadata:
   author: "Petr Král (pekral.cz)"
 ---
 
-# Vite Patterns (Laravel)
+## Constraints
+- Apply `@rules/laravel/laravel.md`
+- Apply `@rules/laravel/livewire.md` and `@rules/laravel/filament.md` when bundling assets for those layers
+- Apply `@rules/php/core-standards.md` for any PHP touched (Blade config exposure, service providers)
+- This stack uses `laravel-vite-plugin` only. Never introduce React/Vue plugins, SSR frameworks, library mode, Bun, or Next.js.
+- Secrets never go into `VITE_`-prefixed vars — those are inlined into the public bundle.
+- Keep examples to `npm`, `php artisan serve`, and `npm run dev` / `npm run build`.
 
+## Scope
 Asset bundling and dev-server patterns for Laravel apps using the official
 `laravel-vite-plugin`. Covers `vite.config.js`, the `@vite` Blade directive,
 HMR in development, env vars, aliases, manifests, production builds, code
 splitting, and bundling for Livewire / Filament / Alpine.
 
-## Constraints
-- Apply `@rules/laravel/laravel.mdc`
-- Apply `@rules/laravel/livewire.mdc` and `@rules/laravel/filament.mdc` when bundling assets for those layers
-- Apply `@rules/php/core-standards.mdc` for any PHP touched (Blade config exposure, service providers)
-- This stack uses `laravel-vite-plugin` only. Never introduce React/Vue plugins, SSR frameworks, library mode, Bun, or Next.js.
-- Secrets never go into `VITE_`-prefixed vars — those are inlined into the public bundle.
-- Keep examples to `npm`, `php artisan serve`, and `npm run dev` / `npm run build`.
+## Modes
+
+This skill runs in one of two modes, selected by the caller via `MODE` (default `configure`):
+
+- **`configure` (default)** — full Vite work: edit `vite.config.js`, wire entrypoints and the `@vite` directive into Blade, set up HMR, aliases, env exposure, the manifest, and the production build. Every section below behaves as written unless it is explicitly flagged for `MODE=cr`.
+- **`cr` (read-only lens — invoked by `@skills/code-review/SKILL.md`, `code-review-github`, `code-review-jira`, and `code-review-bugsnag` when the diff touches an asset build surface)** — **never modify a config file, a Blade layout, or any other project file, never author a test, never stage / commit / push, never run fixers or checkers, and never chain a follow-up review.** Scope the analysis to the lines added or modified by the PR diff and return the findings as markdown only, carrying the reproducer fields the CR folds into its standard Critical / Moderate buckets.
+Every instruction below that would touch a file — add, wire, alias, split, expose, or any other such verb — is emitted as a written proposal carrying a concrete config or Blade snippet, never applied to the project.
+
+> **What this lens owns in a CR:** how the bundle is built and loaded — entrypoint declaration and the `@vite` directive that loads it, HMR and dev-server configuration, `VITE_`-prefixed env exposure, `resolve.alias` paths, the manifest and cache-busting, and code splitting in the production build. It **defers the markup a view renders** — component composition, state placement, accessibility semantics, and design tokens — to the three frontend lenses (`@skills/frontend-patterns/SKILL.md`, `@skills/frontend-a11y/SKILL.md`, `@skills/design-system/SKILL.md`), and never raises a finding one of them owns.
+> It **defers what the changed `<head>` promises a crawler** — the canonical, the robots directive, the on-page tags, and the JSON-LD payload — to `@skills/seo/SKILL.md` with `MODE=cr`. Those two meet on the preload and the asset a layout loads first: this lens owns how that bundle is built and split, the SEO lens owns whether the head asks for the largest contentful element early enough, and neither restates the other.
+> The lens judges the Vite setup the project already has. **Never raise a finding whose only fix is to adopt a plugin or a framework the project does not use** — React, Vue, an SSR framework, library mode, or Bun: the toolchain is a project decision, not a defect on the diff.
 
 ## Use when
 - Setting up or editing `vite.config.js` with the `laravel()` plugin.
@@ -102,7 +113,19 @@ Load entrypoints in your layout `<head>`:
 
 ## @vite + Tailwind
 
-Tailwind compiles through the CSS entrypoint, so no extra Vite wiring is needed:
+Tailwind v4 compiles through its Vite plugin plus the CSS entrypoint:
+
+```js
+// vite.config.js
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+    plugins: [
+        laravel({ input: ['resources/css/app.css', 'resources/js/app.js'], refresh: true }),
+        tailwindcss(),
+    ],
+});
+```
 
 ```css
 /* resources/css/app.css */
@@ -241,10 +264,12 @@ This warms the chunk cache without blocking the initial render.
 
 ## Bundling for Livewire / Filament / Alpine
 
-- **Alpine**: register it from your entrypoint and start it once.
+- **Alpine**: in a Livewire app, Livewire already bundles and starts Alpine — register custom
+  Alpine components in an `alpine:init` listener and never import or start a second copy.
+  Only on a view that loads no Livewire, import Alpine and start it once:
 
 ```js
-// resources/js/app.js
+// resources/js/app.js — only for views without Livewire
 import Alpine from 'alpinejs';
 window.Alpine = Alpine;
 Alpine.start();
@@ -252,12 +277,12 @@ Alpine.start();
 
 - **Livewire**: Livewire ships its own JS; keep your `@vite` bundle additive
   (custom Alpine components, hooks) and let Livewire manage its own assets per
-  `@rules/laravel/livewire.mdc`. Do not bundle a second Alpine copy — Livewire
+  `@rules/laravel/livewire.md`. Do not bundle a second Alpine copy — Livewire
   already includes one; if you import Alpine yourself, follow Livewire's
   guidance to avoid a duplicate instance.
 - **Filament**: Filament publishes and serves its own compiled assets; use a
   Filament theme + its asset pipeline for panel styling rather than forcing it
-  through your app entrypoint (`@rules/laravel/filament.mdc`). Reserve your Vite
+  through your app entrypoint (`@rules/laravel/filament.md`). Reserve your Vite
   bundle for front-end (non-panel) views.
 
 ## Building for production in CI

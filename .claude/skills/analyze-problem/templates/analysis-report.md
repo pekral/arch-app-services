@@ -2,8 +2,17 @@
 
 ## 1. Summary
 
-<!-- Short summary of the problem in 2–5 sentences.
-Explain what is happening, where it is happening, and the most likely reason. -->
+**Task type:**
+<!-- The primary classification of this task, stated first so a reader sees it immediately.
+Pick the single value that best fits the assignment context:
+Feature / Bug / Regression / Performance / Data issue / Security / UX / Refactor / Tooling / Unclear requirement / Other.
+A feature adds new behavior; a bug fixes incorrect existing behavior. -->
+
+...
+
+<!-- Short summary in 2–5 sentences.
+For a bug: what is happening, where, and the verified cause — or that the cause is not verified yet.
+For a feature: the target behavior to build and where it belongs. -->
 
 ...
 
@@ -31,17 +40,12 @@ Explain what is happening, where it is happening, and the most likely reason. --
 
 ...
 
-**Problem type:**
-<!-- Bug / regression / performance / data issue / security / UX / unclear requirement / other -->
-
-...
-
 ---
 
 ## 3. Verified Facts
 
 <!-- Only confirmed information from the assignment, issue, comments, logs, screenshots, attachments, or code.
-Do not put assumptions here. -->
+Do not put open points here. -->
 
 - ...
 - ...
@@ -49,45 +53,44 @@ Do not put assumptions here. -->
 
 ---
 
-## 4. Assumptions and Missing Information
+## 4. Not Verified
 
-### Assumptions
+<!-- Every point this analysis could not verify (`@rules/general/general.md` *Verified statements only*).
+Each entry states what is unknown and the exact step that settles it. Never write an assumed answer next to it. -->
 
-<!-- What we assume but cannot confirm. -->
-
-- ...
+- Not verified: ... — settled by ...
 - ...
 
 ### Missing Information
 
-<!-- What would help verify the cause or the proposed solution. -->
+<!-- Information this run had no access to, and who or what can supply it. -->
 
 - ...
 - ...
 
 ---
 
-## 5. Probable Root Cause
+## 5. Root Cause
 
-**Most probable cause:**
-<!-- Clearly describe the root cause. -->
-
-...
-
-**Why this cause is probable:**
-
-- ...
-- ...
-- ...
-
-**Certainty level:**
-<!-- High / Medium / Low -->
+**Verified root cause:**
+<!-- The cause this run verified. Write "Not verified" when no candidate was verified. -->
 
 ...
 
-**Alternative possible causes:**
+**How it was verified:**
+<!-- The reproduction, the test run, or the traced code path (`file:line`) that proves the cause. -->
 
 - ...
+
+**Candidates ruled out:**
+<!-- Each candidate cause the analysis checked and excluded, with the evidence that excluded it. -->
+
+- ...
+
+**Open candidates:**
+<!-- Only when the root cause is not verified: each remaining candidate as an open question with the check that settles it.
+No ranking, no likelihood, no certainty level. -->
+
 - ...
 
 ---
@@ -108,6 +111,22 @@ Do not put assumptions here. -->
 - ...
 - ...
 
+### Data Damage Already Written
+
+<!-- Whether the root cause has already stored inconsistent data, verified against the storage
+and not inferred from the code. State the storage (table, JSON column, cache key space, queued
+payload), the predicate that identifies a damaged record, and how many records match.
+When the cause writes nothing, or wrote nothing yet, say so explicitly — never leave this blank. -->
+
+**Damaged data found:** <!-- Yes / No -->
+
+...
+
+**Where and how it is recognised:**
+<!-- e.g. `orders` — `total_gross < (SELECT SUM(...) FROM order_items ...)`, 1 842 rows since 2026-03-01 -->
+
+...
+
 ### Risk Areas
 
 <!-- What can break or what to watch out for when fixing. -->
@@ -124,6 +143,16 @@ Do not put assumptions here. -->
 
 ...
 
+**Data repair (only when section 6 found damaged data):**
+<!-- The second half of the fix, which always runs after the cause fix, never before — a repair
+executed while the cause is still live is re-corrupted by the next request that takes the broken
+path. Describe it as its own bounded, re-runnable command or migration, with the predicate it
+uses and the test that proves it (seed a damaged record, run the repair, assert consistency, and
+assert a healthy record was left untouched). When the damaged data is disposable — a cache entry
+that regenerates, a derived value the next run recomputes — say that and say why instead. -->
+
+...
+
 **Why this solution fits:**
 
 - ...
@@ -137,7 +166,8 @@ Do not put assumptions here. -->
 - ...
 - ...
 
-**Possible side effects:**
+**Side effects:**
+<!-- Behaviour the fix changes besides the defect, each traced to the code path that carries it. -->
 
 - ...
 - ...
@@ -148,7 +178,7 @@ Do not put assumptions here. -->
 
 <!-- Concrete technical direction, but without the implementation itself unless the user asked for code. -->
 
-### Likely Change Locations
+### Change Locations
 
 - `app/...`
 - `routes/...`
@@ -170,48 +200,7 @@ Do not put assumptions here. -->
 
 ---
 
-## 9. Task Decomposition
-
-<!-- Render this section ONLY when the recommended solution is too large for one change —
-see the trigger rules in the skill's "Large-Task Decomposition Proposal" section.
-When the solution fits a single change, DELETE this whole section (heading included).
-Never leave a "no split needed" note, and never render it during a code-review invocation. -->
-
-**Why this needs splitting:** <!-- one sentence naming the trigger that fired -->
-
-...
-
-**Tracker shape:** <!-- GitHub: EPIC parent + sub-issues · JIRA: parent issue + sub-tasks · Bugsnag: split proposed on the mirrored GitHub issue -->
-
-...
-
-**Parent:** <!-- existing issue / JIRA key that becomes the parent, or "to be created" + the proposed title -->
-
-...
-
-### Proposed parts
-
-<!-- 2–8 parts. One part = one independently deliverable, independently reviewable unit that can merge
-on its own. Split by deliverable, never by activity ("write the tests" is not a part).
-More than 8 parts → hand the objective to @skills/blueprint/SKILL.md instead of listing them here. -->
-
-| # | Part (proposed issue / sub-task title) | What it delivers | Depends on | Ships independently |
-| - | -------------------------------------- | ---------------- | ---------- | ------------------- |
-| 1 | ... | ... | — | yes |
-| 2 | ... | ... | #1 | yes |
-
-**Order and parallelism:** <!-- which parts are sequential, which may run in parallel, and any expand-before-contract constraint -->
-
-...
-
-**Handoff:** <!-- the exact next step — e.g. "run @skills/create-issues-from-text/SKILL.md to create the EPIC parent and the N sub-issues",
-or for JIRA "create the N sub-tasks under <KEY>". This skill proposes only; it never creates or links tracker items. -->
-
-...
-
----
-
-## 10. Solution Verification
+## 9. Solution Verification
 
 ### Manual Verification
 
@@ -243,7 +232,7 @@ or for JIRA "create the N sub-tasks under <KEY>". This skill proposes only; it n
 
 ---
 
-## 11. Non-Technical Explanation
+## 10. Non-Technical Explanation
 
 <!-- Explanation for someone outside development: PM, support, client, product owner.
 Without unnecessary technical detail. -->
@@ -252,7 +241,7 @@ Without unnecessary technical detail. -->
 
 ---
 
-## 12. Final Recommendation
+## 11. Final Recommendation
 
 <!-- Clearly state what should be done first and why. -->
 
@@ -269,7 +258,7 @@ Without unnecessary technical detail. -->
 
 ---
 
-## 13. Sources
+## 12. Sources
 
 <!-- Every source the analysis was actually built from. Mandatory — never leave empty.
 List the issue / error and its comments and replies, linked / sub-issues, attachments,
