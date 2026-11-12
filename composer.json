@@ -43,6 +43,7 @@
     "larastan/larastan": "^3.15.0",
     "laravel/pint": "^1.32.3",
     "orchestra/testbench": "^10.11 || ^11.3",
+    "pekral/ai-olympus": "^0.4",
     "pekral/cursor-rules": "dev-master",
     "pekral/phpcs-rules": "dev-master",
     "pekral/rector-rules": "dev-master",
@@ -79,6 +80,7 @@
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "ergebnis/composer-normalize": true,
+      "pekral/ai-olympus": true,
       "pekral/cursor-rules": true,
       "pestphp/pest-plugin": true,
       "phpstan/extension-installer": false
