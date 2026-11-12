@@ -78,18 +78,16 @@ abstract class TestCase extends Orchestra
      */
     protected function runDynamoDbMigrations(): void
     {
-        $migrationsPath = __DIR__ . '/database/migrations';
+        $migrationsPath = __DIR__ . '/database/dynamodb-migrations';
         $migrationFiles = glob($migrationsPath . '/*_*_*_*_*.php');
 
         foreach ($migrationFiles as $file) {
-            if (str_contains(basename($file), 'dynamodb')) {
-                $migration = require $file;
-                
-                if (self::$dynamoDbTablesRecreated && method_exists($migration, 'truncate')) {
-                    $migration->truncate();
-                } elseif (method_exists($migration, 'up')) {
-                    $migration->up();
-                }
+            $migration = require $file;
+
+            if (self::$dynamoDbTablesRecreated && method_exists($migration, 'truncate')) {
+                $migration->truncate();
+            } elseif (method_exists($migration, 'up')) {
+                $migration->up();
             }
         }
 
