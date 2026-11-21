@@ -4,6 +4,8 @@ All notable changes to `arch-app-services` will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-21
+
 - ✨ **Added**: package PHPStan now registers `NoSimpleLogicActionsRule`; simple one-call examples were removed so `composer analyse` passes without `ignoreErrors` (#156)
 - 🔧 **Changed**: Composer dependencies were updated and bumped (#156)
 - ✨ **Added**: `NoSimpleLogicActionsRule` (`arch.simpleLogicAction`) reports an Action whose methods hold no branching, no transaction, no validation or authorization and at most one collaborator, so simple logic stays inline at its call site; `actionNamespaces` widens the Action detection (#150)
