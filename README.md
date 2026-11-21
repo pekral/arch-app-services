@@ -130,7 +130,7 @@ This Action takes its inputs as `__invoke()` arguments. The optional `ActionInvo
 
 The `#[InTransaction]` attribute requires the `TransactionAwareAction` trait and an explicit call to `executeWithTransactionAttribute()` inside the Action. The attribute alone does not wrap execution. See the [transaction example](examples/Actions/User/TransferUserDataAction.php).
 
-The package ships 24 PHPStan rules in the `Pekral\Arch\PHPStan\Rules` namespace. Installation alone does not enable them; register the rules you want in your PHPStan configuration. The [rule summary](docs/phpstan-rules.md#rule-summary) lists each rule with a reported example.
+The package ships 25 PHPStan rules in the `Pekral\Arch\PHPStan\Rules` namespace. Installation alone does not enable them; register the rules you want in your PHPStan configuration. [All PHPStan rules: descriptions and reported examples](docs/phpstan-rules.md#rule-summary) helps you choose which rules to enable.
 
 ## Documentation
 
@@ -141,7 +141,7 @@ The package ships 24 PHPStan rules in the `Pekral\Arch\PHPStan\Rules` namespace.
 | Cached reads | [Caching, keys and invalidation](docs/repository-caching.md) |
 | Input and transformation | [DTOs and validation](docs/validation.md) · [Data Builder pipelines](docs/data-builder.md) |
 | DynamoDB | [Models and setup](docs/dynamodb-model.md) |
-| Architecture checks | [PHPStan rule summary](docs/phpstan-rules.md#rule-summary) · [Registration](docs/phpstan-rules.md#configuration) |
+| Architecture checks | [All PHPStan rules: descriptions and reported examples](docs/phpstan-rules.md#rule-summary) · [Registration](docs/phpstan-rules.md#configuration) |
 | Transactions | [Atomic writes](examples/Actions/User/CreateUserWithTransaction.php) · [Attribute helper](examples/Actions/User/TransferUserDataAction.php) · [Nested savepoints](examples/Actions/User/CreateUserWithNestedTransaction.php) |
 | Expected failures | [Result-based Action](examples/Actions/User/CreateUserWithResult.php) · [Result API](src/Result/Result.php) |
 
