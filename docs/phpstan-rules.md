@@ -469,36 +469,17 @@ final readonly class GetUserById implements ArchAction
 **Correct approach for queries with conditions:**
 
 ```php
-final readonly class GetActiveUsers implements ArchAction
-{
-    public function __construct(
-        private UserModelService $userModelService
-    ) {}
-    
-    public function __invoke(): Collection
-    {
-        // ✅ Correct: Data retrieval with conditions through Repository
-        // Service delegates to Repository internally
-        return $this->userModelService->findByParams(['active' => true]);
-    }
-}
+// In the existing caller, use the service directly.
+// The service delegates to its Repository internally.
+$activeUsers = $this->userModelService->findByParams(['active' => true]);
+$verifiedUsers = $this->userModelService->countByParams(['verified' => true]);
 ```
 
-```php
-final readonly class CountVerifiedUsers implements ArchAction
-{
-    public function __construct(
-        private UserModelService $userModelService
-    ) {}
-    
-    public function __invoke(): int
-    {
-        // ✅ Correct: Aggregates with conditions through Repository
-        // Service delegates to Repository internally
-        return $this->userModelService->countByParams(['verified' => true]);
-    }
-}
-```
+An Action is justified when it orchestrates the operation. Do not add an Action
+only to forward one service call.
+
+Do not create a placeholder Action for an email that is not sent. Add an Action
+when the email operation coordinates a real mail collaborator with other work.
 
 **Architecture layers:**
 ```
