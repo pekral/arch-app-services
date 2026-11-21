@@ -2,9 +2,6 @@
 
 declare(strict_types = 1);
 
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Pekral\Arch\Examples\Services\User\UserModelManager;
 use Pekral\Arch\Examples\Services\User\UserModelService;
@@ -32,17 +29,24 @@ test('the verified user count example uses UserModelService directly', function 
 });
 
 test('the cached verified user count example uses the repository cache directly', function (): void {
-    $cache = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->andReturn($cache);
+    Config::set('cache.default', 'array');
     Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
-    Config::set('arch.repository_cache.prefix', 'arch_repo');
+    Config::set('arch.repository_cache.prefix', 'direct_example_count');
+    User::insert([
+        ...User::factory()->count(2)->raw(['email_verified_at' => '2026-01-01 00:00:00']),
+        ...User::factory()->count(2)->raw(['email_verified_at' => null]),
+    ]);
+    $repository = app(UserModelService::class)->getRepository()->cache();
+    $params = [['email_verified_at', '!=', null]];
 
-    $cache->shouldReceive('remember')->once()->andReturn(3);
+    $coldResult = $repository->countByParams($params);
+    User::insert(User::factory()->raw(['email_verified_at' => '2026-01-01 00:00:00']));
+    $warmResult = $repository->countByParams($params);
 
-    $result = app(UserModelService::class)->getRepository()->cache()->countByParams([['email_verified_at', '!=', null]]);
-
-    expect($result)->toBe(3);
+    expect($coldResult)->toBe(2)
+        ->and(User::query()->whereNotNull('email_verified_at')->count())->toBe(3)
+        ->and($warmResult)->toBe(2);
 });
 
 test('the model manager delete example uses UserModelManager directly', function (): void {
@@ -65,18 +69,24 @@ test('the get user example uses UserModelService directly', function (): void {
 });
 
 test('the cached get user example uses the repository cache directly', function (): void {
-    $cache = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->andReturn($cache);
+    Config::set('cache.default', 'array');
     Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
-    Config::set('arch.repository_cache.prefix', 'arch_repo');
-    $user = User::factory()->create();
-    $cache->shouldReceive('remember')->once()->andReturn($user);
+    Config::set('arch.repository_cache.prefix', 'direct_example_get');
+    $email = 'cached-get@example.com';
+    User::insert([
+        User::factory()->raw(['email' => 'not-cached-get@example.com']),
+        User::factory()->raw(['email' => $email]),
+    ]);
+    $repository = app(UserModelService::class)->getRepository()->cache();
 
-    $result = app(UserModelService::class)->getRepository()->cache()->getOneByParams(['id' => $user->id]);
+    $coldResult = $repository->getOneByParams(['email' => $email]);
+    User::query()->where('email', $email)->delete();
+    $warmResult = $repository->getOneByParams(['email' => $email]);
 
-    expect($result)->not->toBeNull()
-        ->and($result?->id)->toBe($user->id);
+    expect($coldResult->email)->toBe($email)
+        ->and(User::query()->where('email', $email)->count())->toBe(0)
+        ->and($warmResult->email)->toBe($email);
 });
 
 test('the paginated users example uses UserModelService directly', function (): void {
@@ -89,17 +99,23 @@ test('the paginated users example uses UserModelService directly', function (): 
 });
 
 test('the cached paginated users example uses the repository cache directly', function (): void {
-    $cache = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->andReturn($cache);
+    Config::set('cache.default', 'array');
     Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
-    Config::set('arch.repository_cache.prefix', 'arch_repo');
-    $expected = new LengthAwarePaginator(collect(), 3, 15);
-    $cache->shouldReceive('remember')->once()->andReturn($expected);
+    Config::set('arch.repository_cache.prefix', 'direct_example_paginate');
+    User::insert([
+        ...User::factory()->count(2)->raw(['name' => 'Cached']),
+        User::factory()->raw(['name' => 'Not cached']),
+    ]);
+    $repository = app(UserModelService::class)->getRepository()->cache();
 
-    $result = app(UserModelService::class)->getRepository()->cache()->paginateByParams([]);
+    $coldResult = $repository->paginateByParams(['name' => 'Cached']);
+    User::insert(User::factory()->raw(['name' => 'Cached']));
+    $warmResult = $repository->paginateByParams(['name' => 'Cached']);
 
-    expect($result)->toBe($expected);
+    expect($coldResult->total())->toBe(2)
+        ->and(User::query()->where('name', 'Cached')->count())->toBe(3)
+        ->and($warmResult->total())->toBe(2);
 });
 
 test('the bulk import example uses UserModelService directly', function (): void {
@@ -135,15 +151,22 @@ test('the user search example uses UserModelService directly', function (): void
 });
 
 test('the cached user search example uses the repository cache directly', function (): void {
-    $cache = Mockery::mock(CacheRepository::class);
-    Cache::shouldReceive('store')->andReturn($cache);
+    Config::set('cache.default', 'array');
     Config::set('arch.repository_cache.enabled', value: true);
     Config::set('arch.repository_cache.ttl', 3_600);
-    Config::set('arch.repository_cache.prefix', 'arch_repo');
-    $user = User::factory()->create();
-    $cache->shouldReceive('remember')->once()->andReturn($user);
+    Config::set('arch.repository_cache.prefix', 'direct_example_search');
+    $email = 'cached-search@example.com';
+    User::insert([
+        User::factory()->raw(['email' => 'not-cached-search@example.com']),
+        User::factory()->raw(['email' => $email]),
+    ]);
+    $repository = app(UserModelService::class)->getRepository()->cache();
 
-    $result = app(UserModelService::class)->getRepository()->cache()->findOneByParams(['id' => $user->id]);
+    $coldResult = $repository->findOneByParams(['email' => $email]);
+    User::query()->where('email', $email)->delete();
+    $warmResult = $repository->findOneByParams(['email' => $email]);
 
-    expect($result)->toBe($user);
+    expect($coldResult?->email)->toBe($email)
+        ->and(User::query()->where('email', $email)->count())->toBe(0)
+        ->and($warmResult?->email)->toBe($email);
 });
