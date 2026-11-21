@@ -25,7 +25,7 @@ test('NoManualArchitectureServiceInstantiationRule reports new on every architec
         manualArchitectureInstantiationMessage('Pekral\Arch\Examples\Services\User\UserModelManager'),
         manualArchitectureInstantiationMessage('Pekral\Arch\Examples\Services\User\UserModelService'),
         manualArchitectureInstantiationMessage('Pekral\Arch\Examples\Services\User\UserRepository'),
-        manualArchitectureInstantiationMessage('Pekral\Arch\Examples\Actions\User\GetUser'),
+        manualArchitectureInstantiationMessage('Pekral\Arch\Examples\Actions\User\BulkImportUsers'),
     ]);
 });
 
