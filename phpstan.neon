@@ -20,6 +20,10 @@ parameters:
 
 services:
     -
+        class: Pekral\Arch\PHPStan\Rules\NoSimpleLogicActionsRule
+        tags:
+            - phpstan.rules.rule
+    -
         class: Pekral\Arch\PHPStan\Rules\NoEloquentStorageMethodsInActionsRule
         tags:
             - phpstan.rules.rule
